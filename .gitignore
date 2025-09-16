@@ -41,4 +41,6 @@
 *.dwo
 
 # VS Code files
+.cache
+.idea
 .vscode

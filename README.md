@@ -68,3 +68,23 @@ python scripts/bag_to_images.py data/run1.bag extracted_images --limit-per-topic
 * Unrecognized encodings attempt fallback shaping from `step` size; verify correctness.
 * Timestamps in filenames are relative to the earliest message timestamp in the bag.
 * For large bags, consider running with `--quiet` to reduce console output.
+
+## C++ Hello App
+
+A minimal C++ application is provided in `zenslam_app`.
+
+Build and run:
+
+```bash
+mkdir -p build
+cd build
+cmake ../zenslam_app
+cmake --build . --config Release
+./zenslam_app
+```
+
+You should see:
+
+```
+Hello World from ZenSLAM!
+```
