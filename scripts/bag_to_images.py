@@ -14,10 +14,7 @@ Requirements: pip install -r requirements.txt
 from __future__ import annotations
 
 import argparse
-import os
 import sys
-import math
-import time
 import io
 from pathlib import Path
 from typing import Optional, Sequence, Tuple, Dict
@@ -162,7 +159,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         written = 0
         limit = args.limit_per_topic
         total_candidate = reader.message_count
-        
+
         if not args.quiet:
             print(f'Found {len(image_connections)} image topic(s). Extracting {total_candidate} messages (before filtering time/limits)...')
 
