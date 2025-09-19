@@ -11,9 +11,11 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <ranges>
 #include <boost/program_options.hpp>
 
 #include "folder_options.h"
+#include "folder_reader.h"
 
 namespace fs = std::filesystem;
 namespace po = boost::program_options;
@@ -71,19 +73,19 @@ bool parse_args(int argc, char **argv, options &opts)
 
 std::vector<fs::path> list_images(const fs::path &dir)
 {
-    static const std::vector<std::string> exts{".png", ".jpg", ".jpeg", ".bmp", ".tiff"};
+    static const std::vector<std::string> extensions{".png", ".jpg", ".jpeg", ".bmp", ".tiff"};
     std::vector<fs::path>                 files;
     for (auto &p: fs::directory_iterator(dir))
     {
         if (!p.is_regular_file()) continue;
         auto ext = p.path().extension().string();
-        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-        if (std::find(exts.begin(), exts.end(), ext) != exts.end())
+        std::ranges::transform(ext, ext.begin(), ::tolower);
+        if (std::ranges::find(extensions, ext) != extensions.end())
         {
             files.push_back(p.path());
         }
     }
-    std::sort(files.begin(), files.end());
+    std::ranges::sort(files);
     return files;
 }
 
@@ -125,6 +127,18 @@ int main(int argc, char **argv)
         if (map.contains("folder-root")) folder_options.folder_root = map["folder-root"].as<std::string>();
         if (map.contains("folder-left")) folder_options.folder_left = map["folder-left"].as<std::string>();
         if (map.contains("folder-right")) folder_options.folder_right = map["folder-right"].as<std::string>();
+
+        folder_options.print();
+
+        auto folder_reader_l = zenslam::folder_reader(folder_options.folder_root / folder_options.folder_left);
+        auto folder_reader_r = zenslam::folder_reader(folder_options.folder_root / folder_options.folder_right);
+
+        for (auto [image_l, image_r]: std::views::zip(folder_reader_l, folder_reader_r))
+        {
+            cv::imshow("left", image_l);
+            cv::imshow("right", image_r);
+            cv::waitKey(1);
+        }
     }
     catch (const std::exception &e)
     {
