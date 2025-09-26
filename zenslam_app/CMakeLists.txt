@@ -12,7 +12,8 @@ message(STATUS "Using Boost: " ${Boost_VERSION})
 add_executable(zenslam_app source/main.cpp
         source/folder_options.cpp
         source/folder_reader.cpp
-        include/folder_reader.h
+        source/mono_frame.cpp
+        source/stereo_frame.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
