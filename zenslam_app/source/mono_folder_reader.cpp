@@ -1,7 +1,10 @@
 #include "mono_folder_reader.h"
 
 #include <algorithm>
+
 #include <opencv2/imgcodecs.hpp>
+
+#include <spdlog/spdlog.h>
 
 namespace zenslam { namespace
     {
@@ -29,7 +32,7 @@ namespace zenslam { namespace
         return std::ranges::any_of(extensions, [&ext](auto e) { return is_equals(e, ext); });
     }
 
-    void mono_folder_reader::scan(const path_type &directory, bool recursive)
+    void mono_folder_reader::scan(const path_type &directory, const bool recursive)
     {
         _files.clear();
 
@@ -63,7 +66,7 @@ namespace zenslam { namespace
         std::ranges::sort(_files);
     }
 
-    mono_folder_reader::mono_folder_reader(const path_type &directory, bool recursive, double timescale)
+    mono_folder_reader::mono_folder_reader(const path_type &directory, const bool recursive, const double timescale)
     {
         scan(directory, recursive);
 
@@ -74,12 +77,14 @@ namespace zenslam { namespace
     {
         if (index >= _files.size())
         {
-            return {}; // return empty Mat (or throw)
+            return { }; // return empty Mat (or throw)
         }
 
         // treat filename as time-stamp in nanoseconds
-        const auto timestamp = std::stod(_files[index].stem().string()) * _timescale;
-
-        return {timestamp, cv::imread(_files[index].string(), cv::IMREAD_UNCHANGED)};
+        return
+        {
+            (std::stod(_files[index].stem().string()) * _timescale),
+            cv::imread(_files[index].string(), cv::IMREAD_UNCHANGED)
+        };
     }
 } // namespace zenslam

@@ -14,18 +14,18 @@ public:
     using reference         = ValueType;
 
     random_access_iterator() = default;
-    random_access_iterator(const Owner* owner, std::size_t index)
+    random_access_iterator(const Owner* owner, const std::size_t index)
         : owner_(owner), index_(index) {}
 
     reference operator*() const { return (*owner_)[index_]; }
-    reference operator[](difference_type n) const { return (*owner_)[index_ + n]; }
+    reference operator[](const difference_type n) const { return (*owner_)[index_ + n]; }
 
     random_access_iterator& operator++() { ++index_; return *this; }
     random_access_iterator operator++(int) { auto tmp = *this; ++*this; return tmp; }
     random_access_iterator& operator--() { --index_; return *this; }
     random_access_iterator operator--(int) { auto tmp = *this; --*this; return tmp; }
-    random_access_iterator& operator+=(difference_type n) { index_ += n; return *this; }
-    random_access_iterator& operator-=(difference_type n) { index_ -= n; return *this; }
+    random_access_iterator& operator+=(const difference_type n) { index_ += n; return *this; }
+    random_access_iterator& operator-=(const difference_type n) { index_ -= n; return *this; }
     friend random_access_iterator operator+(random_access_iterator it, difference_type n) { it += n; return it; }
     friend random_access_iterator operator+(difference_type n, random_access_iterator it) { it += n; return it; }
     friend random_access_iterator operator-(random_access_iterator it, difference_type n) { it -= n; return it; }

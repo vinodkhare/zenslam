@@ -44,6 +44,9 @@
 .cache
 .idea
 .vscode
+build
 
 # MacOS files
 .DS_Store
+
+

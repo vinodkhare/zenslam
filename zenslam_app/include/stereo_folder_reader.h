@@ -30,11 +30,11 @@ namespace zenslam
 
         stereo_frame operator[](const std::size_t idx) const
         {
-            return stereo_frame{_left[idx], _right[idx]};
+            return stereo_frame { _left[idx], _right[idx] };
         }
 
-        [[nodiscard]] iterator begin() const { return iterator{this, 0}; }
-        [[nodiscard]] iterator end() const { return iterator{this, size()}; }
+        [[nodiscard]] iterator begin() const { return iterator { this, 0 }; }
+        [[nodiscard]] iterator end() const { return iterator { this, size() }; }
 
         [[nodiscard]] const mono_folder_reader &left() const noexcept { return _left; }
         [[nodiscard]] const mono_folder_reader &right() const noexcept { return _right; }

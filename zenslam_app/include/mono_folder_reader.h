@@ -23,7 +23,7 @@ namespace zenslam
         [[nodiscard]] const std::vector<path_type> &paths() const noexcept { return _files; }
 
         // Load mono_frame at index (lazy). Returns mono_frame with empty image if load fails.
-        mono_frame operator[](std::size_t idx) const;
+        mono_frame operator[](std::size_t index) const;
 
         using iterator = random_access_iterator<mono_folder_reader, mono_frame>;
         [[nodiscard]] iterator begin() const { return iterator(this, 0); }
