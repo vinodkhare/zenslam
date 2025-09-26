@@ -10,12 +10,11 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <algorithm>
 #include <ranges>
 #include <boost/program_options.hpp>
 
 #include "folder_options.h"
-#include "folder_reader.h"
+#include "mono_folder_reader.h"
 
 namespace fs = std::filesystem;
 namespace po = boost::program_options;
@@ -66,10 +65,10 @@ int main(int argc, char **argv)
 
         folder_options.print();
 
-        auto folder_reader_l = zenslam::folder_reader(folder_options.folder_root / folder_options.folder_left, false,
+        auto folder_reader_l = zenslam::mono_folder_reader(folder_options.folder_root / folder_options.folder_left, false,
                                                       folder_options.folder_timescale);
 
-        auto folder_reader_r = zenslam::folder_reader(folder_options.folder_root / folder_options.folder_right, false,
+        auto folder_reader_r = zenslam::mono_folder_reader(folder_options.folder_root / folder_options.folder_right, false,
                                                       folder_options.folder_timescale);
 
         for (auto [frame_l, frame_r]: std::views::zip(folder_reader_l, folder_reader_r))

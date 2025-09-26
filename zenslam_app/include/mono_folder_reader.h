@@ -1,23 +1,22 @@
 ﻿#pragma once
 
 #include <filesystem>
-#include <iterator>
 #include <vector>
-
 #include <opencv2/core.hpp>
+
 #include "mono_frame.h"
 #include "random_access_iterator.h"
 
 namespace zenslam
 {
-    // folder_reader: collects image file paths and offers random-access iteration.
-    // Element type is zenslam::mono_frame (contains timestamp and cv::Mat image).
-    class folder_reader
+    // mono_folder_reader: collects image file paths and offers random-access iteration.
+    // The element type is zenslam::mono_frame (contains timestamp and cv::Mat image).
+    class mono_folder_reader
     {
     public:
         using path_type = std::filesystem::path;
 
-        explicit folder_reader(const path_type &directory, bool recursive = false, double timescale = 1E-9);
+        explicit mono_folder_reader(const path_type &directory, bool recursive = false, double timescale = 1E-9);
 
         [[nodiscard]] std::size_t                   size() const noexcept { return _files.size(); }
         [[nodiscard]] bool                          empty() const noexcept { return _files.empty(); }
@@ -26,7 +25,7 @@ namespace zenslam
         // Load mono_frame at index (lazy). Returns mono_frame with empty image if load fails.
         mono_frame operator[](std::size_t idx) const;
 
-        using iterator = random_access_iterator<folder_reader, mono_frame>;
+        using iterator = random_access_iterator<mono_folder_reader, mono_frame>;
         [[nodiscard]] iterator begin() const { return iterator(this, 0); }
         [[nodiscard]] iterator end() const { return iterator(this, _files.size()); }
 

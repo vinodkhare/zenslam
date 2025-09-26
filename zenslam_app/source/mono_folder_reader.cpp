@@ -1,4 +1,4 @@
-#include "folder_reader.h"
+#include "mono_folder_reader.h"
 
 #include <algorithm>
 #include <opencv2/imgcodecs.hpp>
@@ -17,7 +17,7 @@ namespace zenslam { namespace
         }
     } // namespace
 
-    bool folder_reader::is_image_file(const path_type &p)
+    bool mono_folder_reader::is_image_file(const path_type &p)
     {
         static const char *extensions[] = {
             ".png", ".jpg", ".jpeg",
@@ -29,7 +29,7 @@ namespace zenslam { namespace
         return std::ranges::any_of(extensions, [&ext](auto e) { return is_equals(e, ext); });
     }
 
-    void folder_reader::scan(const path_type &directory, bool recursive)
+    void mono_folder_reader::scan(const path_type &directory, bool recursive)
     {
         _files.clear();
 
@@ -63,14 +63,14 @@ namespace zenslam { namespace
         std::ranges::sort(_files);
     }
 
-    folder_reader::folder_reader(const path_type &directory, bool recursive, double timescale)
+    mono_folder_reader::mono_folder_reader(const path_type &directory, bool recursive, double timescale)
     {
         scan(directory, recursive);
 
         _timescale = timescale;
     }
 
-    mono_frame folder_reader::operator[](const std::size_t index) const
+    mono_frame mono_folder_reader::operator[](const std::size_t index) const
     {
         if (index >= _files.size())
         {

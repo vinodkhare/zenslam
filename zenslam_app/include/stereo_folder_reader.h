@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "folder_reader.h"
+#include "mono_folder_reader.h"
 #include "random_access_iterator.h"
 #include "stereo_frame.h"
 
@@ -36,11 +36,11 @@ namespace zenslam
         [[nodiscard]] iterator begin() const { return iterator{this, 0}; }
         [[nodiscard]] iterator end() const { return iterator{this, size()}; }
 
-        [[nodiscard]] const folder_reader &left() const noexcept { return _left; }
-        [[nodiscard]] const folder_reader &right() const noexcept { return _right; }
+        [[nodiscard]] const mono_folder_reader &left() const noexcept { return _left; }
+        [[nodiscard]] const mono_folder_reader &right() const noexcept { return _right; }
 
     private:
-        folder_reader _left;
-        folder_reader _right;
+        mono_folder_reader _left;
+        mono_folder_reader _right;
     };
 } // namespace zenslam

@@ -11,7 +11,7 @@ message(STATUS "Using Boost: " ${Boost_VERSION})
 
 add_executable(zenslam_app source/main.cpp
         source/folder_options.cpp
-        source/folder_reader.cpp
+        source/mono_folder_reader.cpp
         source/mono_frame.cpp
         source/stereo_folder_reader.cpp
         source/stereo_frame.cpp
