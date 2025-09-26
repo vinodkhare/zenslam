@@ -9,6 +9,9 @@ message(STATUS "Using OpenCV: " ${OpenCV_VERSION})
 find_package(Boost CONFIG REQUIRED COMPONENTS program_options)
 message(STATUS "Using Boost: " ${Boost_VERSION})
 
+find_package(concurrentqueue CONFIG REQUIRED)
+message(STATUS "Using concurrentqueue: " ${concurrentqueue_VERSION})
+
 find_package(spdlog CONFIG REQUIRED)
 message(STATUS "Using spdlog: " ${spdlog_VERSION})
 
@@ -18,10 +21,12 @@ add_executable(zenslam_app source/main.cpp
         source/mono_frame.cpp
         source/stereo_folder_reader.cpp
         source/stereo_frame.cpp
+        source/utils.cpp
+        source/viewer.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
-target_link_libraries(${PROJECT_NAME} PRIVATE opencv_highgui opencv_core opencv_features2d Boost::program_options spdlog::spdlog)
+target_link_libraries(${PROJECT_NAME} PRIVATE opencv_highgui opencv_core opencv_features2d Boost::program_options spdlog::spdlog concurrentqueue::concurrentqueue)
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

@@ -22,26 +22,11 @@
 
 #include "folder_options.h"
 #include "stereo_folder_reader.h"
+#include "utils.h"
+#include "viewer.h"
 
 namespace filesystem = std::filesystem;
 namespace program_options = boost::program_options;
-
-namespace zenslam
-{
-    std::string epoch_double_to_string(const double epoch_seconds)
-    {
-        // Split into integral seconds and fractional milliseconds
-        const auto &seconds      = floor<std::chrono::seconds>(std::chrono::duration<double>(epoch_seconds));
-        const auto &milliseconds = duration_cast<std::chrono::milliseconds>
-                (std::chrono::duration<double>(epoch_seconds) - seconds);
-
-        // sys_time with milliseconds precision
-        auto time_point = std::chrono::sys_seconds(seconds) + milliseconds;
-
-        // Format: YYYY-MM-DD HH:MM:SS.mmm UTC
-        return std::format("{:%F %T} UTC", time_point);
-    }
-}
 
 int main(int argc, char **argv)
 {
@@ -109,17 +94,19 @@ int main(int argc, char **argv)
             folder_options.folder_timescale
         );
 
+        auto viewer = zenslam::viewer();
+
         for (const auto &stereo: stereo_reader)
         {
             // show the stereo frame
             {
                 cv::imshow("L", stereo.l.image);
                 cv::setWindowTitle
-                        ("L", std::format("L: {{ t: {} }}", zenslam::epoch_double_to_string(stereo.l.timestamp)));
+                        ("L", std::format("L: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo.l.timestamp)));
 
                 cv::imshow("R", stereo.r.image);
                 cv::setWindowTitle
-                        ("R", std::format("R: {{ t: {} }}", zenslam::epoch_double_to_string(stereo.r.timestamp)));
+                        ("R", std::format("R: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo.r.timestamp)));
 
                 cv::waitKey(1);
             }
