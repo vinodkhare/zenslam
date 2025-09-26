@@ -5,31 +5,33 @@
 #include <vector>
 #include <opencv2/core.hpp>
 
+#include "mono_frame.h"
+
 namespace zenslam
 {
-    // FolderReader: collects image file paths and offers random-access iteration.
-    // cv::Mat uses reference counting, so returning by value is inexpensive.
+    // folder_reader: collects image file paths and offers random-access iteration.
+    // Element type is zenslam::mono_frame (contains timestamp and cv::Mat image).
     class folder_reader
     {
     public:
         using path_type = std::filesystem::path;
 
-        explicit folder_reader(const path_type &directory, bool recursive = false);
+        explicit folder_reader(const path_type &directory, bool recursive = false, double timescale = 1E-9);
 
         [[nodiscard]] std::size_t                   size() const noexcept { return _files.size(); }
         [[nodiscard]] bool                          empty() const noexcept { return _files.empty(); }
         [[nodiscard]] const std::vector<path_type> &paths() const noexcept { return _files; }
 
-        // Load image at index (lazy). Returns empty Mat if load fails.
-        cv::Mat operator[](std::size_t idx) const;
+        // Load mono_frame at index (lazy). Returns mono_frame with empty image if load fails.
+        mono_frame operator[](std::size_t idx) const;
 
         struct iterator
         {
             using iterator_category = std::random_access_iterator_tag;
-            using value_type        = cv::Mat;
+            using value_type        = zenslam::mono_frame;
             using difference_type   = std::ptrdiff_t;
-            using pointer           = void;    // not providing pointer semantics
-            using reference         = cv::Mat; // cv::Mat returned by value
+            using pointer           = void;                // not providing pointer semantics
+            using reference         = zenslam::mono_frame; // returned by value
 
             iterator() = default;
 
@@ -125,6 +127,7 @@ namespace zenslam
 
         static bool is_image_file(const path_type &p);
 
-        std::vector<path_type> _files;
+        std::vector<path_type> _files     = {};
+        double                 _timescale = 1E-9;
     };
 } // namespace zenslam

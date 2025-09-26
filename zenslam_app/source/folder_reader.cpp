@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <opencv2/imgcodecs.hpp>
 
-namespace zenslam {namespace
+namespace zenslam { namespace
     {
         bool is_equals(const std::string &a, const std::string &b)
         {
@@ -23,14 +23,10 @@ namespace zenslam {namespace
             ".png", ".jpg", ".jpeg",
             ".bmp", ".tif", ".tiff"
         };
+
         const auto ext = p.extension().string();
 
-        for (auto e: extensions)
-        {
-            if (is_equals(ext, e))
-                return true;
-        }
-        return false;
+        return std::ranges::any_of(extensions, [&ext](auto e) { return is_equals(e, ext); });
     }
 
     void folder_reader::scan(const path_type &directory, bool recursive)
@@ -67,18 +63,23 @@ namespace zenslam {namespace
         std::ranges::sort(_files);
     }
 
-    folder_reader::folder_reader(const path_type &directory, bool recursive)
+    folder_reader::folder_reader(const path_type &directory, bool recursive, double timescale)
     {
         scan(directory, recursive);
+
+        _timescale = timescale;
     }
 
-    cv::Mat folder_reader::operator[](const std::size_t index) const
+    mono_frame folder_reader::operator[](const std::size_t index) const
     {
         if (index >= _files.size())
         {
             return {}; // return empty Mat (or throw)
         }
 
-        return cv::imread(_files[index].string(), cv::IMREAD_UNCHANGED);
+        // treat filename as time-stamp in nanoseconds
+        const auto timestamp = std::stod(_files[index].stem().string()) * _timescale;
+
+        return {timestamp, cv::imread(_files[index].string(), cv::IMREAD_UNCHANGED)};
     }
 } // namespace zenslam

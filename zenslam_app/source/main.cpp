@@ -20,75 +20,6 @@
 namespace fs = std::filesystem;
 namespace po = boost::program_options;
 
-struct options
-{
-    fs::path left_dir;
-    fs::path right_dir;
-    int      delay_ms = 30; // inter-frame delay
-    bool     loop     = false;
-    int      resize_w = 0; // 0 = no resize
-    int      resize_h = 0;
-};
-
-bool parse_args(int argc, char **argv, options &opts)
-{
-    if (argc < 3)
-    {
-        std::cerr << "Usage: " << argv[0] << " <left_dir> <right_dir> [--delay ms] [--loop] [--resize W H]\n";
-        return false;
-    }
-    opts.left_dir  = argv[1];
-    opts.right_dir = argv[2];
-    for (int i = 3; i < argc; ++i)
-    {
-        std::string a = argv[i];
-        if (a == "--delay" && i + 1 < argc)
-        {
-            opts.delay_ms = std::stoi(argv[++i]);
-        } else if (a == "--loop")
-        {
-            opts.loop = true;
-        } else if (a == "--resize" && i + 2 < argc)
-        {
-            opts.resize_w = std::stoi(argv[++i]);
-            opts.resize_h = std::stoi(argv[++i]);
-        } else
-        {
-            std::cerr << "Unknown or incomplete argument: " << a << "\n";
-            return false;
-        }
-    }
-    if (!fs::exists(opts.left_dir) || !fs::is_directory(opts.left_dir))
-    {
-        std::cerr << "Left directory invalid: " << opts.left_dir << "\n";
-        return false;
-    }
-    if (!fs::exists(opts.right_dir) || !fs::is_directory(opts.right_dir))
-    {
-        std::cerr << "Right directory invalid: " << opts.right_dir << "\n";
-        return false;
-    }
-    return true;
-}
-
-std::vector<fs::path> list_images(const fs::path &dir)
-{
-    static const std::vector<std::string> extensions{".png", ".jpg", ".jpeg", ".bmp", ".tiff"};
-    std::vector<fs::path>                 files;
-    for (auto &p: fs::directory_iterator(dir))
-    {
-        if (!p.is_regular_file()) continue;
-        auto ext = p.path().extension().string();
-        std::ranges::transform(ext, ext.begin(), ::tolower);
-        if (std::ranges::find(extensions, ext) != extensions.end())
-        {
-            files.push_back(p.path());
-        }
-    }
-    std::ranges::sort(files);
-    return files;
-}
-
 int main(int argc, char **argv)
 {
     // Parse optional folder options using Boost.Program_options
@@ -101,8 +32,12 @@ int main(int argc, char **argv)
 
         folder_options_description.add_options()
                 ("folder-root", po::value<std::string>()->default_value(folder_options.folder_root), "Root folder")
-                ("folder-left", po::value<std::string>()->default_value(folder_options.folder_left), "Left folder relative to root (or absolute)")
-                ("folder-right", po::value<std::string>()->default_value(folder_options.folder_right), "Right folder relative to root (or absolute)")
+                ("folder-left", po::value<std::string>()->default_value(folder_options.folder_left),
+                 "Left folder relative to root (or absolute)")
+                ("folder-right", po::value<std::string>()->default_value(folder_options.folder_right),
+                 "Right folder relative to root (or absolute)")
+                ("folder-timescale", po::value<double>()->default_value(folder_options.folder_timescale),
+                 "Timescale for folder timestamps")
                 ("help,h", "Show help");
 
         auto options_description = boost::program_options::options_description("options");
@@ -127,20 +62,23 @@ int main(int argc, char **argv)
         if (map.contains("folder-root")) folder_options.folder_root = map["folder-root"].as<std::string>();
         if (map.contains("folder-left")) folder_options.folder_left = map["folder-left"].as<std::string>();
         if (map.contains("folder-right")) folder_options.folder_right = map["folder-right"].as<std::string>();
+        if (map.contains("folder-timescale")) folder_options.folder_timescale = map["folder-timescale"].as<double>();
 
         folder_options.print();
 
-        auto folder_reader_l = zenslam::folder_reader(folder_options.folder_root / folder_options.folder_left);
-        auto folder_reader_r = zenslam::folder_reader(folder_options.folder_root / folder_options.folder_right);
+        auto folder_reader_l = zenslam::folder_reader(folder_options.folder_root / folder_options.folder_left, false,
+                                                      folder_options.folder_timescale);
 
-        for (auto [image_l, image_r]: std::views::zip(folder_reader_l, folder_reader_r))
+        auto folder_reader_r = zenslam::folder_reader(folder_options.folder_root / folder_options.folder_right, false,
+                                                      folder_options.folder_timescale);
+
+        for (auto [frame_l, frame_r]: std::views::zip(folder_reader_l, folder_reader_r))
         {
-            cv::imshow("left", image_l);
-            cv::imshow("right", image_r);
+            cv::imshow("L", frame_l.image);
+            cv::imshow("R", frame_r.image);
             cv::waitKey(1);
         }
-    }
-    catch (const std::exception &e)
+    } catch (const std::exception &e)
     {
         std::cerr << "Error parsing folder options: " << e.what() << "\n";
         return 1;
