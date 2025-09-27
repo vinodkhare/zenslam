@@ -22,6 +22,7 @@
 
 #include "folder_options.h"
 #include "stereo_folder_reader.h"
+#include "thread_safe.h"
 #include "utils.h"
 #include "viewer.h"
 
@@ -94,19 +95,32 @@ int main(int argc, char **argv)
             folder_options.folder_timescale
         );
 
-        auto viewer = zenslam::viewer();
+        zenslam::thread_safe<zenslam::stereo_frame> stereo;
 
-        for (const auto &stereo: stereo_reader)
+        std::jthread slam_thread([&stereo, &stereo_reader]()
+        {
+            for (const auto& frame : stereo_reader)
+            {
+                stereo = frame;
+            }
+        });
+
+        while (true)
         {
             // show the stereo frame
             {
-                cv::imshow("L", stereo.l.image);
-                cv::setWindowTitle
-                        ("L", std::format("L: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo.l.timestamp)));
+                if (stereo->l.image.empty() || stereo->r.image.empty())
+                {
+                    continue;
+                }
 
-                cv::imshow("R", stereo.r.image);
+                cv::imshow("L", stereo->l.image);
                 cv::setWindowTitle
-                        ("R", std::format("R: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo.r.timestamp)));
+                        ("L", std::format("L: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo->l.timestamp)));
+
+                cv::imshow("R", stereo->r.image);
+                cv::setWindowTitle
+                        ("R", std::format("R: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo->r.timestamp)));
 
                 cv::waitKey(1);
             }
@@ -117,8 +131,8 @@ int main(int argc, char **argv)
 
             auto detector = cv::FastFeatureDetector::create(16);
 
-            detector->detect(stereo.l.image, keypoints_l);
-            detector->detect(stereo.r.image, keypoints_r);
+            detector->detect(stereo->l.image, keypoints_l);
+            detector->detect(stereo->r.image, keypoints_r);
 
             SPDLOG_INFO("Detected points L: {}", keypoints_l.size());
             SPDLOG_INFO("Detected points R: {}", keypoints_r.size());
@@ -129,7 +143,7 @@ int main(int argc, char **argv)
                 // DRAW_RICH_KEYPOINTS shows size & orientation
                 cv::drawKeypoints
                 (
-                    stereo.l.image,
+                    stereo->l.image,
                     keypoints_l,
                     vis_l,
                     cv::Scalar(0, 255, 0),
@@ -138,7 +152,7 @@ int main(int argc, char **argv)
 
                 cv::drawKeypoints
                 (
-                    stereo.r.image,
+                    stereo->r.image,
                     keypoints_r,
                     vis_r,
                     cv::Scalar(0, 255, 0),

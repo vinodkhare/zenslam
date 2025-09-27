@@ -23,6 +23,7 @@ add_executable(zenslam_app source/main.cpp
         source/stereo_frame.cpp
         source/utils.cpp
         source/viewer.cpp
+        source/thread_safe.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)

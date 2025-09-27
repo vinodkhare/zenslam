@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "mono_frame.h"
 
 namespace zenslam
@@ -7,13 +9,20 @@ namespace zenslam
     class stereo_frame
     {
     public:
-        mono_frame l  = mono_frame();
+        mono_frame l = mono_frame();
         mono_frame r = mono_frame();
 
         stereo_frame() = default;
 
-        stereo_frame(const mono_frame &l, const mono_frame &r) : l(l), r(r)
+        stereo_frame(mono_frame l, mono_frame r) :
+            l(std::move(l)),
+            r(std::move(r))
         {
         }
+
+        stereo_frame(const stereo_frame &other)                = default;
+        stereo_frame &operator=(const stereo_frame &other)     = default;
+        stereo_frame(stereo_frame &&other) noexcept            = default;
+        stereo_frame &operator=(stereo_frame &&other) noexcept = default;
     };
 } // namespace zenslam
