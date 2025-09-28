@@ -21,6 +21,7 @@
 #include <spdlog/spdlog.h>
 
 #include "folder_options.h"
+#include "grid_detector.h"
 #include "stereo_folder_reader.h"
 #include "thread_safe.h"
 #include "utils.h"
@@ -92,11 +93,38 @@ int main(int argc, char **argv)
         zenslam::thread_safe<cv::Mat>               keypoints_image_l;
         zenslam::thread_safe<cv::Mat>               keypoints_image_r;
 
-        const auto &on_frame = [&](const zenslam::stereo_frame &frame) { stereo = frame; };
+        const auto &on_frame = [&stereo](const zenslam::stereo_frame &frame) { stereo = frame; };
+
+        const auto &on_keypoints = [&keypoints_image_l, &keypoints_image_r](const zenslam::stereo_frame &frame)
+        {
+            cv::Mat vis_l, vis_r;
+
+            // DRAW_RICH_KEYPOINTS shows size & orientation
+            cv::drawKeypoints
+            (
+                frame.l.image,
+                frame.l.keypoints,
+                vis_l,
+                cv::Scalar(0, 255, 0),
+                cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
+            );
+
+            cv::drawKeypoints
+            (
+                frame.r.image,
+                frame.r.keypoints,
+                vis_r,
+                cv::Scalar(0, 255, 0),
+                cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
+            );
+
+            keypoints_image_l = vis_l;
+            keypoints_image_r = vis_r;
+        };
 
         std::jthread slam_thread
         (
-            [&keypoints_image_l, &keypoints_image_r, on_frame, folder_options]()
+            [folder_options, on_frame, on_keypoints]()
             {
                 const auto &stereo_reader = zenslam::stereo_folder_reader
                 (
@@ -105,45 +133,21 @@ int main(int argc, char **argv)
                     folder_options.folder_timescale
                 );
 
-                const auto detector = cv::FastFeatureDetector::create(16);
+                // Create a base detector (FAST)
+                const auto &feature_detector = cv::FastFeatureDetector::create(1);
+                const auto &detector         = zenslam::grid_detector::create(feature_detector, cv::Size(90, 54));
 
-                for (const auto &frame: stereo_reader)
+                for (auto frame: stereo_reader)
                 {
                     on_frame(frame);
 
-                    // detect keypoints
-                    auto keypoints_l = std::vector<cv::KeyPoint>();
-                    auto keypoints_r = std::vector<cv::KeyPoint>();
+                    detector->detect(frame.l.image, frame.l.keypoints, cv::noArray());
+                    detector->detect(frame.r.image, frame.r.keypoints, cv::noArray());
 
-                    detector->detect(frame.l.image, keypoints_l);
-                    detector->detect(frame.r.image, keypoints_r);
+                    SPDLOG_INFO("Detected points L: {}", frame.l.keypoints.size());
+                    SPDLOG_INFO("Detected points R: {}", frame.r.keypoints.size());
 
-                    SPDLOG_INFO("Detected points L: {}", keypoints_l.size());
-                    SPDLOG_INFO("Detected points R: {}", keypoints_r.size());
-
-                    cv::Mat vis_l, vis_r;
-
-                    // DRAW_RICH_KEYPOINTS shows size & orientation
-                    cv::drawKeypoints
-                    (
-                        frame.l.image,
-                        keypoints_l,
-                        vis_l,
-                        cv::Scalar(0, 255, 0),
-                        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
-                    );
-
-                    cv::drawKeypoints
-                    (
-                        frame.r.image,
-                        keypoints_r,
-                        vis_r,
-                        cv::Scalar(0, 255, 0),
-                        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
-                    );
-
-                    keypoints_image_l = vis_l;
-                    keypoints_image_r = vis_r;
+                    on_keypoints(frame);
                 }
             }
         );

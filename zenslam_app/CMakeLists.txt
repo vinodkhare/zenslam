@@ -9,6 +9,9 @@ message(STATUS "Using OpenCV: " ${OpenCV_VERSION})
 find_package(Boost CONFIG REQUIRED COMPONENTS program_options)
 message(STATUS "Using Boost: " ${Boost_VERSION})
 
+find_package(Microsoft.GSL CONFIG REQUIRED)
+message(STATUS "Using Microsoft.GSL: " ${Microsoft.GSL_VERSION})
+
 find_package(concurrentqueue CONFIG REQUIRED)
 message(STATUS "Using concurrentqueue: " ${concurrentqueue_VERSION})
 
@@ -17,6 +20,7 @@ message(STATUS "Using spdlog: " ${spdlog_VERSION})
 
 add_executable(zenslam_app source/main.cpp
         source/folder_options.cpp
+        source/grid_detector.cpp
         source/mono_folder_reader.cpp
         source/mono_frame.cpp
         source/stereo_folder_reader.cpp
@@ -27,7 +31,15 @@ add_executable(zenslam_app source/main.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
-target_link_libraries(${PROJECT_NAME} PRIVATE opencv_highgui opencv_core opencv_features2d Boost::program_options spdlog::spdlog concurrentqueue::concurrentqueue)
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    opencv_highgui 
+    opencv_core 
+    opencv_features2d
+    opencv_imgproc
+    Boost::program_options 
+    spdlog::spdlog 
+    concurrentqueue::concurrentqueue
+)
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
