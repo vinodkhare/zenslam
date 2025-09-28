@@ -46,7 +46,7 @@ namespace zenslam
             {
                 // Lock both mutexes (avoid deadlock by acquiring locks in consistent order)
                 std::lock(_mutex, other._mutex);
-                std::lock_guard<std::mutex> lock1(_mutex, std::adopt_lock);
+                std::lock_guard lock1(_mutex, std::adopt_lock);
                 std::lock_guard<std::mutex> lock2(other._mutex, std::adopt_lock);
                 _value = other._value;
             }
@@ -59,7 +59,7 @@ namespace zenslam
             if (this != &other)
             {
                 std::lock(_mutex, other._mutex);
-                std::lock_guard<std::mutex> lock1(_mutex, std::adopt_lock);
+                std::lock_guard lock1(_mutex, std::adopt_lock);
                 std::lock_guard<std::mutex> lock2(other._mutex, std::adopt_lock);
                 _value = std::move(other._value);
             }
@@ -69,15 +69,16 @@ namespace zenslam
         // Assignment from T (allows implicit conversion)
         thread_safe &operator=(T value)
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard lock(_mutex);
             _value = std::move(value);
             return *this;
         }
 
         // Implicit conversion to T (allows reading the value directly)
+        // ReSharper disable once CppNonExplicitConvertingConstructor
         operator T() const
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard lock(_mutex);
             return _value;
         }
         
@@ -85,14 +86,14 @@ namespace zenslam
         // Use with caution as the reference is temporary
         T& operator*()
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard lock(_mutex);
             return _value;
         }
         
         // Const access to a reference of the protected value
         const T& operator*() const
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard lock(_mutex);
             return _value;
         }
         
@@ -100,14 +101,14 @@ namespace zenslam
         // Usage: counter->member instead of counter.member
         T* operator->()
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard lock(_mutex);
             return &_value;
         }
         
         // Const access to members of the protected value (thread-safe)
         const T* operator->() const
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard lock(_mutex);
             return &_value;
         }
 

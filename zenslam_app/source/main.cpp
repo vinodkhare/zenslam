@@ -88,22 +88,65 @@ int main(int argc, char **argv)
 
         folder_options.print();
 
-        auto stereo_reader = zenslam::stereo_folder_reader
-        (
-            folder_options.folder_root / folder_options.folder_left,
-            folder_options.folder_root / folder_options.folder_right,
-            folder_options.folder_timescale
-        );
-
         zenslam::thread_safe<zenslam::stereo_frame> stereo;
+        zenslam::thread_safe<cv::Mat>               keypoints_image_l;
+        zenslam::thread_safe<cv::Mat>               keypoints_image_r;
 
-        std::jthread slam_thread([&stereo, &stereo_reader]()
-        {
-            for (const auto& frame : stereo_reader)
+        const auto &on_frame = [&](const zenslam::stereo_frame &frame) { stereo = frame; };
+
+        std::jthread slam_thread
+        (
+            [&keypoints_image_l, &keypoints_image_r, on_frame, folder_options]()
             {
-                stereo = frame;
+                const auto &stereo_reader = zenslam::stereo_folder_reader
+                (
+                    folder_options.folder_root / folder_options.folder_left,
+                    folder_options.folder_root / folder_options.folder_right,
+                    folder_options.folder_timescale
+                );
+
+                const auto detector = cv::FastFeatureDetector::create(16);
+
+                for (const auto &frame: stereo_reader)
+                {
+                    on_frame(frame);
+
+                    // detect keypoints
+                    auto keypoints_l = std::vector<cv::KeyPoint>();
+                    auto keypoints_r = std::vector<cv::KeyPoint>();
+
+                    detector->detect(frame.l.image, keypoints_l);
+                    detector->detect(frame.r.image, keypoints_r);
+
+                    SPDLOG_INFO("Detected points L: {}", keypoints_l.size());
+                    SPDLOG_INFO("Detected points R: {}", keypoints_r.size());
+
+                    cv::Mat vis_l, vis_r;
+
+                    // DRAW_RICH_KEYPOINTS shows size & orientation
+                    cv::drawKeypoints
+                    (
+                        frame.l.image,
+                        keypoints_l,
+                        vis_l,
+                        cv::Scalar(0, 255, 0),
+                        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
+                    );
+
+                    cv::drawKeypoints
+                    (
+                        frame.r.image,
+                        keypoints_r,
+                        vis_r,
+                        cv::Scalar(0, 255, 0),
+                        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
+                    );
+
+                    keypoints_image_l = vis_l;
+                    keypoints_image_r = vis_r;
+                }
             }
-        });
+        );
 
         while (true)
         {
@@ -116,54 +159,29 @@ int main(int argc, char **argv)
 
                 cv::imshow("L", stereo->l.image);
                 cv::setWindowTitle
-                        ("L", std::format("L: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo->l.timestamp)));
+                (
+                    "L",
+                    std::format("L: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo->l.timestamp))
+                );
 
                 cv::imshow("R", stereo->r.image);
                 cv::setWindowTitle
-                        ("R", std::format("R: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo->r.timestamp)));
+                (
+                    "R",
+                    std::format("R: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo->r.timestamp))
+                );
 
                 cv::waitKey(1);
             }
 
-            // detect keypoints
-            auto keypoints_l = std::vector<cv::KeyPoint>();
-            auto keypoints_r = std::vector<cv::KeyPoint>();
-
-            auto detector = cv::FastFeatureDetector::create(16);
-
-            detector->detect(stereo->l.image, keypoints_l);
-            detector->detect(stereo->r.image, keypoints_r);
-
-            SPDLOG_INFO("Detected points L: {}", keypoints_l.size());
-            SPDLOG_INFO("Detected points R: {}", keypoints_r.size());
 
             // display rich keypoints on image
             {
-                cv::Mat vis_l, vis_r;
-                // DRAW_RICH_KEYPOINTS shows size & orientation
-                cv::drawKeypoints
-                (
-                    stereo->l.image,
-                    keypoints_l,
-                    vis_l,
-                    cv::Scalar(0, 255, 0),
-                    cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
-                );
+                cv::imshow("L_kp", *keypoints_image_l);
+                cv::setWindowTitle("L_kp", "L_Kp");
 
-                cv::drawKeypoints
-                (
-                    stereo->r.image,
-                    keypoints_r,
-                    vis_r,
-                    cv::Scalar(0, 255, 0),
-                    cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
-                );
-
-                cv::imshow("L_kp", vis_l);
-                cv::setWindowTitle("L_kp", std::format("L_kp: {}/{} keypoints", keypoints_l.size(), 128));
-
-                cv::imshow("R_kp", vis_r);
-                cv::setWindowTitle("R_kp", std::format("R_kp: {}/{} keypoints", keypoints_r.size(), 128));
+                cv::imshow("R_kp", *keypoints_image_r);
+                cv::setWindowTitle("R_kp", "R_kp");
 
                 // brief wait to allow windows to refresh without blocking playback heavily
                 cv::waitKey(1);
