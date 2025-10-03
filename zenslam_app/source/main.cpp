@@ -1,10 +1,4 @@
-// Stereo image directory viewer
-// Usage:
-//   zenslam_app <left_dir> <right_dir> [--delay ms] [--loop] [--resize WIDTH HEIGHT]
-// Images in each directory are expected to be individually loadable by OpenCV (png, jpg, etc.).
-// Frames are paired by sorted filename order. Extra frames in the longer sequence are ignored.
-
-#include <filesystem>
+#include <csignal>
 #include <format>
 #include <iostream>
 #include <string>
@@ -22,11 +16,21 @@
 #include "thread_safe.h"
 #include "utils.h"
 
-namespace filesystem = std::filesystem;
+std::atomic<bool> is_running { true };
 
+void signal_handler(int signal)
+{
+    if (signal == SIGINT)
+    {
+        SPDLOG_INFO("CTRL+C detected, shutting down...");
+        is_running = false;
+    }
+}
 
 int main(int argc, char **argv)
 {
+    std::signal(SIGINT, signal_handler);
+
     spdlog::set_level(spdlog::level::debug);
 
     try
@@ -106,7 +110,7 @@ int main(int argc, char **argv)
                 };
 
 
-        while (true)
+        while (is_running)
         {
             // show the stereo frame
             if (!stereo->l.image.empty() && !stereo->r.image.empty())

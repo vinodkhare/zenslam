@@ -1,23 +1,29 @@
 #include "slam_thread.h"
 
 #include <queue>
+#include <utility>
 
 #include <spdlog/spdlog.h>
 
 #include "grid_detector.h"
 #include "stereo_folder_reader.h"
 
-zenslam::slam_thread::slam_thread(const options &options) :
-    _options { options } {}
+zenslam::slam_thread::slam_thread(options options) :
+    _options { std::move(options) } {}
+
+zenslam::slam_thread::~slam_thread()
+{
+    _stop_source.request_stop();
+}
 
 void zenslam::slam_thread::loop()
 {
     const auto &stereo_reader = stereo_folder_reader
-                (
-                    _options.folder.root / _options.folder.left,
-                    _options.folder.root / _options.folder.right,
-                    _options.folder.timescale
-                );
+    (
+        _options.folder.root / _options.folder.left,
+        _options.folder.root / _options.folder.right,
+        _options.folder.timescale
+    );
 
     // Create a base detector (FAST)
     const auto &feature_detector  = cv::FastFeatureDetector::create(32);
@@ -40,7 +46,6 @@ void zenslam::slam_thread::loop()
         cv::Mat descriptors_l;
         cv::Mat descriptors_r;
 
-
         feature_describer->compute(frame.l.image, frame.l.keypoints, descriptors_l);
         feature_describer->compute(frame.r.image, frame.r.keypoints, descriptors_r);
 
@@ -51,5 +56,10 @@ void zenslam::slam_thread::loop()
         frame.matches = matches;
 
         on_keypoints(frame);
+
+        if (_stop_token.stop_requested())
+        {
+            break;
+        }
     }
 }

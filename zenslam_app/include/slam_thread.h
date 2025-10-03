@@ -14,12 +14,15 @@ namespace zenslam
         event<stereo_frame> on_frame;
         event<stereo_frame> on_keypoints;
 
-        explicit slam_thread(const options &options);
+        explicit slam_thread(options options);
+        ~slam_thread();
 
     private:
         options _options { };
 
-        std::jthread _thread { &slam_thread::loop, this };
+        std::stop_source _stop_source { };
+        std::stop_token _stop_token { _stop_source.get_token() };
+        std::jthread    _thread { &slam_thread::loop, this };
 
         void loop();
     };
