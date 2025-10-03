@@ -9,8 +9,9 @@ namespace zenslam
     class stereo_frame
     {
     public:
-        mono_frame l = mono_frame();
-        mono_frame r = mono_frame();
+        mono_frame              l       = { };
+        mono_frame              r       = { };
+        std::vector<cv::DMatch> matches = { };
 
         stereo_frame() = default;
 

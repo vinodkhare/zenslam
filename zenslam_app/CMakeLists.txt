@@ -31,14 +31,15 @@ add_executable(zenslam_app source/main.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-    opencv_highgui 
-    opencv_core 
-    opencv_features2d
-    opencv_imgproc
-    Boost::program_options 
-    spdlog::spdlog 
-    concurrentqueue::concurrentqueue
+target_link_libraries(${PROJECT_NAME} PRIVATE
+        opencv_highgui
+        opencv_core
+        opencv_features2d
+        opencv_imgproc
+        Boost::program_options
+        spdlog::spdlog
+        concurrentqueue::concurrentqueue
+        Microsoft.GSL::GSL
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 

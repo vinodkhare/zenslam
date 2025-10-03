@@ -92,10 +92,14 @@ int main(int argc, char **argv)
         zenslam::thread_safe<zenslam::stereo_frame> stereo;
         zenslam::thread_safe<cv::Mat>               keypoints_image_l;
         zenslam::thread_safe<cv::Mat>               keypoints_image_r;
+        zenslam::thread_safe<cv::Mat>               matches_image;
 
-        const auto &on_frame = [&stereo](const zenslam::stereo_frame &frame) { stereo = frame; };
+        const auto &on_frame = [&stereo](const zenslam::stereo_frame &frame)
+        {
+            stereo = frame;
+        };
 
-        const auto &on_keypoints = [&keypoints_image_l, &keypoints_image_r](const zenslam::stereo_frame &frame)
+        const auto &on_keypoints = [&keypoints_image_l, &keypoints_image_r, &matches_image](const zenslam::stereo_frame &frame)
         {
             cv::Mat vis_l, vis_r;
 
@@ -120,6 +124,24 @@ int main(int argc, char **argv)
 
             keypoints_image_l = vis_l;
             keypoints_image_r = vis_r;
+
+            // draw matches
+            cv::Mat vis_matches;
+            cv::drawMatches
+            (
+                frame.l.image,
+                frame.l.keypoints,
+                frame.r.image,
+                frame.r.keypoints,
+                frame.matches,
+                vis_matches,
+                cv::Scalar(0, 255, 0),
+                cv::Scalar(0, 255, 0),
+                std::vector<char>(),
+                cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
+            );
+
+            matches_image = vis_matches;
         };
 
         std::jthread slam_thread
@@ -134,8 +156,12 @@ int main(int argc, char **argv)
                 );
 
                 // Create a base detector (FAST)
-                const auto &feature_detector = cv::FastFeatureDetector::create(1);
-                const auto &detector         = zenslam::grid_detector::create(feature_detector, cv::Size(90, 54));
+                const auto &feature_detector  = cv::FastFeatureDetector::create(32);
+                const auto &feature_describer = cv::ORB::create();
+                const auto &detector          = zenslam::grid_detector::create(feature_detector, cv::Size(64, 64));
+                const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, false);
+
+                auto queue = std::queue<zenslam::stereo_frame> { };
 
                 for (auto frame: stereo_reader)
                 {
@@ -147,6 +173,20 @@ int main(int argc, char **argv)
                     SPDLOG_INFO("Detected points L: {}", frame.l.keypoints.size());
                     SPDLOG_INFO("Detected points R: {}", frame.r.keypoints.size());
 
+                    cv::Mat descriptors_l;
+                    cv::Mat descriptors_r;
+
+
+
+                    feature_describer->compute(frame.l.image, frame.l.keypoints, descriptors_l);
+                    feature_describer->compute(frame.r.image, frame.r.keypoints, descriptors_r);
+
+                    std::vector<cv::DMatch> matches = { };
+                    matcher->match(descriptors_l, descriptors_r, matches);
+                    SPDLOG_INFO("Matches: {}", matches.size());
+
+                    frame.matches = matches;
+
                     on_keypoints(frame);
                 }
             }
@@ -155,11 +195,8 @@ int main(int argc, char **argv)
         while (true)
         {
             // show the stereo frame
+            if (!stereo->l.image.empty() && !stereo->r.image.empty())
             {
-                if (stereo->l.image.empty() || stereo->r.image.empty())
-                {
-                    continue;
-                }
 
                 cv::imshow("L", stereo->l.image);
                 cv::setWindowTitle
@@ -174,22 +211,26 @@ int main(int argc, char **argv)
                     "R",
                     std::format("R: {{ t: {} }}", zenslam::utils::epoch_double_to_string(stereo->r.timestamp))
                 );
-
-                cv::waitKey(1);
             }
 
-
             // display rich keypoints on image
+            if (!keypoints_image_l->empty() && !keypoints_image_r->empty())
             {
                 cv::imshow("L_kp", *keypoints_image_l);
                 cv::setWindowTitle("L_kp", "L_Kp");
 
                 cv::imshow("R_kp", *keypoints_image_r);
                 cv::setWindowTitle("R_kp", "R_kp");
-
-                // brief wait to allow windows to refresh without blocking playback heavily
-                cv::waitKey(1);
             }
+
+            // display matches
+            if (!matches_image->empty())
+            {
+                cv::imshow("matches", *matches_image);
+                cv::setWindowTitle("matches", "matches");
+            }
+
+            cv::waitKey(1);
         }
     } catch (const std::exception &e)
     {

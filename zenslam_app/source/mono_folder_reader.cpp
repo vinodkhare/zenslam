@@ -84,7 +84,7 @@ namespace zenslam { namespace
         return
         {
             (std::stod(_files[index].stem().string()) * _timescale),
-            cv::imread(_files[index].string(), cv::IMREAD_UNCHANGED)
+            cv::imread(_files[index].string())
         };
     }
 } // namespace zenslam
