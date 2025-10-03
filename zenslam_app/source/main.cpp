@@ -22,6 +22,7 @@
 
 #include "folder_options.h"
 #include "grid_detector.h"
+#include "options.h"
 #include "stereo_folder_reader.h"
 #include "thread_safe.h"
 #include "utils.h"
@@ -36,29 +37,29 @@ int main(int argc, char **argv)
 
     try
     {
-        zenslam::folder_options folder_options;
+        zenslam::options folder_options;
 
         auto folder_options_description = program_options::options_description("folder options");
 
         folder_options_description.add_options()
                 (
                     "folder-root",
-                    program_options::value<std::string>()->default_value(folder_options.folder_root),
+                    program_options::value<std::string>()->default_value(folder_options.folder.root),
                     "Root folder"
                 )
                 (
                     "folder-left",
-                    program_options::value<std::string>()->default_value(folder_options.folder_left),
+                    program_options::value<std::string>()->default_value(folder_options.folder.left),
                     "Left folder relative to root (or absolute)"
                 )
                 (
                     "folder-right",
-                    program_options::value<std::string>()->default_value(folder_options.folder_right),
+                    program_options::value<std::string>()->default_value(folder_options.folder.right),
                     "Right folder relative to root (or absolute)"
                 )
                 (
                     "folder-timescale",
-                    program_options::value<double>()->default_value(folder_options.folder_timescale),
+                    program_options::value<double>()->default_value(folder_options.folder.timescale),
                     "Timescale for folder timestamps"
                 )
                 ("help,h", "Show help");
@@ -82,10 +83,10 @@ int main(int argc, char **argv)
             return 0;
         }
 
-        if (map.contains("folder-root")) folder_options.folder_root = map["folder-root"].as<std::string>();
-        if (map.contains("folder-left")) folder_options.folder_left = map["folder-left"].as<std::string>();
-        if (map.contains("folder-right")) folder_options.folder_right = map["folder-right"].as<std::string>();
-        if (map.contains("folder-timescale")) folder_options.folder_timescale = map["folder-timescale"].as<double>();
+        if (map.contains("folder-root")) folder_options.folder.root = map["folder-root"].as<std::string>();
+        if (map.contains("folder-left")) folder_options.folder.left = map["folder-left"].as<std::string>();
+        if (map.contains("folder-right")) folder_options.folder.right = map["folder-right"].as<std::string>();
+        if (map.contains("folder-timescale")) folder_options.folder.timescale = map["folder-timescale"].as<double>();
 
         folder_options.print();
 
@@ -150,15 +151,15 @@ int main(int argc, char **argv)
             {
                 const auto &stereo_reader = zenslam::stereo_folder_reader
                 (
-                    folder_options.folder_root / folder_options.folder_left,
-                    folder_options.folder_root / folder_options.folder_right,
-                    folder_options.folder_timescale
+                    folder_options.folder.root / folder_options.folder.left,
+                    folder_options.folder.root / folder_options.folder.right,
+                    folder_options.folder.timescale
                 );
 
                 // Create a base detector (FAST)
                 const auto &feature_detector  = cv::FastFeatureDetector::create(32);
                 const auto &feature_describer = cv::ORB::create();
-                const auto &detector          = zenslam::grid_detector::create(feature_detector, cv::Size(64, 64));
+                const auto &detector          = zenslam::grid_detector::create(feature_detector, folder_options.slam.cell_size);
                 const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, false);
 
                 auto queue = std::queue<zenslam::stereo_frame> { };

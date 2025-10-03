@@ -41,10 +41,10 @@
 *.dwo
 
 # VS Code files
+.build
 .cache
 .idea
 .vscode
-build
 
 # MacOS files
 .DS_Store

@@ -1,0 +1,9 @@
+# Example options file for zenslam
+folder:
+  root: data
+  left: left
+  right: right
+  timescale: 1.0
+
+slam:
+  cell_size: [50, 50]

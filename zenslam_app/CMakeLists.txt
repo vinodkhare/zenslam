@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
+
 project(zenslam_app LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -18,6 +19,9 @@ message(STATUS "Using concurrentqueue: " ${concurrentqueue_VERSION})
 find_package(spdlog CONFIG REQUIRED)
 message(STATUS "Using spdlog: " ${spdlog_VERSION})
 
+find_package(yaml-cpp CONFIG REQUIRED)
+message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
+
 add_executable(zenslam_app source/main.cpp
         source/folder_options.cpp
         source/grid_detector.cpp
@@ -28,6 +32,7 @@ add_executable(zenslam_app source/main.cpp
         source/utils.cpp
         source/viewer.cpp
         source/thread_safe.cpp
+        source/options.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
@@ -40,6 +45,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         spdlog::spdlog
         concurrentqueue::concurrentqueue
         Microsoft.GSL::GSL
+        yaml-cpp::yaml-cpp
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
