@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "mono_folder_reader.h"
+#include "options.h"
 #include "random_access_iterator.h"
 #include "stereo_frame.h"
 
@@ -19,11 +20,9 @@ namespace zenslam
             const path_type &left_dir,
             const path_type &right_dir,
             const double     timescale = 1E-9
-        ) :
-            _left(left_dir, false, timescale),
-            _right(right_dir, false, timescale)
-        {
-        }
+        );
+
+        explicit stereo_folder_reader(const class options::folder& options);
 
         [[nodiscard]] std::size_t size() const noexcept { return std::min(_left.size(), _right.size()); }
         [[nodiscard]] bool        empty() const noexcept { return size() == 0; }

@@ -18,12 +18,7 @@ zenslam::slam_thread::~slam_thread()
 
 void zenslam::slam_thread::loop()
 {
-    const auto &stereo_reader = stereo_folder_reader
-    (
-        _options.folder.root / _options.folder.left,
-        _options.folder.root / _options.folder.right,
-        _options.folder.timescale
-    );
+    const auto &stereo_reader = stereo_folder_reader(_options.folder);
 
     // Create a base detector (FAST)
     const auto &feature_detector  = cv::FastFeatureDetector::create(32);

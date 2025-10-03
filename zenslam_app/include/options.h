@@ -15,12 +15,12 @@ namespace zenslam
     class options
     {
     public:
-        static boost::program_options::options_description description();
-        static options                                     read(const std::filesystem::path &path);
-        static options                                     read(const boost::program_options::variables_map &map);
+        using options_description = boost::program_options::options_description;
 
+        static options_description description();
 
         static options parse(int argc, char **argv);
+        static options parse(const std::filesystem::path &path);
 
         std::filesystem::path file = { "options.yaml" };
         verb                  verb = { verb::RUN };
@@ -28,7 +28,7 @@ namespace zenslam
         class folder
         {
         public:
-            static boost::program_options::options_description description();
+            static options_description description();
 
             std::filesystem::path root      = { "." };
             std::filesystem::path left      = { "cam0" };

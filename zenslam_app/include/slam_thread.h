@@ -20,8 +20,8 @@ namespace zenslam
         options _options { };
 
         std::stop_source _stop_source { };
-        std::stop_token _stop_token { _stop_source.get_token() };
-        std::jthread    _thread { &slam_thread::loop, this };
+        std::stop_token  _stop_token { _stop_source.get_token() };
+        std::jthread     _thread { &slam_thread::loop, this };
 
         void loop();
     };

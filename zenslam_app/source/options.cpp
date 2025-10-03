@@ -6,7 +6,68 @@
 
 #include "utils.h"
 
-zenslam::options zenslam::options::read(const std::filesystem::path &path)
+boost::program_options::options_description zenslam::options::description()
+{
+    const options options;
+
+    boost::program_options::options_description description { "options" };
+
+    description.add_options()
+    (
+        "options-file",
+        boost::program_options::value<std::string>()->default_value(options.file),
+        "options file"
+    )
+    (
+        "help,h",
+        "Show help"
+    )
+    (
+        "version,v",
+        "Show version"
+    );
+
+    description.add(folder::description());
+
+    return description;
+}
+
+zenslam::options zenslam::options::parse(const int argc, char **argv)
+{
+    options          options { };
+    zenslam::options options_default { };
+
+    const auto &description = options::description(); // inlining this can cause argument parse failures, don't know why!
+    const auto &parsed      = parse_command_line(argc, argv, description);
+    auto        map         = boost::program_options::variables_map();
+
+    store(parsed, map);
+    notify(map);
+
+    if (parsed.options.empty() || map.contains("help"))
+    {
+        options.verb = verb::HELP;
+    }
+
+    if (map.contains("version"))
+    {
+        options.verb = verb::VERSION;
+    }
+
+    auto options_map = utils::to_map(parsed.options);
+
+    if (options_map.contains("options-file")) options = parse(map["options-file"].as<std::string>());
+
+    if (options_map.contains("folder-root")) options.folder.root = map["folder-root"].as<std::string>();
+    if (options_map.contains("folder-left")) options.folder.left = map["folder-left"].as<std::string>();
+    if (options_map.contains("folder-right")) options.folder.right = map["folder-right"].as<std::string>();
+    if (options_map.contains("folder-timescale")) options.folder.timescale = map["folder-timescale"].as<double>();
+    if (options_map.contains("options-file")) options.file = map["options-file"].as<std::string>();
+
+    return options;
+}
+
+zenslam::options zenslam::options::parse(const std::filesystem::path &path)
 {
     options options { };
 
@@ -38,64 +99,6 @@ zenslam::options zenslam::options::read(const std::filesystem::path &path)
     {
         std::println("Failed to load config file: {}", e.what());
     }
-
-    return options;
-}
-
-zenslam::options zenslam::options::read(const boost::program_options::variables_map &map)
-{
-    options options { };
-
-    if (map.contains
-        ("folder-root") && options.folder.root != map["folder-root"].as<std::string>())
-        options.folder.root = map["folder-root"].as<std::string>();
-    if (map.contains
-        ("folder-left") && options.folder.left != map["folder-left"].as<std::string>())
-        options.folder.left = map["folder-left"].as<std::string>();
-    if (map.contains
-        ("folder-right") && options.folder.right != map["folder-right"].as<std::string>())
-        options.folder.right = map["folder-right"].as<std::string>();
-    if (map.contains
-        ("folder-timescale") && options.folder.timescale != map["folder-timescale"].as<double>())
-        options.folder.timescale = map["folder-timescale"].as<double>();
-    if (map.contains
-        ("options-file") && options.file != map["options-file"].as<std::string>())
-        options.file = map["options-file"].as<std::string>();
-
-    return options;
-}
-
-zenslam::options zenslam::options::parse(const int argc, char **argv)
-{
-    options          options { };
-    zenslam::options options_default { };
-
-    const auto &description = options::description(); // inlining this can cause argument parse failures, don't know why!
-    const auto &parsed      = parse_command_line(argc, argv, description);
-    auto        map         = boost::program_options::variables_map();
-
-    store(parsed, map);
-    notify(map);
-
-    if (parsed.options.empty() || map.contains("help"))
-    {
-        options.verb = verb::HELP;
-    }
-
-    if (map.contains("version"))
-    {
-        options.verb = verb::VERSION;
-    }
-
-    auto options_map = utils::to_map(parsed.options);
-
-    if (options_map.contains("options-file")) options = read(map["options-file"].as<std::string>());
-
-    if (options_map.contains("folder-root")) options.folder.root = map["folder-root"].as<std::string>();
-    if (options_map.contains("folder-left")) options.folder.left = map["folder-left"].as<std::string>();
-    if (options_map.contains("folder-right")) options.folder.right = map["folder-right"].as<std::string>();
-    if (options_map.contains("folder-timescale")) options.folder.timescale = map["folder-timescale"].as<double>();
-    if (options_map.contains("options-file")) options.file = map["options-file"].as<std::string>();
 
     return options;
 }
@@ -142,32 +145,6 @@ void zenslam::options::folder::print() const
 void zenslam::options::slam::print() const
 {
     std::println("cell size: [{}, {}]", cell_size.width, cell_size.height);
-}
-
-boost::program_options::options_description zenslam::options::description()
-{
-    const options options;
-
-    boost::program_options::options_description description { "options" };
-
-    description.add_options()
-    (
-        "options-file",
-        boost::program_options::value<std::string>()->default_value(options.file),
-        "options file"
-    )
-    (
-        "help,h",
-        "Show help"
-    )
-    (
-        "version,v",
-        "Show version"
-    );
-
-    description.add(folder::description());
-
-    return description;
 }
 
 void zenslam::options::print() const
