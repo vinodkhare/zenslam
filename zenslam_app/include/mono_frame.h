@@ -1,7 +1,7 @@
 #pragma once
 
-#include <opencv2/core.hpp>
 #include <utility>
+#include <opencv2/core.hpp>
 
 namespace zenslam
 {

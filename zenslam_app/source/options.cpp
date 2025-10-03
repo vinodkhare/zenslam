@@ -5,34 +5,61 @@
 
 zenslam::options zenslam::options::read(const std::filesystem::path &path)
 {
-    options opts;
+    options options { };
+
+    options.file = path;
 
     try
     {
         auto config = YAML::LoadFile(path.string());
 
-        if (const auto folder = config["folder"])
+        if (const auto &folder = config["folder"])
         {
-            opts.folder.root      = folder["root"].as<std::string>();
-            opts.folder.left      = folder["left"].as<std::string>();
-            opts.folder.right     = folder["right"].as<std::string>();
-            opts.folder.timescale = folder["timescale"].as<double>();
+            options.folder.root      = folder["root"].as<std::string>();
+            options.folder.left      = folder["left"].as<std::string>();
+            options.folder.right     = folder["right"].as<std::string>();
+            options.folder.timescale = folder["timescale"].as<double>();
         }
 
-        if (const auto slam = config["slam"])
+        if (const auto &slam = config["slam"])
         {
-            if (const auto cell = slam["cell"])
+            if (const auto cell_size = slam["cell_size"])
             {
-                opts.slam.cell_size.width  = cell["width"].as<double>();
-                opts.slam.cell_size.height = cell["height"].as<double>();
+                const auto cell_array         = cell_size.as<std::vector<int> >();
+                options.slam.cell_size.width  = cell_array[0];
+                options.slam.cell_size.height = cell_array[1];
             }
         }
-    } catch (const YAML::Exception &e)
+    }
+    catch (const YAML::Exception &e)
     {
         std::println("Failed to load config file: {}", e.what());
     }
 
-    return opts;
+    return options;
+}
+
+zenslam::options zenslam::options::read(const boost::program_options::variables_map &map)
+{
+    options options { };
+
+    if (map.contains
+        ("folder-root") && options.folder.root != map["folder-root"].as<std::string>())
+        options.folder.root = map["folder-root"].as<std::string>();
+    if (map.contains
+        ("folder-left") && options.folder.left != map["folder-left"].as<std::string>())
+        options.folder.left = map["folder-left"].as<std::string>();
+    if (map.contains
+        ("folder-right") && options.folder.right != map["folder-right"].as<std::string>())
+        options.folder.right = map["folder-right"].as<std::string>();
+    if (map.contains
+        ("folder-timescale") && options.folder.timescale != map["folder-timescale"].as<double>())
+        options.folder.timescale = map["folder-timescale"].as<double>();
+    if (map.contains
+        ("options-file") && options.file != map["options-file"].as<std::string>())
+        options.file = map["options-file"].as<std::string>();
+
+    return options;
 }
 
 void zenslam::options::folder::print() const
@@ -50,6 +77,8 @@ void zenslam::options::slam::print() const
 
 void zenslam::options::print() const
 {
+    std::println("file: {}", file.string());
+
     folder.print();
     slam.print();
 }

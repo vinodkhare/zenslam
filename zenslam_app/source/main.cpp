@@ -15,8 +15,8 @@
 #include <boost/program_options.hpp>
 
 #include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/highgui.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -37,42 +37,50 @@ int main(int argc, char **argv)
 
     try
     {
-        zenslam::options folder_options;
+        zenslam::options options;
+        zenslam::options options_default;
 
         auto folder_options_description = program_options::options_description("folder options");
 
         folder_options_description.add_options()
-                (
-                    "folder-root",
-                    program_options::value<std::string>()->default_value(folder_options.folder.root),
-                    "Root folder"
-                )
-                (
-                    "folder-left",
-                    program_options::value<std::string>()->default_value(folder_options.folder.left),
-                    "Left folder relative to root (or absolute)"
-                )
-                (
-                    "folder-right",
-                    program_options::value<std::string>()->default_value(folder_options.folder.right),
-                    "Right folder relative to root (or absolute)"
-                )
-                (
-                    "folder-timescale",
-                    program_options::value<double>()->default_value(folder_options.folder.timescale),
-                    "Timescale for folder timestamps"
-                )
-                ("help,h", "Show help");
+        (
+            "folder-root",
+            program_options::value<std::string>()->default_value(options.folder.root),
+            "Root folder"
+        )
+        (
+            "folder-left",
+            program_options::value<std::string>()->default_value(options.folder.left),
+            "Left folder relative to root (or absolute)"
+        )
+        (
+            "folder-right",
+            program_options::value<std::string>()->default_value(options.folder.right),
+            "Right folder relative to root (or absolute)"
+        )
+        (
+            "folder-timescale",
+            program_options::value<double>()->default_value(options.folder.timescale),
+            "Timescale for folder timestamps"
+        );
 
         auto options_description = program_options::options_description("options");
+
+        options_description.add_options()
+        (
+            "options-file",
+            program_options::value<std::string>()->default_value(options.file),
+            "options file"
+        )
+        (
+            "help,h",
+            "Show help"
+        );
+
         options_description.add(folder_options_description);
 
-        auto map = program_options::variables_map();
-
-        auto parsed = program_options::command_line_parser(argc, argv)
-                      .options(options_description)
-                      .allow_unregistered()
-                      .run();
+        auto map    = program_options::variables_map();
+        auto parsed = program_options::parse_command_line(argc, argv, options_description);
 
         program_options::store(parsed, map);
         program_options::notify(map);
@@ -83,12 +91,36 @@ int main(int argc, char **argv)
             return 0;
         }
 
-        if (map.contains("folder-root")) folder_options.folder.root = map["folder-root"].as<std::string>();
-        if (map.contains("folder-left")) folder_options.folder.left = map["folder-left"].as<std::string>();
-        if (map.contains("folder-right")) folder_options.folder.right = map["folder-right"].as<std::string>();
-        if (map.contains("folder-timescale")) folder_options.folder.timescale = map["folder-timescale"].as<double>();
+        auto parsed_map = std::map<std::string, decltype(parsed.options)::value_type> { };
 
-        folder_options.print();
+        for (auto &option: parsed.options)
+        {
+            parsed_map[option.string_key] = option;
+        }
+
+        if (parsed_map.contains("options-file"))
+        {
+            options = zenslam::options::read(map["options-file"].as<std::string>());
+        }
+
+        options.print();
+
+        if (parsed_map.contains("folder-root"))
+            options.folder.root = map["folder-root"].as<std::string>();
+
+        if (parsed_map.contains("folder-left"))
+            options.folder.left = map["folder-left"].as<std::string>();
+
+        if (parsed_map.contains("folder-right"))
+            options.folder.right = map["folder-right"].as<std::string>();
+
+        if (parsed_map.contains("folder-timescale"))
+            options.folder.timescale = map["folder-timescale"].as<double>();
+
+        if (parsed_map.contains("options-file"))
+            options.file = map["options-file"].as<std::string>();
+
+        options.print();
 
         zenslam::thread_safe<zenslam::stereo_frame> stereo;
         zenslam::thread_safe<cv::Mat>               keypoints_image_l;
@@ -100,7 +132,8 @@ int main(int argc, char **argv)
             stereo = frame;
         };
 
-        const auto &on_keypoints = [&keypoints_image_l, &keypoints_image_r, &matches_image](const zenslam::stereo_frame &frame)
+        const auto &on_keypoints = [&keypoints_image_l, &keypoints_image_r, &matches_image]
+        (const zenslam::stereo_frame &frame)
         {
             cv::Mat vis_l, vis_r;
 
@@ -147,19 +180,19 @@ int main(int argc, char **argv)
 
         std::jthread slam_thread
         (
-            [folder_options, on_frame, on_keypoints]()
+            [options, on_frame, on_keypoints]()
             {
                 const auto &stereo_reader = zenslam::stereo_folder_reader
                 (
-                    folder_options.folder.root / folder_options.folder.left,
-                    folder_options.folder.root / folder_options.folder.right,
-                    folder_options.folder.timescale
+                    options.folder.root / options.folder.left,
+                    options.folder.root / options.folder.right,
+                    options.folder.timescale
                 );
 
                 // Create a base detector (FAST)
                 const auto &feature_detector  = cv::FastFeatureDetector::create(32);
                 const auto &feature_describer = cv::ORB::create();
-                const auto &detector          = zenslam::grid_detector::create(feature_detector, folder_options.slam.cell_size);
+                const auto &detector          = zenslam::grid_detector::create(feature_detector, options.slam.cell_size);
                 const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, false);
 
                 auto queue = std::queue<zenslam::stereo_frame> { };
@@ -176,7 +209,6 @@ int main(int argc, char **argv)
 
                     cv::Mat descriptors_l;
                     cv::Mat descriptors_r;
-
 
 
                     feature_describer->compute(frame.l.image, frame.l.keypoints, descriptors_l);
@@ -198,7 +230,6 @@ int main(int argc, char **argv)
             // show the stereo frame
             if (!stereo->l.image.empty() && !stereo->r.image.empty())
             {
-
                 cv::imshow("L", stereo->l.image);
                 cv::setWindowTitle
                 (
@@ -233,7 +264,8 @@ int main(int argc, char **argv)
 
             cv::waitKey(1);
         }
-    } catch (const std::exception &e)
+    }
+    catch (const std::exception &e)
     {
         std::cerr << "Error parsing folder options: " << e.what() << "\n";
         return 1;

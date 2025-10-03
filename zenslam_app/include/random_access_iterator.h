@@ -1,6 +1,6 @@
 #pragma once
-#include <iterator>
 #include <cstddef>
+#include <iterator>
 
 namespace zenslam {
 
