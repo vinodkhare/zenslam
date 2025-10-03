@@ -23,10 +23,12 @@ find_package(yaml-cpp CONFIG REQUIRED)
 message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
 
 add_executable(zenslam_app source/main.cpp
+        source/event.cpp
         source/folder_options.cpp
         source/grid_detector.cpp
         source/mono_folder_reader.cpp
         source/mono_frame.cpp
+        source/slam_thread.cpp
         source/stereo_folder_reader.cpp
         source/stereo_frame.cpp
         source/utils.cpp
