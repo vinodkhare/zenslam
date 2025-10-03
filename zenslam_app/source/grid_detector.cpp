@@ -6,7 +6,7 @@
 
 namespace zenslam
 {
-    grid_detector::grid_detector(const cv::Ptr<Feature2D> &detector, cv::Size cellSize) :
+    grid_detector::grid_detector(const cv::Ptr<Feature2D> &detector, const cv::Size cellSize) :
         _detector(detector),
         _cell_size(cellSize)
     {
@@ -106,7 +106,7 @@ namespace zenslam
         cv::InputArray             mask,
         std::vector<cv::KeyPoint> &keypoints,
         cv::OutputArray            descriptors,
-        bool                       useProvidedKeypoints
+        const bool                       useProvidedKeypoints
     )
     {
         // If keypoints are not provided, detect them using our grid method

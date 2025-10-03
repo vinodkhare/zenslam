@@ -3,6 +3,7 @@
 #include <functional>
 #include <vector>
 #include <shared_mutex>
+#include <memory>
 
 namespace zenslam
 {
@@ -14,8 +15,8 @@ namespace zenslam
 
         struct connection
         {
-            std::size_t            index { };
-            std::shared_ptr<event> event { };
+            std::size_t index { };
+            event *     event { };
 
             void disconnect() const
             {

@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include <boost/program_options/options_description.hpp>
+#include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
 
 #include <opencv2/core/types.hpp>
@@ -17,6 +18,9 @@ namespace zenslam
         static boost::program_options::options_description description();
         static options                                     read(const std::filesystem::path &path);
         static options                                     read(const boost::program_options::variables_map &map);
+
+
+        static options parse(int argc, char **argv);
 
         std::filesystem::path file = { "options.yaml" };
         verb                  verb = { verb::RUN };
