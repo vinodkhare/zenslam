@@ -20,7 +20,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include "folder_options.h"
 #include "grid_detector.h"
 #include "options.h"
 #include "stereo_folder_reader.h"
@@ -31,94 +30,60 @@
 namespace filesystem = std::filesystem;
 namespace program_options = boost::program_options;
 
+zenslam::options parse(int argc, char **argv)
+{
+    zenslam::options options;
+    zenslam::options options_default;
+
+    auto map         = program_options::variables_map();
+    auto description = zenslam::options::description(); // inlining this can cause argument parse failures, don't know why!
+    auto parsed      = program_options::parse_command_line(argc, argv, description);
+
+    program_options::store(parsed, map);
+    program_options::notify(map);
+
+    if (parsed.options.empty() || map.contains("help"))
+    {
+        options.verb = zenslam::verb::HELP;
+    }
+
+    if (map.contains("version"))
+    {
+        options.verb = zenslam::verb::VERSION;
+    }
+
+    auto options_map = zenslam::utils::to_map(parsed.options);
+
+    if (options_map.contains("options-file")) options = zenslam::options::read(map["options-file"].as<std::string>());
+
+    if (options_map.contains("folder-root")) options.folder.root = map["folder-root"].as<std::string>();
+    if (options_map.contains("folder-left")) options.folder.left = map["folder-left"].as<std::string>();
+    if (options_map.contains("folder-right")) options.folder.right = map["folder-right"].as<std::string>();
+    if (options_map.contains("folder-timescale")) options.folder.timescale = map["folder-timescale"].as<double>();
+    if (options_map.contains("options-file")) options.file = map["options-file"].as<std::string>();
+
+    return options;
+}
+
 int main(int argc, char **argv)
 {
     spdlog::set_level(spdlog::level::debug);
 
     try
     {
-        zenslam::options options;
-        zenslam::options options_default;
+        auto options = parse(argc, argv);
 
-        auto folder_options_description = program_options::options_description("folder options");
-
-        folder_options_description.add_options()
-        (
-            "folder-root",
-            program_options::value<std::string>()->default_value(options.folder.root),
-            "Root folder"
-        )
-        (
-            "folder-left",
-            program_options::value<std::string>()->default_value(options.folder.left),
-            "Left folder relative to root (or absolute)"
-        )
-        (
-            "folder-right",
-            program_options::value<std::string>()->default_value(options.folder.right),
-            "Right folder relative to root (or absolute)"
-        )
-        (
-            "folder-timescale",
-            program_options::value<double>()->default_value(options.folder.timescale),
-            "Timescale for folder timestamps"
-        );
-
-        auto options_description = program_options::options_description("options");
-
-        options_description.add_options()
-        (
-            "options-file",
-            program_options::value<std::string>()->default_value(options.file),
-            "options file"
-        )
-        (
-            "help,h",
-            "Show help"
-        );
-
-        options_description.add(folder_options_description);
-
-        auto map    = program_options::variables_map();
-        auto parsed = program_options::parse_command_line(argc, argv, options_description);
-
-        program_options::store(parsed, map);
-        program_options::notify(map);
-
-        if (parsed.options.empty() || map.contains("help"))
+        if (options.verb == zenslam::verb::HELP)
         {
-            std::cout << options_description << "\n";
+            std::cout << zenslam::options::description() << "\n";
             return 0;
         }
 
-        auto parsed_map = std::map<std::string, decltype(parsed.options)::value_type> { };
-
-        for (auto &option: parsed.options)
+        if (options.verb == zenslam::verb::VERSION)
         {
-            parsed_map[option.string_key] = option;
+            std::cout << zenslam::utils::version << "\n";
+            return 0;
         }
-
-        if (parsed_map.contains("options-file"))
-        {
-            options = zenslam::options::read(map["options-file"].as<std::string>());
-        }
-
-        options.print();
-
-        if (parsed_map.contains("folder-root"))
-            options.folder.root = map["folder-root"].as<std::string>();
-
-        if (parsed_map.contains("folder-left"))
-            options.folder.left = map["folder-left"].as<std::string>();
-
-        if (parsed_map.contains("folder-right"))
-            options.folder.right = map["folder-right"].as<std::string>();
-
-        if (parsed_map.contains("folder-timescale"))
-            options.folder.timescale = map["folder-timescale"].as<double>();
-
-        if (parsed_map.contains("options-file"))
-            options.file = map["options-file"].as<std::string>();
 
         options.print();
 
@@ -137,7 +102,7 @@ int main(int argc, char **argv)
         {
             cv::Mat vis_l, vis_r;
 
-            // DRAW_RICH_KEYPOINTS shows size & orientation
+            // DRAW_RICH_KEYPOINTS shows size and orientation
             cv::drawKeypoints
             (
                 frame.l.image,
@@ -245,7 +210,7 @@ int main(int argc, char **argv)
                 );
             }
 
-            // display rich keypoints on image
+            // display rich keypoints on the image
             if (!keypoints_image_l->empty() && !keypoints_image_r->empty())
             {
                 cv::imshow("L_kp", *keypoints_image_l);
@@ -270,6 +235,4 @@ int main(int argc, char **argv)
         std::cerr << "Error parsing folder options: " << e.what() << "\n";
         return 1;
     }
-
-    return 0;
 }

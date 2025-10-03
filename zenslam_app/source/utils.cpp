@@ -15,3 +15,5 @@ std::string zenslam::utils::epoch_double_to_string(const double epoch_seconds)
     // Format: YYYY-MM-DD HH:MM:SS.mmm UTC
     return std::format("{:%F %T} UTC", time_point);
 }
+
+

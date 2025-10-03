@@ -2,6 +2,7 @@
 
 #include <print>
 #include <yaml-cpp/yaml.h>
+#include <boost/program_options.hpp>
 
 zenslam::options zenslam::options::read(const std::filesystem::path &path)
 {
@@ -62,6 +63,37 @@ zenslam::options zenslam::options::read(const boost::program_options::variables_
     return options;
 }
 
+boost::program_options::options_description zenslam::options::folder::description()
+{
+    const folder folder;
+
+    boost::program_options::options_description description { "folder options" };
+
+    description.add_options()
+    (
+        "folder-root",
+        boost::program_options::value<std::string>()->default_value(folder.root),
+        "Root folder"
+    )
+    (
+        "folder-left",
+        boost::program_options::value<std::string>()->default_value(folder.left),
+        "Left folder relative to root (or absolute)"
+    )
+    (
+        "folder-right",
+        boost::program_options::value<std::string>()->default_value(folder.right),
+        "Right folder relative to root (or absolute)"
+    )
+    (
+        "folder-timescale",
+        boost::program_options::value<double>()->default_value(folder.timescale),
+        "Timescale for folder timestamps"
+    );
+
+    return description;
+}
+
 void zenslam::options::folder::print() const
 {
     std::println("folder root: {}", root.string());
@@ -73,6 +105,32 @@ void zenslam::options::folder::print() const
 void zenslam::options::slam::print() const
 {
     std::println("cell size: [{}, {}]", cell_size.width, cell_size.height);
+}
+
+boost::program_options::options_description zenslam::options::description()
+{
+    const options options;
+
+    boost::program_options::options_description description { "options" };
+
+    description.add_options()
+    (
+        "options-file",
+        boost::program_options::value<std::string>()->default_value(options.file),
+        "options file"
+    )
+    (
+        "help,h",
+        "Show help"
+    )
+    (
+        "version,v",
+        "Show version"
+    );
+
+    description.add(folder::description());
+
+    return description;
 }
 
 void zenslam::options::print() const

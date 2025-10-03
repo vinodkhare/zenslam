@@ -30,6 +30,7 @@ add_executable(zenslam_app source/main.cpp
         source/stereo_folder_reader.cpp
         source/stereo_frame.cpp
         source/utils.cpp
+        source/verb.cpp
         source/viewer.cpp
         source/thread_safe.cpp
         source/options.cpp
