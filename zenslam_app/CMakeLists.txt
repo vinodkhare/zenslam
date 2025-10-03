@@ -23,6 +23,7 @@ find_package(yaml-cpp CONFIG REQUIRED)
 message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
 
 add_executable(zenslam_app source/main.cpp
+        source/application.cpp
         source/event.cpp
         source/folder_options.cpp
         source/grid_detector.cpp

@@ -12,7 +12,6 @@ namespace zenslam
     {
     public:
         event<stereo_frame> on_frame;
-        event<stereo_frame> on_keypoints;
 
         explicit slam_thread(options options);
         ~slam_thread();

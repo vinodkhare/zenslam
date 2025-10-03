@@ -35,8 +35,6 @@ void zenslam::slam_thread::loop()
 
     for (auto frame: stereo_reader)
     {
-        on_frame(frame);
-
         detector->detect(frame.l.image, frame.l.keypoints, cv::noArray());
         detector->detect(frame.r.image, frame.r.keypoints, cv::noArray());
 
@@ -55,7 +53,7 @@ void zenslam::slam_thread::loop()
 
         frame.matches = matches;
 
-        on_keypoints(frame);
+        on_frame(frame);
 
         if (_stop_token.stop_requested())
         {
