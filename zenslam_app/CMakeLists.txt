@@ -41,6 +41,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         opencv_core
         opencv_features2d
         opencv_imgproc
+        opencv_viz
         spdlog::spdlog
         yaml-cpp::yaml-cpp
         zenslam_core

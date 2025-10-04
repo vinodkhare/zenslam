@@ -64,7 +64,7 @@ int main(const int argc, char **argv)
             "ZenSLAM!",
             true,
             true,
-            HelloImGui::ScreenSize({600, 400})
+            HelloImGui::ScreenSize({ 600, 400 })
         );
 
         return 0;
