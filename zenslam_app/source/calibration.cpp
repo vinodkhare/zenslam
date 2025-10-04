@@ -75,7 +75,40 @@ auto zenslam::calibration::parse(const std::filesystem::path &path, const std::s
         calib.distortion_model = optional.has_value() ? optional.value() : distortion_model::radial_tangential;
     }
 
+    auto node = cam["T_cn_cnm1"];
+
+    // Parse pose
+    if (cam["T_cn_cnm1"] && cam["T_cn_cnm1"].size() == 4)
+    {
+        cv::Matx44d T;
+        for (auto i = 0; i < 16; ++i)
+        {
+            T(i / 4, i % 4) = cam["T_cn_cnm1"][i/4][i%4].as<double>();
+        }
+        calib.pose_in_cam0 = cv::Affine3d(T).inv();
+    }
+    else
+    {
+        calib.pose_in_cam0 = cv::Affine3d::Identity();
+    }
+
     return calib;
+}
+
+auto zenslam::calibration::camera_matrix() const -> cv::Matx33d
+{
+    return cv::Matx33d
+    (
+        focal_length[0],
+        0,
+        principal_point[0],
+        0,
+        focal_length[1],
+        principal_point[1],
+        0,
+        0,
+        1
+    );
 }
 
 auto zenslam::calibration::print() const -> void
@@ -86,4 +119,35 @@ auto zenslam::calibration::print() const -> void
     SPDLOG_INFO("  Principal point: [{}, {}]", principal_point[0], principal_point[1]);
     SPDLOG_INFO("  Distortion model: {}", magic_enum::enum_name(distortion_model));
     SPDLOG_INFO("  Distortion coefficients: [{}]", zenslam::utils::to_string(distortion_coefficients));
+    SPDLOG_INFO("  Pose in cam0: {}", pose_in_cam0);
+}
+
+auto zenslam::calibration::fundamental(const calibration &other) const -> cv::Matx33d
+{
+    // Get camera matrices
+    const auto K1 = this->camera_matrix();
+    const auto K2 = other.camera_matrix();
+
+    // Get the relative pose between cameras
+    const auto relative_pose = other.pose_in_cam0.inv() * this->pose_in_cam0;
+    auto t             = relative_pose.translation();
+    const auto R             = relative_pose.rotation();
+
+    // Compute essential matrix E = [t]x * R
+    const cv::Matx33d t_cross
+    (
+        0,
+        -t[2],
+        t[1],
+        t[2],
+        0,
+        -t[0],
+        -t[1],
+        t[0],
+        0
+    );
+    const auto E = t_cross * R;
+
+    // Compute fundamental matrix F = K2^-T * E * K1^-1
+    return K2.inv().t() * E * K1.inv();
 }

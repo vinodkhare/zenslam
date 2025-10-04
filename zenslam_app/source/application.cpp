@@ -15,9 +15,9 @@ zenslam::application::application(const options &options) :
 
 void zenslam::application::render()
 {
-    if (!_frame->l.image.empty())
+    if (!_frame->l.undistorted.empty())
     {
-        cv::imshow("L", _frame->l.image);
+        cv::imshow("L", _frame->l.undistorted);
         cv::setWindowTitle
         (
             "L",
@@ -33,9 +33,9 @@ void zenslam::application::render()
         }
     }
 
-    if (!_frame->r.image.empty())
+    if (!_frame->r.undistorted.empty())
     {
-        cv::imshow("R", _frame->r.image);
+        cv::imshow("R", _frame->r.undistorted);
         cv::setWindowTitle
         (
             "R",

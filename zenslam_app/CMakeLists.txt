@@ -49,6 +49,7 @@ hello_imgui_add_app(zenslam_app source/main.cpp
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 target_link_libraries(${PROJECT_NAME} PRIVATE
         opencv_highgui
+        opencv_calib3d
         opencv_core
         opencv_features2d
         opencv_imgproc

@@ -26,6 +26,9 @@ namespace zenslam
         distortion_model    distortion_model        = { distortion_model::radial_tangential };
         cv::Affine3d        pose_in_cam0            = { cv::Affine3d::Identity() };
 
+        [[nodiscard]] auto camera_matrix() const -> cv::Matx33d;
+
         auto print() const -> void;
+        auto fundamental(const calibration& other) const -> cv::Matx33d;
     };
 }

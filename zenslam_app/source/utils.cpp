@@ -1,10 +1,8 @@
 #include "utils.h"
 
 #include <chrono>
-#include <numeric>
 
-#include <__ranges/transform_view.h>
-
+#include <opencv2/calib3d.hpp>
 #include <opencv2/features2d.hpp>
 
 auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
@@ -30,9 +28,9 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
 
     cv::drawMatches
     (
-        frame.l.image,
+        frame.l.undistorted,
         frame.l.keypoints,
-        frame.r.image,
+        frame.r.undistorted,
         frame.r.keypoints,
         frame.matches,
         matches_image,
@@ -47,17 +45,25 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
 
 auto zenslam::utils::to_string(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
 {
-    return join_to_string(strings, delimiter, std::identity{});
+    return join_to_string(strings, delimiter, std::identity { });
 }
 
 auto zenslam::utils::to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter) -> std::string
 {
-    return join_to_string(strings, delimiter, std::identity{});
+    return join_to_string(strings, delimiter, std::identity { });
 }
 
 auto zenslam::utils::to_string(const std::vector<double> &values, const std::string &delimiter) -> std::string
 {
-    return join_to_string(values, delimiter, [](const double value) { return std::to_string(value); });
+    return join_to_string
+    (
+        values,
+        delimiter,
+        [](const double value)
+        {
+            return std::to_string(value);
+        }
+    );
 }
 
 std::string zenslam::utils::to_string_epoch(const double epoch_seconds)
@@ -72,6 +78,31 @@ std::string zenslam::utils::to_string_epoch(const double epoch_seconds)
 
     // Format: YYYY-MM-DD HH:MM:SS.mmm UTC
     return std::format("{:%F %T} UTC", time_point);
+}
+
+auto zenslam::utils::undistort(const cv::Mat &image, const calibration &calibration) -> cv::Mat
+{
+    cv::Mat undistorted { };
+
+    switch (calibration.distortion_model)
+    {
+        case calibration::distortion_model::radial_tangential:
+            cv::undistort(image, calibration.camera_matrix(), calibration.distortion_coefficients, undistorted, calibration.camera_matrix());
+            break;
+
+        case calibration::distortion_model::equidistant:
+            cv::fisheye::undistortImage(image, undistorted, calibration.camera_matrix(), calibration.distortion_coefficients, calibration.camera_matrix());
+            break;
+    }
+
+    return undistorted;
+}
+
+auto zenslam::utils::keypoints_to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>
+{
+    std::vector<cv::Point2f> points;
+    cv::KeyPoint::convert(keypoints, points);
+    return points;
 }
 
 

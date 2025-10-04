@@ -3,14 +3,47 @@
 #include <functional>
 #include <map>
 #include <numeric>
-#include <string>
 #include <ranges>
+#include <string>
 
 #include <boost/program_options/parsers.hpp>
 
 #include <spdlog/common.h>
+#include <spdlog/fmt/ostr.h> // must be included
 
+#include "calibration.h"
 #include "stereo_frame.h"
+
+// Pretty formatter for cv::Affine3d for spdlog/fmt
+template <>
+struct fmt::formatter<cv::Affine3d> : formatter<std::string>
+{
+    template <typename FormatContext>
+    auto format(const cv::Affine3d &value, FormatContext &context) const
+    {
+        const auto &R = value.rotation();
+        const auto &t = value.translation();
+
+        auto s = fmt::format
+        (
+            "[\n  R = \n  [    {:.4f} {:.4f} {:.4f}\n    {:.4f} {:.4f} {:.4f}\n    {:.4f} {:.4f} {:.4f}\n  ]\n  t = [{:.4f} {:.4f} {:.4f}]\n]",
+            R(0, 0),
+            R(0, 1),
+            R(0, 2),
+            R(1, 0),
+            R(1, 1),
+            R(1, 2),
+            R(2, 0),
+            R(2, 1),
+            R(2, 2),
+            t[0],
+            t[1],
+            t[2]
+        );
+
+        return formatter<std::string>::format(s, context);
+    }
+};
 
 namespace zenslam::utils
 {
@@ -86,4 +119,6 @@ namespace zenslam::utils
     auto to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;
     auto to_string(const std::vector<double> &values, const std::string &delimiter = ", ") -> std::string;
     auto to_string_epoch(double epoch_seconds) -> std::string;
+    auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
+    auto keypoints_to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>;
 }
