@@ -5,6 +5,9 @@
 #include <boost/program_options.hpp>
 
 #include "utils.h"
+#include <magic_enum/magic_enum.hpp>
+
+#include <spdlog/spdlog.h>
 
 boost::program_options::options_description zenslam::options::description()
 {
@@ -20,7 +23,8 @@ boost::program_options::options_description zenslam::options::description()
     )
     (
         "log-level",
-        "log level"
+        boost::program_options::value<std::string>()->default_value(utils::log_levels_to_string[options.log_level]),
+        ("log level - pick one of: " + utils::combine(magic_enum::enum_names<spdlog::level::level_enum>())).c_str()
     )
     (
         "help,h",
@@ -58,7 +62,7 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
         options.verb = verb::VERSION;
     }
 
-    auto options_map = utils::to_map(parsed.options);
+    const auto options_map = utils::to_map(parsed.options);
 
     if (options_map.contains("options-file")) options = parse(map["options-file"].as<std::string>());
 
@@ -67,6 +71,10 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     if (options_map.contains("folder-right")) options.folder.right = map["folder-right"].as<std::string>();
     if (options_map.contains("folder-timescale")) options.folder.timescale = map["folder-timescale"].as<double>();
     if (options_map.contains("options-file")) options.file = map["options-file"].as<std::string>();
+    if (options_map.contains
+        ("log-level"))
+        options.log_level = utils::log_levels_from_string[map["log-level"].as<std::string>()];
+    if (options_map.contains("log-pattern")) options.log_pattern = map["log-pattern"].as<std::string>();
 
     return options;
 }
@@ -80,6 +88,12 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
     try
     {
         auto config = YAML::LoadFile(path.string());
+
+        if (const auto &application = config["application"])
+        {
+            options.log_level   = utils::log_levels_from_string[application["log-level"].as<std::string>()];
+            options.log_pattern = application["log-pattern"].as<std::string>();
+        }
 
         if (const auto &folder = config["folder"])
         {
@@ -153,7 +167,9 @@ void zenslam::options::slam::print() const
 
 void zenslam::options::print() const
 {
-    std::println("file: {}", file.string());
+    SPDLOG_INFO("file: {}", file.string());
+    SPDLOG_INFO("log level: {}", magic_enum::enum_name(log_level));
+    SPDLOG_INFO("log pattern: {}", log_pattern);
 
     folder.print();
     slam.print();

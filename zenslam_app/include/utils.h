@@ -53,6 +53,8 @@ namespace zenslam::utils
 
     inline auto log_levels_to_string = invert(log_levels_from_string);
 
+    auto        combine(const std::vector<std::string> &strings, const std::string &delimiter = ", ") -> std::string;
+    auto        combine(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;
     auto        draw_keypoints(const mono_frame &frame) -> cv::Mat;
     auto        draw_matches(const stereo_frame &frame) -> cv::Mat;
     std::string epoch_double_to_string(double epoch_seconds);

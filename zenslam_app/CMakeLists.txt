@@ -17,7 +17,10 @@ find_package(concurrentqueue CONFIG REQUIRED)
 message(STATUS "Using concurrentqueue: " ${concurrentqueue_VERSION})
 
 find_package(hello-imgui CONFIG REQUIRED)
-message(STATUs "Using hello-imgui: " ${hello-imgui_VERSION})
+message(STATUS "Using hello-imgui: " ${hello-imgui_VERSION})
+
+find_package(magic_enum CONFIG REQUIRED)
+message(STATUS "Using magic_enum: " ${magic_enum_VERSION})
 
 find_package(spdlog CONFIG REQUIRED)
 message(STATUS "Using spdlog: " ${spdlog_VERSION})
@@ -53,6 +56,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         concurrentqueue::concurrentqueue
         Microsoft.GSL::GSL
         yaml-cpp::yaml-cpp
+        magic_enum::magic_enum
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 

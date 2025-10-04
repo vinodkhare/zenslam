@@ -92,5 +92,5 @@ Hello World from ZenSLAM!
 ## Compiling ZenSLAM App
 
 ```zsh
-./vcpkg install boost-program-options concurrentqueue 'opencv[contrib,nonfree,vtk]' spdlog
+./vcpkg install boost-program-options concurrentqueue 'hello-imgui[glfw-binding,opengl3-binding]' magic-enum 'opencv[contrib,nonfree,vtk]' spdlog yaml-cpp
 ```

@@ -1,8 +1,34 @@
 #include "utils.h"
 
 #include <chrono>
+#include <numeric>
 
 #include <opencv2/features2d.hpp>
+
+// combines a set of strings into a single string separated by a command or any other delimiter
+auto zenslam::utils::combine(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
+{
+    if (strings.empty())
+    {
+        return "";
+    }
+
+    return std::accumulate
+    (
+        std::next(strings.begin()),
+        strings.end(),
+        strings[0],
+        [&delimiter](const std::string &a, const std::string &b)
+        {
+            return a + delimiter + b;
+        }
+    );
+}
+
+auto zenslam::utils::combine(const std::array<std::string_view, 8> &strings, const std::string &delimiter) -> std::string
+{
+    return combine(std::vector<std::string> { strings.begin(), strings.end() }, delimiter);
+}
 
 auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
 {

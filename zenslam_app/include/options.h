@@ -24,9 +24,10 @@ namespace zenslam
         static options parse(int argc, char **argv);
         static options parse(const std::filesystem::path &path);
 
-        std::filesystem::path     file      = { "options.yaml" };
-        spdlog::level::level_enum log_level = { spdlog::level::debug };
-        verb                      verb      = { verb::RUN };
+        std::filesystem::path     file        = { "options.yaml" };
+        spdlog::level::level_enum log_level   = { spdlog::level::trace };
+        std::string               log_pattern = { "[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v" };
+        verb                      verb        = { verb::RUN };
 
         class folder
         {

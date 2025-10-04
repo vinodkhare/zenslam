@@ -31,7 +31,7 @@ int main(const int argc, char **argv)
 {
     std::signal(SIGINT, signal_handler);
 
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::trace);
 
     try
     {
@@ -48,6 +48,9 @@ int main(const int argc, char **argv)
             std::cout << zenslam::utils::version << "\n";
             return 0;
         }
+
+        spdlog::set_level(options.log_level);
+        spdlog::set_pattern(options.log_pattern);
 
         options.print();
 
