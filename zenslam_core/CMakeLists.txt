@@ -30,6 +30,7 @@ add_library(${PROJECT_NAME}
         source/event.cpp
         source/folder_options.cpp
         source/grid_detector.cpp
+        source/keypoint.cpp
         source/match_data.cpp
         source/mono_folder_reader.cpp
         source/mono_frame.cpp

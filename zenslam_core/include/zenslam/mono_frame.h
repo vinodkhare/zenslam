@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <utility>
 #include <opencv2/core.hpp>
 
@@ -8,11 +9,11 @@ namespace zenslam
     class mono_frame
     {
     public:
-        double                    timestamp   = { std::nan("nan") };
-        cv::Mat                   image       = { };
-        cv::Mat                   rectified   = { };
-        cv::Mat                   undistorted = { };
-        std::vector<cv::KeyPoint> keypoints   = { };
+        double                         timestamp   = { std::nan("nan") };
+        cv::Mat                        image       = { };
+        cv::Mat                        rectified   = { };
+        cv::Mat                        undistorted = { };
+        std::map<size_t, cv::KeyPoint> keypoints   = { };
 
         mono_frame() = default;
 

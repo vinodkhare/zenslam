@@ -32,7 +32,8 @@ void zenslam::slam_thread::loop()
     const auto &detector          = grid_detector::create(feature_detector, _options.slam.cell_size);
     const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, true);
 
-    auto calibrations = std::vector {
+    auto calibrations = std::vector
+    {
         calibration::parse(_options.folder.calibration_file, "cam0"),
         calibration::parse(_options.folder.calibration_file, "cam1")
     };
@@ -114,7 +115,9 @@ void zenslam::slam_thread::loop()
                     if (matches_map.contains(match.queryIdx))
                     {
                         points3d.emplace_back
-                                (frame_0->points[std::distance(matches_map.begin(), matches_map.find(match.queryIdx))]);
+                        (
+                            frame_0->points[std::distance(matches_map.begin(), matches_map.find(match.queryIdx))]
+                        );
                         points2d.emplace_back(frame_1.l.keypoints[match.trainIdx].pt);
                     }
                 }
@@ -146,8 +149,7 @@ void zenslam::slam_thread::loop()
                     {
                         SPDLOG_INFO("PnP successful with {} inliers out of {} points", inliers.size(), points3d.size());
 
-                        auto pose = cv::Affine3d(rvec, tvec);
-                        SPDLOG_INFO("Pose: {}", pose);
+                        frame_1.pose = cv::Affine3d(rvec, tvec) * frame_0->pose;
                     }
                     else
                     {
