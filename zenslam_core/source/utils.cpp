@@ -101,6 +101,24 @@ auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d
     return skew;
 }
 
+auto zenslam::utils::to_keypoints(const std::vector<keypoint> &keypoints) -> std::vector<cv::KeyPoint>
+{
+    std::vector<cv::KeyPoint> cv_keypoints;
+    cv_keypoints.reserve(keypoints.size());
+
+    std::ranges::transform
+    (
+        keypoints,
+        std::back_inserter(cv_keypoints),
+        [](const auto &keypoint)
+        {
+            return keypoint;
+        }
+    );
+
+    return cv_keypoints;
+}
+
 auto zenslam::utils::to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>
 {
     std::map<int, int> map;
@@ -111,7 +129,20 @@ auto zenslam::utils::to_map(const std::vector<cv::DMatch> &matches) -> std::map<
         [](const auto &match)
         {
             return std::make_pair(match.queryIdx, match.trainIdx);
-        });
+        }
+    );
+    return map;
+}
+
+auto zenslam::utils::to_map(const std::vector<keypoint> &keypoints) -> std::map<int, keypoint>
+{
+    std::map<int, keypoint> map;
+
+    for (const auto &keypoint: keypoints)
+    {
+        map.emplace(keypoint.index, keypoint);
+    }
+
     return map;
 }
 
@@ -247,6 +278,57 @@ auto zenslam::utils::triangulate
 ) -> std::vector<cv::Point3d>
 {
     auto [points0, points1] = to_points(keypoints0, keypoints1, matches);
+
+    cv::Mat points4d;
+    cv::triangulatePoints(projection0, projection1, points0, points1, points4d);
+
+    std::vector<cv::Point3d> points3d;
+    points3d.reserve(points4d.cols);
+
+    for (auto c = 0; c < points4d.cols; ++c)
+    {
+        if
+        (
+            cv::Vec4d col = points4d.col(c);
+
+            std::abs(col[3]) > 1e-9
+        )
+        {
+            points3d.emplace_back
+            (
+                col[0] / col[3],
+                col[1] / col[3],
+                col[2] / col[3]
+            );
+        }
+    }
+
+    return points3d;
+}
+
+auto zenslam::utils::triangulate
+(
+    const std::vector<keypoint> &keypoints0,
+    const std::vector<keypoint> &keypoints1,
+    const cv::Matx34d &projection0,
+    const cv::Matx34d &projection1
+) -> std::vector<cv::Point3d>
+{
+    std::vector<cv::Point2f> points0;
+    points0.reserve(keypoints0.size());
+    std::vector<cv::Point2f> points1;
+    points1.reserve(keypoints1.size());
+
+    const auto& map_1 = to_map(keypoints1);
+
+    for (const auto &keypoint0: keypoints0)
+    {
+        if (map_1.contains(keypoint0.index))
+        {
+            points0.emplace_back(keypoint0.pt);
+            points1.emplace_back(map_1.at(keypoint0.index).pt);
+        }
+    }
 
     cv::Mat points4d;
     cv::triangulatePoints(projection0, projection1, points0, points1, points4d);

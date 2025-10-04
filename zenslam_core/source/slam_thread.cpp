@@ -164,41 +164,55 @@ void zenslam::slam_thread::loop()
         }
         else
         {
-            detector->detect(frame_1.l.undistorted, frame_1.l.keypoints);
-            detector->detect(frame_1.r.undistorted, frame_1.r.keypoints);
+            detector->detect(frame_1.l.undistorted, frame_1.l.keypoints_);
+            detector->detect(frame_1.r.undistorted, frame_1.r.keypoints_);
 
-            SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints.size());
-            SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints.size());
+            SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints_.size());
+            SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints_.size());
 
             cv::Mat descriptors_l;
             cv::Mat descriptors_r;
+            auto    keypoints_L = utils::to_keypoints(frame_1.l.keypoints_);
+            auto    keypoints_R = utils::to_keypoints(frame_1.r.keypoints_);
 
-            feature_describer->compute(frame_1.l.undistorted, frame_1.l.keypoints, descriptors_l);
-            feature_describer->compute(frame_1.r.undistorted, frame_1.r.keypoints, descriptors_r);
+            feature_describer->compute(frame_1.l.undistorted, keypoints_L, descriptors_l);
+            feature_describer->compute(frame_1.r.undistorted, keypoints_R, descriptors_r);
 
-            std::vector<cv::DMatch> matches;
-            matcher->match(descriptors_l, descriptors_r, matches);
-            frame_1.spatial.matches = matches;
+            assert(descriptors_l.rows == frame_1.l.keypoints_.size());
+            assert(descriptors_r.rows == frame_1.r.keypoints_.size());
+            assert(keypoints_L.size() == frame_1.l.keypoints_.size());
+            assert(keypoints_R.size() == frame_1.r.keypoints_.size());
+
+            matcher->match(descriptors_l, descriptors_r, frame_1.spatial.matches);
 
             SPDLOG_INFO("Matches before epipolar filtering: {}", frame_1.spatial.matches.size());
 
             std::tie(frame_1.spatial.filtered, frame_1.spatial.unmatched) = utils::filter
             (
-                frame_1.l.keypoints,
-                frame_1.r.keypoints,
-                matches,
+                keypoints_L,
+                keypoints_R,
+                frame_1.spatial.matches,
                 fundamental,
                 _options.slam.epipolar_threshold
             );
 
             SPDLOG_INFO("Matches after epipolar filtering: {}", frame_1.spatial.filtered.size());
 
+            for (const auto &match: frame_1.spatial.filtered)
+            {
+                frame_1.r.keypoints_[match.trainIdx].index = frame_1.l.keypoints_[match.queryIdx].index;
+            }
+
             // triangulate filtered matches to get 3D points
             if (!frame_1.spatial.filtered.empty())
             {
-                frame_1.points =
-                        utils::triangulate
-                        (frame_1.l.keypoints, frame_1.r.keypoints, frame_1.spatial.filtered, projection_L, projection_R);
+                frame_1.points = utils::triangulate
+                (
+                    frame_1.l.keypoints_,
+                    frame_1.r.keypoints_,
+                    projection_L,
+                    projection_R
+                );
 
                 SPDLOG_INFO("Triangulated 3D points: {}", frame_1.points.size());
             }

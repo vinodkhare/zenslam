@@ -5,6 +5,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 
+#include "keypoint.h"
+
 namespace zenslam
 {
     /**
@@ -52,6 +54,12 @@ namespace zenslam
             std::vector<cv::KeyPoint> &keypoints,
             cv::InputArray             mask_array = cv::noArray()
         ) override;
+
+        void detect
+        (
+            const cv::Mat &image,
+            std::vector<keypoint> &keypoints
+        );
 
         /**
          * @brief Get the algorithm descriptor name

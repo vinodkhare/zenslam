@@ -116,7 +116,10 @@ namespace zenslam::utils
     auto draw_matches(const stereo_frame &frame_0, const stereo_frame &frame_1) -> cv::Mat;
     auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
 
-    auto to_map(const std::vector<cv::DMatch>& matches) -> std::map<int, int>;
+    auto to_keypoints(const std::vector<keypoint> &keypoints) -> std::vector<cv::KeyPoint>;
+
+    auto to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>;
+    auto to_map(const std::vector<keypoint> &keypoints) -> std::map<int, keypoint>;
 
     auto to_points
     (
@@ -149,6 +152,14 @@ namespace zenslam::utils
         const std::vector<cv::DMatch> &  matches,
         const cv::Matx34d &              projection0,
         const cv::Matx34d &              projection1
+    ) -> std::vector<cv::Point3d>;
+
+    auto triangulate
+    (
+        const std::vector<keypoint> &keypoints0,
+        const std::vector<keypoint> &keypoints1,
+        const cv::Matx34d &          projection0,
+        const cv::Matx34d &          projection1
     ) -> std::vector<cv::Point3d>;
 
     auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
