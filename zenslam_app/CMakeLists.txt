@@ -4,17 +4,20 @@ project(zenslam_app LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 
-find_package(OpenCV CONFIG REQUIRED)
-message(STATUS "Using OpenCV: " ${OpenCV_VERSION})
-
 find_package(Boost CONFIG REQUIRED COMPONENTS program_options)
 message(STATUS "Using Boost: " ${Boost_VERSION})
 
 find_package(Microsoft.GSL CONFIG REQUIRED)
 message(STATUS "Using Microsoft.GSL: " ${Microsoft.GSL_VERSION})
 
+find_package(OpenCV CONFIG REQUIRED)
+message(STATUS "Using OpenCV: " ${OpenCV_VERSION})
+
 find_package(concurrentqueue CONFIG REQUIRED)
 message(STATUS "Using concurrentqueue: " ${concurrentqueue_VERSION})
+
+find_package(hello-imgui CONFIG REQUIRED)
+message(STATUs "Using hello-imgui: " ${hello-imgui_VERSION})
 
 find_package(spdlog CONFIG REQUIRED)
 message(STATUS "Using spdlog: " ${spdlog_VERSION})
@@ -22,7 +25,7 @@ message(STATUS "Using spdlog: " ${spdlog_VERSION})
 find_package(yaml-cpp CONFIG REQUIRED)
 message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
 
-add_executable(zenslam_app source/main.cpp
+hello_imgui_add_app(zenslam_app source/main.cpp
         source/application.cpp
         source/event.cpp
         source/folder_options.cpp

@@ -19,6 +19,10 @@ boost::program_options::options_description zenslam::options::description()
         "options file"
     )
     (
+        "log-level",
+        "log level"
+    )
+    (
         "help,h",
         "Show help"
     )

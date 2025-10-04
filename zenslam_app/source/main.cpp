@@ -10,10 +10,11 @@
 
 #include "application.h"
 #include "options.h"
-#include "slam_thread.h"
 #include "stereo_folder_reader.h"
 #include "thread_safe.h"
 #include "utils.h"
+
+#include <hello_imgui/hello_imgui.h>
 
 std::atomic is_running { true };
 
@@ -34,7 +35,7 @@ int main(const int argc, char **argv)
 
     try
     {
-        const auto& options = zenslam::options::parse(argc, argv);
+        const auto &options = zenslam::options::parse(argc, argv);
 
         if (options.verb == zenslam::verb::HELP)
         {
@@ -52,10 +53,21 @@ int main(const int argc, char **argv)
 
         auto application = zenslam::application { options };
 
-        while (is_running)
-        {
-            application.render();
-        }
+        HelloImGui::Run
+        (
+            [&application]
+            {
+                ImGui::Text("Hello, world!");
+
+                application.render();
+            },
+
+            // Gui code
+            "ZenSLAM!",
+            true,
+            true,
+            HelloImGui::ScreenSize({600, 400})
+        );
 
         return 0;
     }
