@@ -1,8 +1,5 @@
 #include <csignal>
-#include <format>
 #include <iostream>
-#include <string>
-#include <vector>
 
 #include <opencv2/core.hpp>
 
@@ -10,8 +7,6 @@
 
 #include "application.h"
 #include "options.h"
-#include "stereo_folder_reader.h"
-#include "thread_safe.h"
 #include "utils.h"
 
 #include <hello_imgui/hello_imgui.h>

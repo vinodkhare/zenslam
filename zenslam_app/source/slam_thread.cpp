@@ -26,9 +26,9 @@ void zenslam::slam_thread::loop()
 
     // Create a base detector (FAST)
     const auto &feature_detector  = cv::FastFeatureDetector::create(8);
-    const auto &feature_describer = cv::ORB::create();
+    const auto &feature_describer = cv::SiftDescriptorExtractor::create();
     const auto &detector          = grid_detector::create(feature_detector, _options.slam.cell_size);
-    const auto &matcher           = cv::BFMatcher::create(cv::NORM_HAMMING, true);
+    const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, true);
 
     auto calibrations = std::vector
     {
@@ -40,6 +40,8 @@ void zenslam::slam_thread::loop()
     calibrations[0].print();
     SPDLOG_INFO("");
     calibrations[1].print();
+
+    auto fundamental = calibrations[0].fundamental(calibrations[1]);
 
     auto queue = std::queue<stereo_frame> { };
 
@@ -64,10 +66,6 @@ void zenslam::slam_thread::loop()
         matcher->match(descriptors_l, descriptors_r, matches);
         SPDLOG_INFO("Matches before epipolar filtering: {}", matches.size());
 
-        // Epipolar filtering using the fundamental matrix from calibration
-        // Get the fundamental matrix from calibration
-        auto F = calibrations[0].fundamental(calibrations[1]);
-
         // Prepare points for filtering
         std::vector<cv::Point2f> pts_l, pts_r;
         for (const auto &m: matches)
@@ -83,8 +81,8 @@ void zenslam::slam_thread::loop()
         if (pts_l.size() == pts_r.size() && !pts_l.empty())
         {
             std::vector<cv::Vec3f> epilines_l, epilines_r;
-            cv::computeCorrespondEpilines(pts_l, 1, F, epilines_r); // lines in right image
-            cv::computeCorrespondEpilines(pts_r, 2, F, epilines_l); // lines in left image
+            cv::computeCorrespondEpilines(pts_l, 1, fundamental, epilines_r); // lines in right image
+            cv::computeCorrespondEpilines(pts_r, 2, fundamental, epilines_l); // lines in left image
 
             for (size_t i = 0; i < matches.size(); ++i)
             {

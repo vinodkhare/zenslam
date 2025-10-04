@@ -12,3 +12,10 @@ folder:
 
 slam:
   cell_size: [32, 32]
+  epipolar:
+    is_enabled: true
+    threshold:  1.0
+  features:
+    type: "fast"
+    fast:
+      threshold: 10.0
