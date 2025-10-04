@@ -43,6 +43,20 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
     return matches_image;
 }
 
+auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d
+{
+    auto skew = cv::Matx33d::zeros();
+
+    skew(0, 1) = -vector[2];
+    skew(1, 0) = vector[2];
+    skew(0, 2) = vector[1];
+    skew(2, 0) = -vector[1];
+    skew(1, 2) = -vector[0];
+    skew(2, 1) = vector[0];
+
+    return skew;
+}
+
 auto zenslam::utils::to_string(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
 {
     return join_to_string(strings, delimiter, std::identity { });
@@ -87,11 +101,25 @@ auto zenslam::utils::undistort(const cv::Mat &image, const calibration &calibrat
     switch (calibration.distortion_model)
     {
         case calibration::distortion_model::radial_tangential:
-            cv::undistort(image, calibration.camera_matrix(), calibration.distortion_coefficients, undistorted, calibration.camera_matrix());
+            cv::undistort
+            (
+                image,
+                calibration.camera_matrix(),
+                calibration.distortion_coefficients,
+                undistorted,
+                calibration.camera_matrix()
+            );
             break;
 
         case calibration::distortion_model::equidistant:
-            cv::fisheye::undistortImage(image, undistorted, calibration.camera_matrix(), calibration.distortion_coefficients, calibration.camera_matrix());
+            cv::fisheye::undistortImage
+            (
+                image,
+                undistorted,
+                calibration.camera_matrix(),
+                calibration.distortion_coefficients,
+                calibration.camera_matrix()
+            );
             break;
     }
 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <opencv2/core.hpp>
-
 #include <zenslam/slam_thread.h>
 #include <zenslam/options.h>
 #include <zenslam/stereo_frame.h>

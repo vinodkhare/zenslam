@@ -81,7 +81,7 @@ auto zenslam::calibration::parse(const std::filesystem::path &path, const std::s
         cv::Matx44d T;
         for (auto i = 0; i < 16; ++i)
         {
-            T(i / 4, i % 4) = cam["T_cn_cnm1"][i/4][i%4].as<double>();
+            T(i / 4, i % 4) = cam["T_cn_cnm1"][i / 4][i % 4].as<double>();
         }
         calib.pose_in_cam0 = cv::Affine3d(T).inv();
     }
@@ -127,24 +127,10 @@ auto zenslam::calibration::fundamental(const calibration &other) const -> cv::Ma
     const auto K2 = other.camera_matrix();
 
     // Get the relative pose between cameras
-    const auto relative_pose = other.pose_in_cam0.inv() * this->pose_in_cam0;
-    auto t             = relative_pose.translation();
-    const auto R             = relative_pose.rotation();
-
-    // Compute essential matrix E = [t]x * R
-    const cv::Matx33d t_cross
-    (
-        0,
-        -t[2],
-        t[1],
-        t[2],
-        0,
-        -t[0],
-        -t[1],
-        t[0],
-        0
-    );
-    const auto E = t_cross * R;
+    const auto &relative_pose = other.pose_in_cam0.inv() * this->pose_in_cam0;
+    const auto &t             = relative_pose.translation();
+    const auto &R             = relative_pose.rotation();
+    const auto &E = utils::skew(t) * R; // Compute essential matrix E = [t]x * R
 
     // Compute fundamental matrix F = K2^-T * E * K1^-1
     return K2.inv().t() * E * K1.inv();

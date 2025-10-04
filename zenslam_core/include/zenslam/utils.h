@@ -6,8 +6,6 @@
 #include <ranges>
 #include <string>
 
-#include <boost/program_options/parsers.hpp>
-
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h> // must be included
 
@@ -115,6 +113,7 @@ namespace zenslam::utils
 
     auto draw_keypoints(const mono_frame &frame) -> cv::Mat;
     auto draw_matches(const stereo_frame &frame) -> cv::Mat;
+    auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
     auto to_string(const std::vector<std::string> &strings, const std::string &delimiter = ", ") -> std::string;
     auto to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;
     auto to_string(const std::vector<double> &values, const std::string &delimiter = ", ") -> std::string;
