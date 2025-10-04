@@ -70,6 +70,7 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     if (options_map.contains("folder-left")) options.folder.left = map["folder-left"].as<std::string>();
     if (options_map.contains("folder-right")) options.folder.right = map["folder-right"].as<std::string>();
     if (options_map.contains("folder-timescale")) options.folder.timescale = map["folder-timescale"].as<double>();
+    if (options_map.contains("calibration-file")) options.folder.calibration_file = map["calibration-file"].as<std::string>();
     if (options_map.contains("options-file")) options.file = map["options-file"].as<std::string>();
     if (options_map.contains
         ("log-level"))
@@ -97,10 +98,11 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
 
         if (const auto &folder = config["folder"])
         {
-            options.folder.root      = folder["root"].as<std::string>();
-            options.folder.left      = folder["left"].as<std::string>();
-            options.folder.right     = folder["right"].as<std::string>();
-            options.folder.timescale = folder["timescale"].as<double>();
+            options.folder.root             = folder["root"].as<std::string>();
+            options.folder.left             = folder["left"].as<std::string>();
+            options.folder.right            = folder["right"].as<std::string>();
+            options.folder.timescale        = folder["timescale"].as<double>();
+            options.folder.calibration_file = folder["calibration-file"].as<std::string>();
         }
 
         if (const auto &slam = config["slam"])
@@ -147,6 +149,11 @@ boost::program_options::options_description zenslam::options::folder::descriptio
         "folder-timescale",
         boost::program_options::value<double>()->default_value(folder.timescale),
         "Timescale for folder timestamps"
+    )
+    (
+        "calibration-file",
+        boost::program_options::value<std::string>()->default_value(folder.calibration_file),
+        "calibration file path"
     );
 
     return description;
@@ -154,10 +161,11 @@ boost::program_options::options_description zenslam::options::folder::descriptio
 
 void zenslam::options::folder::print() const
 {
-    std::println("folder root: {}", root.string());
-    std::println("folder left: {}", left.string());
-    std::println("folder right: {}", right.string());
-    std::println("folder timescale: {}", timescale);
+    SPDLOG_INFO("folder root: {}", root.string());
+    SPDLOG_INFO("folder left: {}", left.string());
+    SPDLOG_INFO("folder right: {}", right.string());
+    SPDLOG_INFO("folder timescale: {}", timescale);
+    SPDLOG_INFO("calibration file: {}", calibration_file.string());
 }
 
 void zenslam::options::slam::print() const

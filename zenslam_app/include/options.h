@@ -34,10 +34,11 @@ namespace zenslam
         public:
             static options_description description();
 
-            std::filesystem::path root      = { "." };
-            std::filesystem::path left      = { "cam0" };
-            std::filesystem::path right     = { "cam1" };
-            double                timescale = { 1.0 };
+            std::filesystem::path root             = { "." };
+            std::filesystem::path left             = { "cam0" };
+            std::filesystem::path right            = { "cam1" };
+            double                timescale        = { 1.0 };
+            std::filesystem::path calibration_file = { "camchain.yaml" };
 
             void print() const;
         } folder;
