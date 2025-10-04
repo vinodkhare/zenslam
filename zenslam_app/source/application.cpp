@@ -2,7 +2,7 @@
 
 #include <opencv2/highgui.hpp>
 
-#include "utils.h"
+#include <zenslam/utils.h>
 
 zenslam::application::application(const options &options) :
     _options { options }

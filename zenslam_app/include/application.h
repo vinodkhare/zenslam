@@ -2,9 +2,10 @@
 
 #include <opencv2/core.hpp>
 
-#include "slam_thread.h"
-#include "stereo_frame.h"
-#include "thread_safe.h"
+#include <zenslam/slam_thread.h>
+#include <zenslam/options.h>
+#include <zenslam/stereo_frame.h>
+#include <zenslam/thread_safe.h>
 
 namespace zenslam
 {

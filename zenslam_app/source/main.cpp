@@ -6,8 +6,8 @@
 #include <spdlog/spdlog.h>
 
 #include "application.h"
-#include "options.h"
-#include "utils.h"
+#include <zenslam/options.h>
+#include <zenslam/utils.h>
 
 #include <hello_imgui/hello_imgui.h>
 
