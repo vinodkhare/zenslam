@@ -1,10 +1,11 @@
 #include "slam_thread.h"
 
-#include <opencv2/core/types.hpp>
 #include <queue>
 #include <utility>
 
 #include <opencv2/calib3d.hpp>
+#include <opencv2/core/types.hpp>
+#include <opencv2/video/tracking.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -31,8 +32,7 @@ void zenslam::slam_thread::loop()
     const auto &detector          = grid_detector::create(feature_detector, _options.slam.cell_size);
     const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, true);
 
-    auto calibrations = std::vector
-    {
+    auto calibrations = std::vector {
         calibration::parse(_options.folder.calibration_file, "cam0"),
         calibration::parse(_options.folder.calibration_file, "cam1")
     };
@@ -42,62 +42,169 @@ void zenslam::slam_thread::loop()
     SPDLOG_INFO("");
     calibrations[1].print();
 
-    const auto &fundamental = calibrations[0].fundamental(calibrations[1]);
-    const auto &projection0 = calibrations[0].projection();
-    const auto &projection1 = calibrations[1].projection();
+    const auto &camera_matrix_L = calibrations[0].camera_matrix();
+    const auto &fundamental     = calibrations[0].fundamental(calibrations[1]);
+    const auto &projection_L    = calibrations[0].projection();
+    const auto &projection_R    = calibrations[1].projection();
 
-    auto queue = std::queue<stereo_frame> { };
+    std::optional<stereo_frame> frame_0 { };
 
-    for (auto frame: stereo_reader)
+    for (auto frame_1: stereo_reader)
     {
-        frame.l.undistorted = utils::undistort(frame.l.image, calibrations[0]);
-        frame.r.undistorted = utils::undistort(frame.r.image, calibrations[1]);
+        frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
+        frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
-        detector->detect(frame.l.undistorted, frame.l.keypoints, cv::noArray());
-        detector->detect(frame.r.undistorted, frame.r.keypoints, cv::noArray());
-
-        SPDLOG_INFO("Detected points L: {}", frame.l.keypoints.size());
-        SPDLOG_INFO("Detected points R: {}", frame.r.keypoints.size());
-
-        cv::Mat descriptors_l;
-        cv::Mat descriptors_r;
-
-        feature_describer->compute(frame.l.undistorted, frame.l.keypoints, descriptors_l);
-        feature_describer->compute(frame.r.undistorted, frame.r.keypoints, descriptors_r);
-
-        std::vector<cv::DMatch> matches;
-        matcher->match(descriptors_l, descriptors_r, matches);
-        frame.matches = matches;
-
-        SPDLOG_INFO("Matches before epipolar filtering: {}", frame.matches.size());
-
-        std::tie(frame.filtered, frame.unmatched) = utils::filter
-        (
-            frame.l.keypoints,
-            frame.r.keypoints,
-            matches,
-            fundamental,
-            _options.slam.epipolar_threshold
-        );
-
-        SPDLOG_INFO("Matches after epipolar filtering: {}", frame.filtered.size());
-
-        // triangulate filtered matches to get 3D points
-        if (!frame.filtered.empty())
+        if (frame_0.has_value())
         {
-            frame.points = utils::triangulate
+            // track points from previous frame to this frame using the KLT tracker
+            // KLT tracking of keypoints from previous frame to current frame (left image)
+            if (!frame_0->l.keypoints.empty())
+            {
+                std::vector<cv::Point2f> points_0 { };
+                std::vector<cv::Point2f> points_1 { };
+                std::vector<uchar>       status { };
+                std::vector<float>       err { };
+
+                // Convert previous keypoints to Point2f
+                points_0 = frame_0->l.keypoints | std::views::transform
+                           (
+                               [](const auto &keypoint)
+                               {
+                                   return keypoint.pt;
+                               }
+                           ) | std::ranges::to<std::vector>();
+
+                cv::calcOpticalFlowPyrLK
+                (
+                    frame_0->l.undistorted,
+                    frame_1.l.undistorted,
+                    points_0,
+                    points_1,
+                    status,
+                    err
+                );
+
+                // Verify KLT tracking results have consistent sizes
+                assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == err.size());
+
+                // Update frame.l.keypoints with tracked points
+                size_t j = 0;
+                for (size_t i = 0; i < points_1.size(); ++i)
+                {
+                    if (status[i])
+                    {
+                        frame_1.l.keypoints.emplace_back(frame_0->l.keypoints[i]);
+                        frame_1.l.keypoints.back().pt = points_1[i];
+
+                        frame_1.temporal.matches.emplace_back(i, j++, err[i]);
+                    }
+                }
+                SPDLOG_INFO("KLT tracked {} keypoints from previous frame", frame_1.l.keypoints.size());
+
+                // detect more keypoints in empty cells
+                detector->detect(frame_1.l.undistorted, frame_1.l.keypoints);
+
+                // compute PnP pose
+                const auto &matches_map = utils::to_map(frame_0->spatial.filtered);
+
+                std::vector<cv::Point3d> points3d;
+                std::vector<cv::Point2d> points2d;
+                for (const auto &match: frame_1.temporal.matches)
+                {
+                    if (matches_map.contains(match.queryIdx))
+                    {
+                        points3d.emplace_back
+                                (frame_0->points[std::distance(matches_map.begin(), matches_map.find(match.queryIdx))]);
+                        points2d.emplace_back(frame_1.l.keypoints[match.trainIdx].pt);
+                    }
+                }
+
+                if (points3d.size() >= 6)
+                {
+                    cv::Mat          rvec { };
+                    cv::Mat          tvec { };
+                    std::vector<int> inliers { };
+
+                    if
+                    (
+                        cv::solvePnPRansac
+                        (
+                            points3d,
+                            points2d,
+                            camera_matrix_L,
+                            cv::Mat(),
+                            rvec,
+                            tvec,
+                            false,
+                            100,
+                            8.0,
+                            0.99,
+                            inliers,
+                            cv::SOLVEPNP_ITERATIVE
+                        )
+                    )
+                    {
+                        SPDLOG_INFO("PnP successful with {} inliers out of {} points", inliers.size(), points3d.size());
+
+                        auto pose = cv::Affine3d(rvec, tvec);
+                        SPDLOG_INFO("Pose: {}", pose);
+                    }
+                    else
+                    {
+                        SPDLOG_WARN("PnP failed");
+                    }
+                }
+                else
+                {
+                    SPDLOG_WARN("Not enough points for PnP: {}", points3d.size());
+                }
+            }
+        }
+        else
+        {
+            detector->detect(frame_1.l.undistorted, frame_1.l.keypoints);
+            detector->detect(frame_1.r.undistorted, frame_1.r.keypoints);
+
+            SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints.size());
+            SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints.size());
+
+            cv::Mat descriptors_l;
+            cv::Mat descriptors_r;
+
+            feature_describer->compute(frame_1.l.undistorted, frame_1.l.keypoints, descriptors_l);
+            feature_describer->compute(frame_1.r.undistorted, frame_1.r.keypoints, descriptors_r);
+
+            std::vector<cv::DMatch> matches;
+            matcher->match(descriptors_l, descriptors_r, matches);
+            frame_1.spatial.matches = matches;
+
+            SPDLOG_INFO("Matches before epipolar filtering: {}", frame_1.spatial.matches.size());
+
+            std::tie(frame_1.spatial.filtered, frame_1.spatial.unmatched) = utils::filter
             (
-                frame.l.keypoints,
-                frame.r.keypoints,
-                frame.filtered,
-                projection0,
-                projection1
+                frame_1.l.keypoints,
+                frame_1.r.keypoints,
+                matches,
+                fundamental,
+                _options.slam.epipolar_threshold
             );
 
-            SPDLOG_INFO("Triangulated 3D points: {}", frame.points.size());
+            SPDLOG_INFO("Matches after epipolar filtering: {}", frame_1.spatial.filtered.size());
+
+            // triangulate filtered matches to get 3D points
+            if (!frame_1.spatial.filtered.empty())
+            {
+                frame_1.points =
+                        utils::triangulate
+                        (frame_1.l.keypoints, frame_1.r.keypoints, frame_1.spatial.filtered, projection_L, projection_R);
+
+                SPDLOG_INFO("Triangulated 3D points: {}", frame_1.points.size());
+            }
         }
 
-        on_frame(frame);
+        frame_0 = std::move(frame_1);
+
+        on_frame(frame_0.value());
 
         if (_stop_token.stop_requested())
         {

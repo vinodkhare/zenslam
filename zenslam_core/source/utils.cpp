@@ -12,7 +12,7 @@ auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
     // DRAW_RICH_KEYPOINTS shows size and orientation
     cv::drawKeypoints
     (
-        frame.image,
+        frame.undistorted,
         frame.keypoints,
         keypoints_image,
         cv::Scalar(0, 255, 0),
@@ -32,7 +32,7 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
         frame.l.keypoints,
         frame.r.undistorted,
         frame.r.keypoints,
-        frame.unmatched,
+        frame.spatial.unmatched,
         matches_image,
         cv::Scalar(000, 000, 63),
         cv::Scalar(255, 000, 000),
@@ -52,7 +52,7 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
         frame.l.keypoints,
         frame.r.undistorted,
         frame.r.keypoints,
-        frame.filtered,
+        frame.spatial.filtered,
         matches_image,
         cv::Scalar(0, 255, 0),
         cv::Scalar(255, 0, 0),
@@ -61,6 +61,27 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
         cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS |
         cv::DrawMatchesFlags::DRAW_OVER_OUTIMG |
         cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS
+    );
+
+    return matches_image;
+}
+
+auto zenslam::utils::draw_matches(const stereo_frame &frame_0, const stereo_frame &frame_1) -> cv::Mat
+{
+    cv::Mat matches_image { };
+
+    cv::drawMatches
+    (
+        frame_0.l.undistorted,
+        frame_0.l.keypoints,
+        frame_1.l.undistorted,
+        frame_1.l.keypoints,
+        frame_1.temporal.matches,
+        matches_image,
+        cv::Scalar(000, 255, 000),
+        cv::Scalar(255, 000, 000),
+        std::vector<char>(),
+        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
     );
 
     return matches_image;
@@ -78,6 +99,20 @@ auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d
     skew(2, 1) = vector[0];
 
     return skew;
+}
+
+auto zenslam::utils::to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>
+{
+    std::map<int, int> map;
+    std::ranges::transform
+    (
+        matches,
+        std::inserter(map, map.begin()),
+        [](const auto &match)
+        {
+            return std::make_pair(match.queryIdx, match.trainIdx);
+        });
+    return map;
 }
 
 auto zenslam::utils::to_points
@@ -100,6 +135,13 @@ auto zenslam::utils::to_points
     }
 
     return std::make_tuple(points0, points1);
+}
+
+auto zenslam::utils::to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>
+{
+    std::vector<cv::Point2f> points;
+    cv::KeyPoint::convert(keypoints, points);
+    return points;
 }
 
 auto zenslam::utils::to_string(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
@@ -263,13 +305,6 @@ auto zenslam::utils::undistort(const cv::Mat &image, const calibration &calibrat
     }
 
     return undistorted;
-}
-
-auto zenslam::utils::keypoints_to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>
-{
-    std::vector<cv::Point2f> points;
-    cv::KeyPoint::convert(keypoints, points);
-    return points;
 }
 
 

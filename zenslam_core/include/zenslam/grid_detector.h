@@ -50,8 +50,8 @@ namespace zenslam
         (
             cv::InputArray             image_array,
             std::vector<cv::KeyPoint> &keypoints,
-            cv::InputArray             mask_array
-        )  override;
+            cv::InputArray             mask_array = cv::noArray()
+        ) override;
 
         /**
          * @brief Get the algorithm descriptor name

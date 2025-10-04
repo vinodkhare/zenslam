@@ -30,6 +30,7 @@ add_library(${PROJECT_NAME}
         source/event.cpp
         source/folder_options.cpp
         source/grid_detector.cpp
+        source/match_data.cpp
         source/mono_folder_reader.cpp
         source/mono_frame.cpp
         source/slam_thread.cpp
@@ -47,6 +48,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         opencv_core
         opencv_features2d
         opencv_imgproc
+        opencv_video
         Boost::program_options
         spdlog::spdlog
         concurrentqueue::concurrentqueue

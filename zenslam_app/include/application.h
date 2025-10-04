@@ -16,7 +16,8 @@ namespace zenslam
         void render();
 
     private:
-        thread_safe<stereo_frame> _frame { };
+        thread_safe<stereo_frame> _frame_1 { };
+        thread_safe<stereo_frame> _frame_0 { };
 
         options     _options { };
         slam_thread _slam_thread { _options };

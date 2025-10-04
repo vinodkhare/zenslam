@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "mono_frame.h"
+#include "match_data.h"
 
 namespace zenslam
 {
@@ -11,9 +12,8 @@ namespace zenslam
     public:
         mono_frame               l         = { };
         mono_frame               r         = { };
-        std::vector<cv::DMatch>  matches   = { };
-        std::vector<cv::DMatch>  filtered  = { };
-        std::vector<cv::DMatch>  unmatched = { };
+        match_data               spatial   = { };
+        match_data               temporal  = { };
         std::vector<cv::Point3d> points    = { };
 
         stereo_frame() = default;
