@@ -32,7 +32,7 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
         frame.l.keypoints,
         frame.r.undistorted,
         frame.r.keypoints,
-        frame.matches,
+        frame.filtered,
         matches_image,
         cv::Scalar(0, 255, 0),
         cv::Scalar(0, 255, 0),
@@ -76,10 +76,10 @@ auto zenslam::utils::filter
             const auto &line0 = epilines0[i];
 
             const double err0 = std::abs(line0[0] * pt0.x + line0[1] * pt0.y + line0[2]) /
-                          std::sqrt(line0[0] * line0[0] + line0[1] * line0[1]);
+                                std::sqrt(line0[0] * line0[0] + line0[1] * line0[1]);
 
             const double err1 = std::abs(line1[0] * pt1.x + line1[1] * pt1.y + line1[2]) /
-                          std::sqrt(line1[0] * line1[0] + line1[1] * line1[1]);
+                                std::sqrt(line1[0] * line1[0] + line1[1] * line1[1]);
 
             if (err0 < epipolar_threshold && err1 < epipolar_threshold)
             {
@@ -144,6 +144,55 @@ std::string zenslam::utils::to_string_epoch(const double epoch_seconds)
 
     // Format: YYYY-MM-DD HH:MM:SS.mmm UTC
     return std::format("{:%F %T} UTC", time_point);
+}
+
+auto zenslam::utils::triangulate
+(
+    const std::vector<cv::KeyPoint> &keypoints0,
+    const std::vector<cv::KeyPoint> &keypoints1,
+    const std::vector<cv::DMatch> &  matches,
+    const cv::Matx34d &              projection0,
+    const cv::Matx34d &              projection1
+) -> std::vector<cv::Point3d>
+{
+    // Prepare corresponding points
+    std::vector<cv::Point2f> points0;
+    points0.reserve(matches.size());
+
+    std::vector<cv::Point2f> points1;
+    points1.reserve(matches.size());
+
+    for (const auto &match: matches)
+    {
+        points0.push_back(keypoints0[match.queryIdx].pt);
+        points1.push_back(keypoints1[match.trainIdx].pt);
+    }
+
+    cv::Mat points4d;
+    cv::triangulatePoints(projection0, projection1, points0, points1, points4d);
+
+    std::vector<cv::Point3d> points3d;
+    points3d.reserve(points4d.cols);
+
+    for (auto c = 0; c < points4d.cols; ++c)
+    {
+        if
+        (
+            cv::Vec4d col = points4d.col(c);
+
+            std::abs(col[3]) > 1e-9
+        )
+        {
+            points3d.emplace_back
+            (
+                col[0] / col[3],
+                col[1] / col[3],
+                col[2] / col[3]
+            );
+        }
+    }
+
+    return points3d;
 }
 
 auto zenslam::utils::undistort(const cv::Mat &image, const calibration &calibration) -> cv::Mat

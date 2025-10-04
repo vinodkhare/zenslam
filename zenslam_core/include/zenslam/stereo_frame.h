@@ -9,10 +9,11 @@ namespace zenslam
     class stereo_frame
     {
     public:
-        mono_frame              l        = { };
-        mono_frame              r        = { };
-        std::vector<cv::DMatch> matches  = { };
-        std::vector<cv::DMatch> filtered = { };
+        mono_frame               l        = { };
+        mono_frame               r        = { };
+        std::vector<cv::DMatch>  matches  = { };
+        std::vector<cv::DMatch>  filtered = { };
+        std::vector<cv::Point3d> points   = { };
 
         stereo_frame() = default;
 

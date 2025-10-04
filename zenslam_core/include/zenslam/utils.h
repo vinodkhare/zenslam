@@ -120,7 +120,7 @@ namespace zenslam::utils
         const std::vector<cv::KeyPoint> &keypoints0,
         const std::vector<cv::KeyPoint> &keypoints1,
         const std::vector<cv::DMatch> &  matches,
-        const cv::Matx33d &fundamental,
+        const cv::Matx33d &              fundamental,
         double                           epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
@@ -129,6 +129,16 @@ namespace zenslam::utils
     auto to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;
     auto to_string(const std::vector<double> &values, const std::string &delimiter = ", ") -> std::string;
     auto to_string_epoch(double epoch_seconds) -> std::string;
+
+    auto triangulate
+    (
+        const std::vector<cv::KeyPoint> &keypoints0,
+        const std::vector<cv::KeyPoint> &keypoints1,
+        const std::vector<cv::DMatch> &  matches,
+        const cv::Matx34d &              projection0,
+        const cv::Matx34d &              projection1
+    ) -> std::vector<cv::Point3d>;
+
     auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
     auto keypoints_to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>;
 }

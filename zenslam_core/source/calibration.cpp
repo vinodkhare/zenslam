@@ -130,8 +130,20 @@ auto zenslam::calibration::fundamental(const calibration &other) const -> cv::Ma
     const auto &relative_pose = other.pose_in_cam0.inv() * this->pose_in_cam0;
     const auto &t             = relative_pose.translation();
     const auto &R             = relative_pose.rotation();
-    const auto &E = utils::skew(t) * R; // Compute essential matrix E = [t]x * R
+    const auto &E             = utils::skew(t) * R; // Compute essential matrix E = [t]x * R
 
     // Compute fundamental matrix F = K2^-T * E * K1^-1
     return K2.inv().t() * E * K1.inv();
+}
+
+auto zenslam::calibration::projection() const -> cv::Matx34d
+{
+    // Projection matrix P = K * [R | t]
+    const auto K = camera_matrix();
+
+    // Take a 3x4 minor (top 3 rows, 4 cols) from the 4x4 affine matrix => [R|t]
+    const auto Rt = pose_in_cam0.inv().matrix.get_minor<3, 4>(0, 0);
+
+    // P = K * [R|t] =>
+    return K * Rt; // Matx (3x3) * (3x4) => (3x4)
 }

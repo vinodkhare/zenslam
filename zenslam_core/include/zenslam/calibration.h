@@ -27,8 +27,9 @@ namespace zenslam
         cv::Affine3d        pose_in_cam0            = { cv::Affine3d::Identity() };
 
         [[nodiscard]] auto camera_matrix() const -> cv::Matx33d;
+        [[nodiscard]] auto fundamental(const calibration& other) const -> cv::Matx33d;
+        [[nodiscard]] auto projection() const -> cv::Matx34d;
 
         auto print() const -> void;
-        auto fundamental(const calibration& other) const -> cv::Matx33d;
     };
 }

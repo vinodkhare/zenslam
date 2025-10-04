@@ -1,5 +1,6 @@
 #include "slam_thread.h"
 
+#include <opencv2/core/types.hpp>
 #include <queue>
 #include <utility>
 
@@ -41,7 +42,9 @@ void zenslam::slam_thread::loop()
     SPDLOG_INFO("");
     calibrations[1].print();
 
-    auto fundamental = calibrations[0].fundamental(calibrations[1]);
+    const auto &fundamental = calibrations[0].fundamental(calibrations[1]);
+    const auto &projection0 = calibrations[0].projection();
+    const auto &projection1 = calibrations[1].projection();
 
     auto queue = std::queue<stereo_frame> { };
 
@@ -64,54 +67,35 @@ void zenslam::slam_thread::loop()
 
         std::vector<cv::DMatch> matches;
         matcher->match(descriptors_l, descriptors_r, matches);
-        SPDLOG_INFO("Matches before epipolar filtering: {}", matches.size());
+        frame.matches = matches;
 
-        // Prepare points for filtering
-        std::vector<cv::Point2f> pts_l, pts_r;
-        for (const auto &m: matches)
+        SPDLOG_INFO("Matches before epipolar filtering: {}", frame.matches.size());
+
+        frame.filtered = utils::filter
+        (
+            frame.l.keypoints,
+            frame.r.keypoints,
+            matches,
+            fundamental,
+            _options.slam.epipolar_threshold
+        );
+
+        SPDLOG_INFO("Matches after epipolar filtering: {}", frame.filtered.size());
+
+        // triangulate filtered matches to get 3D points
+        if (!frame.filtered.empty())
         {
-            pts_l.push_back(frame.l.keypoints[m.queryIdx].pt);
-            pts_r.push_back(frame.r.keypoints[m.trainIdx].pt);
+            frame.points = utils::triangulate
+            (
+                frame.l.keypoints,
+                frame.r.keypoints,
+                frame.filtered,
+                projection0,
+                projection1
+            );
+
+            SPDLOG_INFO("Triangulated 3D points: {}", frame.points.size());
         }
-
-        // Compute epipolar error for each match and filter
-        std::vector<cv::DMatch> filtered_matches;
-        constexpr auto          epipolar_threshold = 1.0; // pixels, adjust as needed
-
-        if (pts_l.size() == pts_r.size() && !pts_l.empty())
-        {
-            std::vector<cv::Vec3f> epilines_l, epilines_r;
-            cv::computeCorrespondEpilines(pts_l, 1, fundamental, epilines_r); // lines in right image
-            cv::computeCorrespondEpilines(pts_r, 2, fundamental, epilines_l); // lines in left image
-
-            for (size_t i = 0; i < matches.size(); ++i)
-            {
-                const auto &pt_l   = pts_l[i];
-                const auto &pt_r   = pts_r[i];
-                const auto &line_r = epilines_r[i];
-                const auto &line_l = epilines_l[i];
-
-                // Distance from right point to left epipolar line
-                double err_l = std::abs(line_l[0] * pt_l.x + line_l[1] * pt_l.y + line_l[2]) /
-                               std::sqrt(line_l[0] * line_l[0] + line_l[1] * line_l[1]);
-
-                // Distance from left point to right epipolar line
-                double err_r = std::abs(line_r[0] * pt_r.x + line_r[1] * pt_r.y + line_r[2]) /
-                               std::sqrt(line_r[0] * line_r[0] + line_r[1] * line_r[1]);
-
-                if (err_l < epipolar_threshold && err_r < epipolar_threshold)
-                {
-                    filtered_matches.push_back(matches[i]);
-                }
-            }
-        }
-        else
-        {
-            filtered_matches = matches; // fallback: no filtering
-        }
-        SPDLOG_INFO("Matches after epipolar filtering: {}", filtered_matches.size());
-
-        frame.matches = filtered_matches;
 
         on_frame(frame);
 
