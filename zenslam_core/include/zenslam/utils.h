@@ -113,6 +113,19 @@ namespace zenslam::utils
 
     auto draw_keypoints(const mono_frame &frame) -> cv::Mat;
     auto draw_matches(const stereo_frame &frame) -> cv::Mat;
+    auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
+
+    auto to_points
+    (
+        const std::vector<cv::KeyPoint> &keypoints0,
+        const std::vector<cv::KeyPoint> &keypoints1,
+        const std::vector<cv::DMatch> &  matches
+    ) -> auto;
+
+    auto to_string(const std::vector<std::string> &strings, const std::string &delimiter = ", ") -> std::string;
+    auto to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;
+    auto to_string(const std::vector<double> &values, const std::string &delimiter = ", ") -> std::string;
+    auto to_string_epoch(double epoch_seconds) -> std::string;
 
     // filters matches using the epipolar crterion given the fundamental matrix
     auto filter
@@ -122,13 +135,7 @@ namespace zenslam::utils
         const std::vector<cv::DMatch> &  matches,
         const cv::Matx33d &              fundamental,
         double                           epipolar_threshold
-    ) -> std::vector<cv::DMatch>;
-
-    auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
-    auto to_string(const std::vector<std::string> &strings, const std::string &delimiter = ", ") -> std::string;
-    auto to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;
-    auto to_string(const std::vector<double> &values, const std::string &delimiter = ", ") -> std::string;
-    auto to_string_epoch(double epoch_seconds) -> std::string;
+    ) -> std::tuple<std::vector<cv::DMatch>, std::vector<cv::DMatch>>;
 
     auto triangulate
     (

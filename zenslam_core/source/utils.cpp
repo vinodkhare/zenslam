@@ -32,67 +32,38 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
         frame.l.keypoints,
         frame.r.undistorted,
         frame.r.keypoints,
-        frame.filtered,
+        frame.unmatched,
         matches_image,
-        cv::Scalar(0, 255, 0),
-        cv::Scalar(0, 255, 0),
+        cv::Scalar(000, 000, 63),
+        cv::Scalar(255, 000, 000),
         std::vector<char>(),
         cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
     );
 
+    auto img1 = matches_image(cv::Rect(0, 0, matches_image.cols / 2, matches_image.rows)).clone();
+    auto img2 = matches_image
+    (
+        cv::Rect(matches_image.cols / 2, 0, matches_image.cols / 2, matches_image.rows)
+    ).clone();
+
+    cv::drawMatches
+    (
+        frame.l.undistorted,
+        frame.l.keypoints,
+        frame.r.undistorted,
+        frame.r.keypoints,
+        frame.filtered,
+        matches_image,
+        cv::Scalar(0, 255, 0),
+        cv::Scalar(255, 0, 0),
+        std::vector<char>(),
+
+        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS |
+        cv::DrawMatchesFlags::DRAW_OVER_OUTIMG |
+        cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS
+    );
+
     return matches_image;
-}
-
-auto zenslam::utils::filter
-(
-    const std::vector<cv::KeyPoint> &keypoints0,
-    const std::vector<cv::KeyPoint> &keypoints1,
-    const std::vector<cv::DMatch> &  matches,
-    const cv::Matx33d &              fundamental,
-    const double                     epipolar_threshold
-) -> std::vector<cv::DMatch>
-{
-    std::vector<cv::DMatch>  filtered;
-    std::vector<cv::Point2f> pts0, pts1;
-
-    // Extract matching points
-    for (const auto &m: matches)
-    {
-        pts0.push_back(keypoints0[m.queryIdx].pt);
-        pts1.push_back(keypoints1[m.trainIdx].pt);
-    }
-
-    if (pts0.size() == pts1.size() && !pts0.empty())
-    {
-        std::vector<cv::Vec3f> epilines0, epilines1;
-        cv::computeCorrespondEpilines(pts0, 1, fundamental, epilines1);
-        cv::computeCorrespondEpilines(pts1, 2, fundamental, epilines0);
-
-        for (size_t i = 0; i < matches.size(); ++i)
-        {
-            const auto &pt0   = pts0[i];
-            const auto &pt1   = pts1[i];
-            const auto &line1 = epilines1[i];
-            const auto &line0 = epilines0[i];
-
-            const double err0 = std::abs(line0[0] * pt0.x + line0[1] * pt0.y + line0[2]) /
-                                std::sqrt(line0[0] * line0[0] + line0[1] * line0[1]);
-
-            const double err1 = std::abs(line1[0] * pt1.x + line1[1] * pt1.y + line1[2]) /
-                                std::sqrt(line1[0] * line1[0] + line1[1] * line1[1]);
-
-            if (err0 < epipolar_threshold && err1 < epipolar_threshold)
-            {
-                filtered.push_back(matches[i]);
-            }
-        }
-    }
-    else
-    {
-        filtered = matches;
-    }
-
-    return filtered;
 }
 
 auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d
@@ -107,6 +78,28 @@ auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d
     skew(2, 1) = vector[0];
 
     return skew;
+}
+
+auto zenslam::utils::to_points
+(
+    const std::vector<cv::KeyPoint> &keypoints0,
+    const std::vector<cv::KeyPoint> &keypoints1,
+    const std::vector<cv::DMatch> &  matches
+) -> auto
+{
+    std::vector<cv::Point2f> points0;
+    points0.reserve(matches.size());
+
+    std::vector<cv::Point2f> points1;
+    points1.reserve(matches.size());
+
+    for (const auto &match: matches)
+    {
+        points0.push_back(keypoints0[match.queryIdx].pt);
+        points1.push_back(keypoints1[match.trainIdx].pt);
+    }
+
+    return std::make_tuple(points0, points1);
 }
 
 auto zenslam::utils::to_string(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
@@ -146,6 +139,62 @@ std::string zenslam::utils::to_string_epoch(const double epoch_seconds)
     return std::format("{:%F %T} UTC", time_point);
 }
 
+auto zenslam::utils::filter
+(
+    const std::vector<cv::KeyPoint> &keypoints0,
+    const std::vector<cv::KeyPoint> &keypoints1,
+    const std::vector<cv::DMatch> &  matches,
+    const cv::Matx33d &              fundamental,
+    const double                     epipolar_threshold
+) -> std::tuple<std::vector<cv::DMatch>, std::vector<cv::DMatch>>
+{
+    std::vector<cv::DMatch> filtered { };
+    filtered.reserve(matches.size());
+
+    std::vector<cv::DMatch> unmached { };
+    unmached.reserve(matches.size());
+
+    if
+    (
+        auto [points0, points1] = to_points(keypoints0, keypoints1, matches);
+        points0.size() == points1.size() && !points0.empty()
+    )
+    {
+        std::vector<cv::Vec3f> epilines0, epilines1;
+        cv::computeCorrespondEpilines(points0, 1, fundamental, epilines1);
+        cv::computeCorrespondEpilines(points1, 2, fundamental, epilines0);
+
+        for (size_t i = 0; i < matches.size(); ++i)
+        {
+            const auto &pt0   = points0[i];
+            const auto &pt1   = points1[i];
+            const auto &line1 = epilines1[i];
+            const auto &line0 = epilines0[i];
+
+            const double err0 = std::abs(line0[0] * pt0.x + line0[1] * pt0.y + line0[2]) /
+                                std::sqrt(line0[0] * line0[0] + line0[1] * line0[1]);
+
+            const double err1 = std::abs(line1[0] * pt1.x + line1[1] * pt1.y + line1[2]) /
+                                std::sqrt(line1[0] * line1[0] + line1[1] * line1[1]);
+
+            if (err0 < epipolar_threshold && err1 < epipolar_threshold)
+            {
+                filtered.push_back(matches[i]);
+            }
+            else
+            {
+                unmached.push_back(matches[i]);
+            }
+        }
+    }
+    else
+    {
+        filtered = matches;
+    }
+
+    return std::make_tuple(filtered, unmached);
+}
+
 auto zenslam::utils::triangulate
 (
     const std::vector<cv::KeyPoint> &keypoints0,
@@ -155,18 +204,7 @@ auto zenslam::utils::triangulate
     const cv::Matx34d &              projection1
 ) -> std::vector<cv::Point3d>
 {
-    // Prepare corresponding points
-    std::vector<cv::Point2f> points0;
-    points0.reserve(matches.size());
-
-    std::vector<cv::Point2f> points1;
-    points1.reserve(matches.size());
-
-    for (const auto &match: matches)
-    {
-        points0.push_back(keypoints0[match.queryIdx].pt);
-        points1.push_back(keypoints1[match.trainIdx].pt);
-    }
+    auto [points0, points1] = to_points(keypoints0, keypoints1, matches);
 
     cv::Mat points4d;
     cv::triangulatePoints(projection0, projection1, points0, points1, points4d);

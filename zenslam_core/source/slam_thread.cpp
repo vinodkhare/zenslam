@@ -71,7 +71,7 @@ void zenslam::slam_thread::loop()
 
         SPDLOG_INFO("Matches before epipolar filtering: {}", frame.matches.size());
 
-        frame.filtered = utils::filter
+        std::tie(frame.filtered, frame.unmatched) = utils::filter
         (
             frame.l.keypoints,
             frame.r.keypoints,
