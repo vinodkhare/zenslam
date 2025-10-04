@@ -5,6 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "calibration.h"
 #include "grid_detector.h"
 #include "stereo_folder_reader.h"
 
@@ -25,6 +26,8 @@ void zenslam::slam_thread::loop()
     const auto &feature_describer = cv::ORB::create();
     const auto &detector          = grid_detector::create(feature_detector, _options.slam.cell_size);
     const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, false);
+
+    calibration::parse(_options.folder.calibration_file).print();
 
     auto queue = std::queue<stereo_frame> { };
 

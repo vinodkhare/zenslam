@@ -63,12 +63,12 @@ namespace zenslam
             cv::namedWindow("L", cv::WINDOW_GUI_EXPANDED);
             cv::imshow("L", frame.l.image);
             cv::setWindowTitle
-                    ("L", std::format("L: {{ t: {} }}", utils::epoch_double_to_string(frame.l.timestamp)));
+                    ("L", std::format("L: {{ t: {} }}", utils::to_string_epoch(frame.l.timestamp)));
 
             cv::namedWindow("R", cv::WINDOW_GUI_EXPANDED);
             cv::imshow("R", frame.r.image);
             cv::setWindowTitle
-                    ("R", std::format("R: {{ t: {} }}", utils::epoch_double_to_string(frame.r.timestamp)));
+                    ("R", std::format("R: {{ t: {} }}", utils::to_string_epoch(frame.r.timestamp)));
 
             cv::waitKey(1);
         }

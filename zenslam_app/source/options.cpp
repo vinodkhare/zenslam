@@ -24,7 +24,7 @@ boost::program_options::options_description zenslam::options::description()
     (
         "log-level",
         boost::program_options::value<std::string>()->default_value(utils::log_levels_to_string[options.log_level]),
-        ("log level - pick one of: " + utils::combine(magic_enum::enum_names<spdlog::level::level_enum>())).c_str()
+        ("log level - pick one of: " + utils::to_string(magic_enum::enum_names<spdlog::level::level_enum>())).c_str()
     )
     (
         "help,h",
@@ -92,8 +92,8 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
 
         if (const auto &application = config["application"])
         {
-            options.log_level   = utils::log_levels_from_string[application["log-level"].as<std::string>()];
-            options.log_pattern = application["log-pattern"].as<std::string>();
+            options.log_level   = utils::log_levels_from_string[application["log_level"].as<std::string>()];
+            options.log_pattern = application["log_pattern"].as<std::string>();
         }
 
         if (const auto &folder = config["folder"])
@@ -102,7 +102,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             options.folder.left             = folder["left"].as<std::string>();
             options.folder.right            = folder["right"].as<std::string>();
             options.folder.timescale        = folder["timescale"].as<double>();
-            options.folder.calibration_file = folder["calibration-file"].as<std::string>();
+            options.folder.calibration_file = folder["calibration_file"].as<std::string>();
         }
 
         if (const auto &slam = config["slam"])

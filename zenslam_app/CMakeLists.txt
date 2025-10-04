@@ -30,6 +30,7 @@ message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
 
 hello_imgui_add_app(zenslam_app source/main.cpp
         source/application.cpp
+        source/calibration.cpp
         source/event.cpp
         source/folder_options.cpp
         source/grid_detector.cpp

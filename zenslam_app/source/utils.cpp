@@ -3,32 +3,9 @@
 #include <chrono>
 #include <numeric>
 
+#include <__ranges/transform_view.h>
+
 #include <opencv2/features2d.hpp>
-
-// combines a set of strings into a single string separated by a command or any other delimiter
-auto zenslam::utils::combine(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
-{
-    if (strings.empty())
-    {
-        return "";
-    }
-
-    return std::accumulate
-    (
-        std::next(strings.begin()),
-        strings.end(),
-        strings[0],
-        [&delimiter](const std::string &a, const std::string &b)
-        {
-            return a + delimiter + b;
-        }
-    );
-}
-
-auto zenslam::utils::combine(const std::array<std::string_view, 8> &strings, const std::string &delimiter) -> std::string
-{
-    return combine(std::vector<std::string> { strings.begin(), strings.end() }, delimiter);
-}
 
 auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
 {
@@ -68,7 +45,22 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
     return matches_image;
 }
 
-std::string zenslam::utils::epoch_double_to_string(const double epoch_seconds)
+auto zenslam::utils::to_string(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
+{
+    return join_to_string(strings, delimiter, std::identity{});
+}
+
+auto zenslam::utils::to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter) -> std::string
+{
+    return join_to_string(strings, delimiter, std::identity{});
+}
+
+auto zenslam::utils::to_string(const std::vector<double> &values, const std::string &delimiter) -> std::string
+{
+    return join_to_string(values, delimiter, [](const double value) { return std::to_string(value); });
+}
+
+std::string zenslam::utils::to_string_epoch(const double epoch_seconds)
 {
     // Split into integral seconds and fractional milliseconds
     const auto &seconds      = std::chrono::floor<std::chrono::seconds>(std::chrono::duration<double>(epoch_seconds));

@@ -21,7 +21,7 @@ void zenslam::application::render()
         cv::setWindowTitle
         (
             "L",
-            std::format("L: {{ t: {} }}", utils::epoch_double_to_string(_frame->l.timestamp))
+            std::format("L: {{ t: {} }}", utils::to_string_epoch(_frame->l.timestamp))
         );
 
         if (!_frame->l.keypoints.empty())
@@ -39,7 +39,7 @@ void zenslam::application::render()
         cv::setWindowTitle
         (
             "R",
-            std::format("R: {{ t: {} }}", utils::epoch_double_to_string(_frame->r.timestamp))
+            std::format("R: {{ t: {} }}", utils::to_string_epoch(_frame->r.timestamp))
         );
 
         if (!_frame->r.keypoints.empty())
