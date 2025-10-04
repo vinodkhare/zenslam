@@ -170,7 +170,7 @@ void zenslam::options::folder::print() const
 
 void zenslam::options::slam::print() const
 {
-    std::println("cell size: [{}, {}]", cell_size.width, cell_size.height);
+    SPDLOG_INFO("cell size: [{}, {}]", cell_size.width, cell_size.height);
 }
 
 void zenslam::options::print() const

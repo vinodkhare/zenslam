@@ -27,7 +27,14 @@ void zenslam::slam_thread::loop()
     const auto &detector          = grid_detector::create(feature_detector, _options.slam.cell_size);
     const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, false);
 
-    calibration::parse(_options.folder.calibration_file).print();
+    auto calibrations = std::vector
+    {
+        calibration::parse(_options.folder.calibration_file, "cam0"),
+        calibration::parse(_options.folder.calibration_file, "cam1")
+    };
+
+    SPDLOG_INFO(""); calibrations[0].print();
+    SPDLOG_INFO(""); calibrations[1].print();
 
     auto queue = std::queue<stereo_frame> { };
 

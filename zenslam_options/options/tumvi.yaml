@@ -1,7 +1,7 @@
 # Example options file for zenslam
 application:
   log_level: "trace"
-  log_pattern: "[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v"
+  log_pattern: "[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v"
 
 folder:
   root: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/mav0

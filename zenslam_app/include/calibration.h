@@ -16,8 +16,9 @@ namespace zenslam
             radial_tangential
         };
 
-        static calibration parse(const std::filesystem::path &path);
+        static calibration parse(const std::filesystem::path &path, const std::string &camera_name);
 
+        std::string         camera_name             = { };
         cv::Size            resolution              = { };
         cv::Vec2d           focal_length            = { };
         cv::Vec2d           principal_point         = { };

@@ -11,7 +11,7 @@
 #include "utils.h"
 
 // read camera calibration from a kalibr yaml file
-zenslam::calibration zenslam::calibration::parse(const std::filesystem::path &path)
+auto zenslam::calibration::parse(const std::filesystem::path &path, const std::string &camera_name) -> calibration
 {
     if (!std::filesystem::exists(path))
     {
@@ -21,14 +21,16 @@ zenslam::calibration zenslam::calibration::parse(const std::filesystem::path &pa
     auto config = YAML::LoadFile(path.string());
 
     // Read cam0 (first camera) by default
-    if (!config["cam0"])
+    if (!config[camera_name])
     {
-        throw std::runtime_error("cam0 not found in calibration file");
+        throw std::runtime_error(camera_name + " not found in calibration file");
     }
 
-    auto cam = config["cam0"];
+    auto cam = config[camera_name];
 
     calibration calib;
+
+    calib.camera_name = camera_name;
 
     // Parse resolution
     if (cam["resolution"] && cam["resolution"].size() == 2)
@@ -78,9 +80,10 @@ zenslam::calibration zenslam::calibration::parse(const std::filesystem::path &pa
 
 auto zenslam::calibration::print() const -> void
 {
-    SPDLOG_INFO("Resolution: {}x{}", resolution.width, resolution.height);
-    SPDLOG_INFO("Focal length: [{}, {}]", focal_length[0], focal_length[1]);
-    SPDLOG_INFO("Principal point: [{}, {}]", principal_point[0], principal_point[1]);
-    SPDLOG_INFO("Distortion model: {}", magic_enum::enum_name(distortion_model));
-    SPDLOG_INFO("Distortion coefficients: [{}]", zenslam::utils::to_string(distortion_coefficients));
+    SPDLOG_INFO("Camera name: {}", camera_name);
+    SPDLOG_INFO("  Resolution: {}x{}", resolution.width, resolution.height);
+    SPDLOG_INFO("  Focal length: [{}, {}]", focal_length[0], focal_length[1]);
+    SPDLOG_INFO("  Principal point: [{}, {}]", principal_point[0], principal_point[1]);
+    SPDLOG_INFO("  Distortion model: {}", magic_enum::enum_name(distortion_model));
+    SPDLOG_INFO("  Distortion coefficients: [{}]", zenslam::utils::to_string(distortion_coefficients));
 }
