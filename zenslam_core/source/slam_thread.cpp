@@ -25,7 +25,7 @@ void zenslam::slam_thread::loop()
     const auto &stereo_reader = stereo_folder_reader(_options.folder);
 
     // Create a base detector (FAST)
-    const auto &feature_detector  = cv::FastFeatureDetector::create(8);
+    const auto &feature_detector  = cv::FastFeatureDetector::create(_options.slam.fast_threshold);
     const auto &feature_describer = cv::SiftDescriptorExtractor::create();
     const auto &detector          = grid_detector::create(feature_detector, _options.slam.cell_size);
     const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, true);
@@ -76,7 +76,6 @@ void zenslam::slam_thread::loop()
 
         // Compute epipolar error for each match and filter
         std::vector<cv::DMatch> filtered_matches;
-        constexpr auto          epipolar_threshold = 1.0; // pixels, adjust as needed
 
         if (pts_l.size() == pts_r.size() && !pts_l.empty())
         {
@@ -99,7 +98,7 @@ void zenslam::slam_thread::loop()
                 double err_r = std::abs(line_r[0] * pt_r.x + line_r[1] * pt_r.y + line_r[2]) /
                                std::sqrt(line_r[0] * line_r[0] + line_r[1] * line_r[1]);
 
-                if (err_l < epipolar_threshold && err_r < epipolar_threshold)
+                if (err_l < _options.slam.epipolar_threshold && err_r < _options.slam.epipolar_threshold)
                 {
                     filtered_matches.push_back(matches[i]);
                 }

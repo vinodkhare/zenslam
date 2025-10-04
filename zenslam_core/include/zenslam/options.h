@@ -47,6 +47,8 @@ namespace zenslam
         {
         public:
             cv::Size cell_size { 16, 16 };
+            double   epipolar_threshold { 1.0 };
+            int      fast_threshold { 10 };
 
             void print() const;
         } slam;

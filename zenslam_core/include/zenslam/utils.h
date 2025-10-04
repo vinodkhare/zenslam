@@ -26,7 +26,7 @@ struct fmt::formatter<cv::Affine3d> : formatter<std::string>
 
         auto s = fmt::format
         (
-            "[\n  R = \n  [    {:.4f} {:.4f} {:.4f}\n    {:.4f} {:.4f} {:.4f}\n    {:.4f} {:.4f} {:.4f}\n  ]\n  t = [{:.4f} {:.4f} {:.4f}]\n]",
+            "[\n  R = \n  [\n    {:+.4f} {:+.4f} {:+.4f}\n    {:+.4f} {:+.4f} {:+.4f}\n    {:+.4f} {:+.4f} {:+.4f}\n  ]\n  t = [{:+.4f} {:+.4f} {:+.4f}]\n]",
             R(0, 0),
             R(0, 1),
             R(0, 2),

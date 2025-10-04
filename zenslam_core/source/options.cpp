@@ -27,6 +27,16 @@ boost::program_options::options_description zenslam::options::description()
         ("log level - pick one of: " + utils::to_string(magic_enum::enum_names<spdlog::level::level_enum>())).c_str()
     )
     (
+        "epipolar-threshold",
+        boost::program_options::value<double>()->default_value(options.slam.epipolar_threshold),
+        "Epipolar threshold"
+    )
+    (
+        "fast-threshold",
+        boost::program_options::value<double>()->default_value(options.slam.fast_threshold),
+        "FAST threshold"
+    )
+    (
         "help,h",
         "Show help"
     )
@@ -76,6 +86,8 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
         ("log-level"))
         options.log_level = utils::log_levels_from_string[map["log-level"].as<std::string>()];
     if (options_map.contains("log-pattern")) options.log_pattern = map["log-pattern"].as<std::string>();
+    if (options_map.contains("epipolar-threshold")) options.slam.epipolar_threshold = map["epipolar-threshold"].as<double>();
+    if (options_map.contains("fast-threshold")) options.slam.fast_threshold = map["fast-threshold"].as<double>();
 
     return options;
 }
@@ -109,9 +121,19 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
         {
             if (const auto cell_size = slam["cell_size"])
             {
-                const auto cell_array         = cell_size.as<std::vector<int> >();
+                const auto cell_array         = cell_size.as<std::vector<int>>();
                 options.slam.cell_size.width  = cell_array[0];
                 options.slam.cell_size.height = cell_array[1];
+            }
+
+            if (const auto epipolar_threshold = slam["epipolar_threshold"])
+            {
+                options.slam.epipolar_threshold = epipolar_threshold.as<double>();
+            }
+
+            if (const auto fast_threshold = slam["fast_threshold"])
+            {
+                options.slam.fast_threshold = fast_threshold.as<int>();
             }
         }
     }
@@ -171,6 +193,8 @@ void zenslam::options::folder::print() const
 void zenslam::options::slam::print() const
 {
     SPDLOG_INFO("cell size: [{}, {}]", cell_size.width, cell_size.height);
+    SPDLOG_INFO("epipolar threshold: {}", epipolar_threshold);
+    SPDLOG_INFO("fast threshold: {}", fast_threshold);
 }
 
 void zenslam::options::print() const
