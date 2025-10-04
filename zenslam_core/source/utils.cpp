@@ -43,6 +43,58 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
     return matches_image;
 }
 
+auto zenslam::utils::filter
+(
+    const std::vector<cv::KeyPoint> &keypoints0,
+    const std::vector<cv::KeyPoint> &keypoints1,
+    const std::vector<cv::DMatch> &  matches,
+    const cv::Matx33d &              fundamental,
+    const double                     epipolar_threshold
+) -> std::vector<cv::DMatch>
+{
+    std::vector<cv::DMatch>  filtered;
+    std::vector<cv::Point2f> pts0, pts1;
+
+    // Extract matching points
+    for (const auto &m: matches)
+    {
+        pts0.push_back(keypoints0[m.queryIdx].pt);
+        pts1.push_back(keypoints1[m.trainIdx].pt);
+    }
+
+    if (pts0.size() == pts1.size() && !pts0.empty())
+    {
+        std::vector<cv::Vec3f> epilines0, epilines1;
+        cv::computeCorrespondEpilines(pts0, 1, fundamental, epilines1);
+        cv::computeCorrespondEpilines(pts1, 2, fundamental, epilines0);
+
+        for (size_t i = 0; i < matches.size(); ++i)
+        {
+            const auto &pt0   = pts0[i];
+            const auto &pt1   = pts1[i];
+            const auto &line1 = epilines1[i];
+            const auto &line0 = epilines0[i];
+
+            const double err0 = std::abs(line0[0] * pt0.x + line0[1] * pt0.y + line0[2]) /
+                          std::sqrt(line0[0] * line0[0] + line0[1] * line0[1]);
+
+            const double err1 = std::abs(line1[0] * pt1.x + line1[1] * pt1.y + line1[2]) /
+                          std::sqrt(line1[0] * line1[0] + line1[1] * line1[1]);
+
+            if (err0 < epipolar_threshold && err1 < epipolar_threshold)
+            {
+                filtered.push_back(matches[i]);
+            }
+        }
+    }
+    else
+    {
+        filtered = matches;
+    }
+
+    return filtered;
+}
+
 auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d
 {
     auto skew = cv::Matx33d::zeros();

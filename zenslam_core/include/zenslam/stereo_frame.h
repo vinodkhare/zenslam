@@ -9,17 +9,16 @@ namespace zenslam
     class stereo_frame
     {
     public:
-        mono_frame              l       = { };
-        mono_frame              r       = { };
-        std::vector<cv::DMatch> matches = { };
+        mono_frame              l        = { };
+        mono_frame              r        = { };
+        std::vector<cv::DMatch> matches  = { };
+        std::vector<cv::DMatch> filtered = { };
 
         stereo_frame() = default;
 
         stereo_frame(mono_frame l, mono_frame r) :
             l(std::move(l)),
-            r(std::move(r))
-        {
-        }
+            r(std::move(r)) {}
 
         stereo_frame(const stereo_frame &other)                = default;
         stereo_frame &operator=(const stereo_frame &other)     = default;
