@@ -7,13 +7,15 @@
 
 auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
 {
-    cv::Mat keypoints_image { };
+    const auto &keypoints = utils::cast<cv::KeyPoint>(utils::values(frame.keypoints_));
 
     // DRAW_RICH_KEYPOINTS shows size and orientation
+    cv::Mat keypoints_image { };
+
     cv::drawKeypoints
     (
         frame.undistorted,
-        frame.keypoints,
+        keypoints,
         keypoints_image,
         cv::Scalar(0, 255, 0),
         cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
@@ -26,57 +28,66 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
 {
     cv::Mat matches_image { };
 
+    const auto &keypoints_l = values(frame.l.keypoints_);
+    const auto &keypoints_r = values(frame.r.keypoints_);
+
+    std::vector<cv::DMatch> matches { };
+
+    for (auto query = 0; query < keypoints_l.size(); query++)
+    {
+        for (auto train = 0; train < keypoints_r.size(); train++)
+        {
+            if (keypoints_l[query].index == keypoints_r[train].index)
+            {
+                matches.emplace_back(cv::DMatch(query, train, 1.0));
+            }
+        }
+    }
+
     cv::drawMatches
     (
         frame.l.undistorted,
-        frame.l.keypoints,
+        utils::cast<cv::KeyPoint>(keypoints_l),
         frame.r.undistorted,
-        frame.r.keypoints,
-        frame.spatial.unmatched,
+        utils::cast<cv::KeyPoint>(keypoints_r),
+        matches,
         matches_image,
-        cv::Scalar(000, 000, 63),
+        cv::Scalar(000, 255, 000),
         cv::Scalar(255, 000, 000),
         std::vector<char>(),
         cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
     );
 
-    auto img1 = matches_image(cv::Rect(0, 0, matches_image.cols / 2, matches_image.rows)).clone();
-    auto img2 = matches_image
-    (
-        cv::Rect(matches_image.cols / 2, 0, matches_image.cols / 2, matches_image.rows)
-    ).clone();
-
-    cv::drawMatches
-    (
-        frame.l.undistorted,
-        frame.l.keypoints,
-        frame.r.undistorted,
-        frame.r.keypoints,
-        frame.spatial.filtered,
-        matches_image,
-        cv::Scalar(0, 255, 0),
-        cv::Scalar(255, 0, 0),
-        std::vector<char>(),
-
-        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS |
-        cv::DrawMatchesFlags::DRAW_OVER_OUTIMG |
-        cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS
-    );
-
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches(const stereo_frame &frame_0, const stereo_frame &frame_1) -> cv::Mat
+auto zenslam::utils::draw_matches(const mono_frame &frame_0, const mono_frame &frame_1) -> cv::Mat
 {
     cv::Mat matches_image { };
 
+    const auto &keypoints_0 = values(frame_0.keypoints_);
+    const auto &keypoints_1 = values(frame_1.keypoints_);
+
+    std::vector<cv::DMatch> matches { };
+
+    for (auto query = 0; query < keypoints_0.size(); query++)
+    {
+        for (auto train = 0; train < keypoints_1.size(); train++)
+        {
+            if (keypoints_0[query].index == keypoints_1[train].index)
+            {
+                matches.emplace_back(cv::DMatch(query, train, 0));
+            }
+        }
+    }
+
     cv::drawMatches
     (
-        frame_0.l.undistorted,
-        frame_0.l.keypoints,
-        frame_1.l.undistorted,
-        frame_1.l.keypoints,
-        frame_1.temporal.matches,
+        frame_0.undistorted,
+        utils::cast<cv::KeyPoint>(keypoints_0),
+        frame_1.undistorted,
+        utils::cast<cv::KeyPoint>(keypoints_1),
+        matches,
         matches_image,
         cv::Scalar(000, 255, 000),
         cv::Scalar(255, 000, 000),

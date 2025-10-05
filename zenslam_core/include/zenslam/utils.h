@@ -46,6 +46,20 @@ struct fmt::formatter<cv::Affine3d> : formatter<std::string>
 
 namespace zenslam::utils
 {
+    template<typename T_OUT, typename T_IN>
+    auto cast(const std::vector<T_IN> &values) -> std::vector<T_OUT>
+    {
+        std::vector<T_OUT> casted;
+        casted.reserve(values.size());
+
+        for (const auto &value: values)
+        {
+            casted.push_back(static_cast<T_OUT>(value));
+        }
+
+        return casted;
+    }
+
     template <typename T_KEY, typename T_VALUE>
     auto invert(const std::map<T_KEY, T_VALUE> &map) -> std::map<T_VALUE, T_KEY>
     {
@@ -128,7 +142,7 @@ namespace zenslam::utils
 
     auto draw_keypoints(const mono_frame &frame) -> cv::Mat;
     auto draw_matches(const stereo_frame &frame) -> cv::Mat;
-    auto draw_matches(const stereo_frame &frame_0, const stereo_frame &frame_1) -> cv::Mat;
+    auto draw_matches(const mono_frame &frame_0, const mono_frame &frame_1) -> cv::Mat;
     auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
 
     auto to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>;

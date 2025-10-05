@@ -18,7 +18,6 @@ namespace zenslam
         mono_frame               r        = { };
         match_data               spatial  = { };
         match_data               temporal = { };
-        std::vector<cv::Point3d> points   = { };
         cv::Affine3d             pose     = { };
 
         stereo_frame() = default;
