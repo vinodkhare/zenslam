@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <opencv2/core/affine.hpp>
+
 #include "mono_frame.h"
 #include "match_data.h"
 
@@ -15,6 +17,7 @@ namespace zenslam
         match_data               spatial   = { };
         match_data               temporal  = { };
         std::vector<cv::Point3d> points    = { };
+        cv::Affine3d             pose      = { };
 
         stereo_frame() = default;
 

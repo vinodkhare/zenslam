@@ -89,6 +89,49 @@ void zenslam::slam_thread::correspondences
     }
 }
 
+void zenslam::slam_thread::solve_pnp
+(
+    const cv::Matx33d &             camera_matrix,
+    const std::vector<cv::Point3d> &points3d,
+    const std::vector<cv::Point2d> &points2d,
+    cv::Affine3d &                  pose
+)
+{
+    cv::Mat          rvec { };
+    cv::Mat          tvec { };
+    std::vector<int> inliers { };
+
+    if
+    (
+        cv::solvePnPRansac
+        (
+            points3d,
+            points2d,
+            camera_matrix,
+            cv::Mat(),
+            rvec,
+            tvec,
+            false,
+            100,
+            8.0,
+            0.99,
+            inliers,
+            cv::SOLVEPNP_ITERATIVE
+        )
+    )
+    {
+        SPDLOG_INFO("SolvePnP successful with {} inliers out of {} points", inliers.size(), points3d.size());
+
+        pose = cv::Affine3d(rvec, tvec);
+        SPDLOG_INFO("Pose: {}", pose);
+    }
+    else
+    {
+        SPDLOG_WARN("SolvePnP failed");
+        throw std::runtime_error("SolvePnP failed");
+    }
+}
+
 void zenslam::slam_thread::loop()
 {
     const auto &stereo_reader = stereo_folder_reader(_options.folder);
@@ -114,17 +157,19 @@ void zenslam::slam_thread::loop()
     const auto &projection_L    = calibrations[0].projection();
     const auto &projection_R    = calibrations[1].projection();
 
-    std::optional<stereo_frame> frame_0 { };
+    std::optional<stereo_frame> frame_container { };
 
     for (auto frame_1: stereo_reader)
     {
         frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
-        if (frame_0.has_value())
+        if (frame_container.has_value())
         {
+            const auto &frame_0 = frame_container.value();
+
             // track keypoints from previous frame
-            track(frame_0.value(), frame_1);
+            track(frame_0, frame_1);
 
             SPDLOG_INFO("KLT tracked {} keypoints from previous frame", frame_1.l.keypoints.size());
 
@@ -134,42 +179,23 @@ void zenslam::slam_thread::loop()
             // compute PnP pose
             std::vector<cv::Point3d> points3d;
             std::vector<cv::Point2d> points2d;
-            correspondences(frame_0.value(), frame_1, points3d, points2d);
+            correspondences(frame_0, frame_1, points3d, points2d);
 
             if (points3d.size() >= 6)
             {
-                cv::Mat          rvec { };
-                cv::Mat          tvec { };
-                std::vector<int> inliers { };
+                cv::Affine3d pose;
 
-                if
-                (
-                    cv::solvePnPRansac
-                    (
-                        points3d,
-                        points2d,
-                        camera_matrix_L,
-                        cv::Mat(),
-                        rvec,
-                        tvec,
-                        false,
-                        100,
-                        8.0,
-                        0.99,
-                        inliers,
-                        cv::SOLVEPNP_ITERATIVE
-                    )
-                )
+                try
                 {
-                    SPDLOG_INFO("PnP successful with {} inliers out of {} points", inliers.size(), points3d.size());
+                    solve_pnp(camera_matrix_L, points3d, points2d, pose);
+                }
+                catch (std::exception &e)
+                {
+                    SPDLOG_WARN("SolvePnP failed: {}", e.what());
+                    break;
+                }
 
-                    auto pose = cv::Affine3d(rvec, tvec);
-                    SPDLOG_INFO("Pose: {}", pose);
-                }
-                else
-                {
-                    SPDLOG_WARN("PnP failed");
-                }
+                frame_1.pose = pose * frame_0.pose;
             }
             else
             {
@@ -210,17 +236,22 @@ void zenslam::slam_thread::loop()
             // triangulate filtered matches to get 3D points
             if (!frame_1.spatial.filtered.empty())
             {
-                frame_1.points =
-                        utils::triangulate
-                        (frame_1.l.keypoints, frame_1.r.keypoints, frame_1.spatial.filtered, projection_L, projection_R);
+                frame_1.points = utils::triangulate
+                (
+                    frame_1.l.keypoints,
+                    frame_1.r.keypoints,
+                    frame_1.spatial.filtered,
+                    projection_L,
+                    projection_R
+                );
 
                 SPDLOG_INFO("Triangulated 3D points: {}", frame_1.points.size());
             }
         }
 
-        frame_0 = std::move(frame_1);
+        on_frame(frame_1);
 
-        on_frame(frame_0.value());
+        frame_container = std::move(frame_1);
 
         if (_stop_token.stop_requested())
         {

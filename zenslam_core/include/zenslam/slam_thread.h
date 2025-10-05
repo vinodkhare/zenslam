@@ -2,6 +2,8 @@
 
 #include <thread>
 
+#include <opencv2/core/affine.hpp>
+
 #include "event.h"
 #include "options.h"
 #include "stereo_folder_reader.h"
@@ -29,6 +31,14 @@ namespace zenslam
             const stereo_frame &      frame_1,
             std::vector<cv::Point3d> &points3d,
             std::vector<cv::Point2d> &points2d
+        );
+
+        static void solve_pnp
+        (
+            const cv::Matx33d &             camera_matrix,
+            const std::vector<cv::Point3d> &points3d,
+            const std::vector<cv::Point2d> &points2d,
+            cv::Affine3d &                  pose
         );
 
     private:
