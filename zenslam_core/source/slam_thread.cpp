@@ -174,10 +174,6 @@ void zenslam::slam_thread::loop()
             // match keypoints
             utils::match(frame_1.l.keypoints_, frame_1.r.keypoints_, fundamental, _options.slam.epipolar_threshold);
 
-            // triangulate filtered matches to get 3D points
-            utils::triangulate(frame_1, projection_L, projection_R, points);
-            SPDLOG_INFO("3D points count: {}", points.size());
-
             // compute PnP pose
             std::vector<cv::Point3d> points3d;
             std::vector<cv::Point2d> points2d;
@@ -185,11 +181,11 @@ void zenslam::slam_thread::loop()
 
             if (points3d.size() >= 6)
             {
-                cv::Affine3d pose;
+                cv::Affine3d pose_of_world_in_camera;
 
                 try
                 {
-                    solve_pnp(camera_matrix_L, points3d, points2d, pose);
+                    solve_pnp(camera_matrix_L, points3d, points2d, pose_of_world_in_camera);
                 }
                 catch (std::exception &e)
                 {
@@ -197,12 +193,16 @@ void zenslam::slam_thread::loop()
                     break;
                 }
 
-                frame_1.pose = pose * frame_0.pose;
+                frame_1.pose = pose_of_world_in_camera.inv();
             }
             else
             {
                 SPDLOG_WARN("Not enough points for PnP: {}", points3d.size());
             }
+
+            // triangulate filtered matches to get 3D points
+            utils::triangulate(frame_1, calibrations[0].projection(frame_1.pose), calibrations[1].projection(frame_1.pose), points);
+            SPDLOG_INFO("3D points count: {}", points.size());
         }
         else
         {
@@ -217,7 +217,6 @@ void zenslam::slam_thread::loop()
 
             // triangulate filtered matches to get 3D points
             utils::triangulate(frame_1, projection_L, projection_R, points);
-
             SPDLOG_INFO("Triangulated 3D points: {}", points.size());
         }
 

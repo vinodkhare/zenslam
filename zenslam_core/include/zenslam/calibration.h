@@ -29,6 +29,7 @@ namespace zenslam
         [[nodiscard]] auto camera_matrix() const -> cv::Matx33d;
         [[nodiscard]] auto fundamental(const calibration& other) const -> cv::Matx33d;
         [[nodiscard]] auto projection() const -> cv::Matx34d;
+        [[nodiscard]] auto projection(const cv::Affine3d& pose_of_cam0_in_world) const -> cv::Matx34d;
 
         auto print() const -> void;
     };

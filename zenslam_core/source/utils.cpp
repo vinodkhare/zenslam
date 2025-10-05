@@ -400,11 +400,7 @@ auto zenslam::utils::triangulate
 
         if (std::abs(point4d[3]) > 1e-9)
         {
-            points.emplace
-            (
-                indices[c],
-                point { { point4d[0] / point4d[3], point4d[1] / point4d[3], point4d[2] / point4d[3] }, indices[c] }
-            );
+            points[indices[c]] = point { { point4d[0] / point4d[3], point4d[1] / point4d[3], point4d[2] / point4d[3] }, indices[c] };
         }
     }
 }

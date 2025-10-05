@@ -147,3 +147,17 @@ auto zenslam::calibration::projection() const -> cv::Matx34d
     // P = K * [R|t] =>
     return K * Rt; // Matx (3x3) * (3x4) => (3x4)
 }
+
+auto zenslam::calibration::projection(const cv::Affine3d &pose_of_cam0_in_world) const -> cv::Matx34d
+{
+    // Projection matrix P = K * [R | t]
+    const auto K = camera_matrix();
+
+    const auto& pose_of_this_in_world = pose_of_cam0_in_world * pose_in_cam0;
+
+    // Take a 3x4 minor (top 3 rows, 4 cols) from the 4x4 affine matrix => [R|t]
+    const auto Rt = pose_of_this_in_world.inv().matrix.get_minor<3, 4>(0, 0);
+
+    // P = K * [R|t] =>
+    return K * Rt; // Matx (3x3) * (3x4) => (3x4)
+}
