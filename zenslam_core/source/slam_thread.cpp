@@ -126,7 +126,7 @@ void zenslam::slam_thread::loop()
     // Create a base detector (FAST)
     const auto &feature_detector  = cv::FastFeatureDetector::create(8);
     const auto &feature_describer = cv::SiftDescriptorExtractor::create();
-    const auto &detector          = grid_detector::create(feature_detector, _options.slam.cell_size);
+    const auto &detector          = grid_detector(feature_detector, feature_describer, _options.slam.cell_size);
     const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, true);
 
     const auto &calibrations = std::vector
@@ -159,11 +159,24 @@ void zenslam::slam_thread::loop()
 
             // track keypoints new
             track_mono(frame_0.l, frame_1.l);
-            SPDLOG_INFO("KLT tracked {} keypoints from previous frame", frame_1.l.keypoints_.size());
+            track_mono(frame_0.r, frame_1.r);
+
+            SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", frame_1.l.keypoints_.size());
+            SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints_.size());
 
             // detect new
-            detector->detect(frame_1.l.undistorted, frame_1.l.keypoints_);
-            SPDLOG_INFO("Detected additional keypoints now total {}", frame_1.l.keypoints_.size());
+            detector.detect(frame_1.l.undistorted, frame_1.l.keypoints_);
+            detector.detect(frame_1.r.undistorted, frame_1.r.keypoints_);
+
+            SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints_.size());
+            SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints_.size());
+
+            // match keypoints
+            utils::match(frame_1.l.keypoints_, frame_1.r.keypoints_, fundamental, _options.slam.epipolar_threshold);
+
+            // triangulate filtered matches to get 3D points
+            utils::triangulate(frame_1, projection_L, projection_R, points);
+            SPDLOG_INFO("3D points count: {}", points.size());
 
             // compute PnP pose
             std::vector<cv::Point3d> points3d;
@@ -193,60 +206,19 @@ void zenslam::slam_thread::loop()
         }
         else
         {
-            detector->detect(frame_1.l.undistorted, frame_1.l.keypoints_);
-            detector->detect(frame_1.r.undistorted, frame_1.r.keypoints_);
+            detector.detect(frame_1.l.undistorted, frame_1.l.keypoints_);
+            detector.detect(frame_1.r.undistorted, frame_1.r.keypoints_);
 
             SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints_.size());
             SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints_.size());
 
-            cv::Mat descriptors_l;
-            cv::Mat descriptors_r;
-
-            auto keypoints_l = utils::cast<cv::KeyPoint>(utils::values(frame_1.l.keypoints_));
-            auto keypoints_r = utils::cast<cv::KeyPoint>(utils::values(frame_1.r.keypoints_));
-
-            feature_describer->compute(frame_1.l.undistorted, keypoints_l, descriptors_l);
-            feature_describer->compute(frame_1.r.undistorted, keypoints_r, descriptors_r);
-
-            std::vector<cv::DMatch> matches;
-            matcher->match(descriptors_l, descriptors_r, matches);
-            frame_1.spatial.matches = matches;
-
-            SPDLOG_INFO("Matches before epipolar filtering: {}", frame_1.spatial.matches.size());
-
-            std::tie(frame_1.spatial.filtered, frame_1.spatial.unmatched) = utils::filter
-            (
-                keypoints_l,
-                keypoints_r,
-                matches,
-                fundamental,
-                _options.slam.epipolar_threshold
-            );
-
-            SPDLOG_INFO("Matches after epipolar filtering: {}", frame_1.spatial.filtered.size());
-
-            const auto &keypoints_L = frame_1.l.keypoints_ | std::ranges::views::values | std::ranges::to<std::vector>();
-            const auto &keypoints_R = frame_1.r.keypoints_ | std::ranges::views::values | std::ranges::to<std::vector>();
-
-            for (const auto &match: frame_1.spatial.filtered)
-            {
-                const auto &keypoint_L = keypoints_L[match.queryIdx];
-                auto        keypoint_R = keypoints_R[match.trainIdx];
-
-                frame_1.r.keypoints_.erase(keypoint_R.index);
-
-                keypoint_R.index = keypoint_L.index;
-
-                frame_1.r.keypoints_.emplace(keypoint_R.index, keypoint_R);
-            }
+            // match keypoints
+            utils::match(frame_1.l.keypoints_, frame_1.r.keypoints_, fundamental, _options.slam.epipolar_threshold);
 
             // triangulate filtered matches to get 3D points
-            if (!frame_1.spatial.filtered.empty())
-            {
-                utils::triangulate(frame_1, projection_L, projection_R, points);
+            utils::triangulate(frame_1, projection_L, projection_R, points);
 
-                SPDLOG_INFO("Triangulated 3D points: {}", points.size());
-            }
+            SPDLOG_INFO("Triangulated 3D points: {}", points.size());
         }
 
         on_frame(frame_1);

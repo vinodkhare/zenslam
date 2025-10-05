@@ -5,9 +5,11 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/features2d.hpp>
 
+#include <spdlog/spdlog.h>
+
 auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
 {
-    const auto &keypoints = utils::cast<cv::KeyPoint>(utils::values(frame.keypoints_));
+    const auto &keypoints = utils::cast<cv::KeyPoint>(values(frame.keypoints_));
 
     // DRAW_RICH_KEYPOINTS shows size and orientation
     cv::Mat keypoints_image { };
@@ -213,13 +215,10 @@ auto zenslam::utils::filter
     const std::vector<cv::DMatch> &  matches,
     const cv::Matx33d &              fundamental,
     const double                     epipolar_threshold
-) -> std::tuple<std::vector<cv::DMatch>, std::vector<cv::DMatch>>
+) -> std::vector<cv::DMatch>
 {
     std::vector<cv::DMatch> filtered { };
     filtered.reserve(matches.size());
-
-    std::vector<cv::DMatch> unmached { };
-    unmached.reserve(matches.size());
 
     if
     (
@@ -248,10 +247,6 @@ auto zenslam::utils::filter
             {
                 filtered.push_back(matches[i]);
             }
-            else
-            {
-                unmached.push_back(matches[i]);
-            }
         }
     }
     else
@@ -259,7 +254,75 @@ auto zenslam::utils::filter
         filtered = matches;
     }
 
-    return std::make_tuple(filtered, unmached);
+    return filtered;
+}
+
+auto zenslam::utils::match
+(
+    const std::map<size_t, keypoint> &keypoints_0,
+    std::map<size_t, keypoint> &      keypoints_1,
+    const cv::Matx33d &               fundamental,
+    double                            epipolar_threshold
+) -> void
+{
+    cv::Mat descriptors_l;
+    cv::Mat descriptors_r;
+
+    for (const auto &keypoint_L: keypoints_0 | std::views::values)
+    {
+        if (descriptors_l.empty())
+        {
+            descriptors_l = keypoint_L.descriptor;
+        }
+        else
+        {
+            cv::vconcat(descriptors_l, keypoint_L.descriptor, descriptors_l);
+        }
+    }
+
+    for (const auto &keypoint_R: keypoints_1 | std::views::values)
+    {
+        if (descriptors_r.empty())
+        {
+            descriptors_r = keypoint_R.descriptor;
+        }
+        else
+        {
+            cv::vconcat(descriptors_r, keypoint_R.descriptor, descriptors_r);
+        }
+    }
+
+    const cv::BFMatcher     matcher { cv::NORM_L2, true };
+    std::vector<cv::DMatch> matches;
+    matcher.match(descriptors_l, descriptors_r, matches);
+
+    SPDLOG_INFO("matches count: {}", matches.size());
+
+    matches = filter
+    (
+        utils::cast<cv::KeyPoint>(values(keypoints_0)),
+        utils::cast<cv::KeyPoint>(values(keypoints_1)),
+        matches,
+        fundamental,
+        epipolar_threshold
+    );
+
+    SPDLOG_INFO("matches filtered count: {}", matches.size());
+
+    const auto &keypoints_L = keypoints_0 | std::ranges::views::values | std::ranges::to<std::vector>();
+    const auto &keypoints_R = keypoints_1 | std::ranges::views::values | std::ranges::to<std::vector>();
+
+    for (const auto &match: matches)
+    {
+        const auto &keypoint_L = keypoints_L[match.queryIdx];
+        auto        keypoint_R = keypoints_R[match.trainIdx];
+
+        keypoints_1.erase(keypoint_R.index);
+
+        keypoint_R.index = keypoint_L.index;
+
+        keypoints_1.emplace(keypoint_R.index, keypoint_R);
+    }
 }
 
 auto zenslam::utils::triangulate

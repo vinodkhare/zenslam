@@ -19,6 +19,9 @@ zenslam::application::application(const options &options) :
 void zenslam::application::render()
 {
     // display matches spatial
+    if (_frame_1->l.keypoints_.empty())
+        return;
+
     {
         const auto &matches_image = utils::draw_matches(_frame_1);
 

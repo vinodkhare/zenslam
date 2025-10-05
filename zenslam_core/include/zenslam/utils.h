@@ -46,7 +46,7 @@ struct fmt::formatter<cv::Affine3d> : formatter<std::string>
 
 namespace zenslam::utils
 {
-    template<typename T_OUT, typename T_IN>
+    template <typename T_OUT, typename T_IN>
     auto cast(const std::vector<T_IN> &values) -> std::vector<T_OUT>
     {
         std::vector<T_OUT> casted;
@@ -111,7 +111,7 @@ namespace zenslam::utils
         );
     }
 
-    template<typename T_KEY, typename T_VALUE>
+    template <typename T_KEY, typename T_VALUE>
     auto values(const std::map<T_KEY, T_VALUE> &map) -> std::vector<T_VALUE>
     {
         std::vector<T_VALUE> values;
@@ -170,7 +170,15 @@ namespace zenslam::utils
         const std::vector<cv::DMatch> &  matches,
         const cv::Matx33d &              fundamental,
         double                           epipolar_threshold
-    ) -> std::tuple<std::vector<cv::DMatch>, std::vector<cv::DMatch>>;
+    ) -> std::vector<cv::DMatch>;
+
+    auto match
+    (
+        const std::map<size_t, keypoint> &keypoints_0,
+        std::map<size_t, keypoint> &      keypoints_1,
+        const cv::Matx33d &               fundamental,
+        double                            epipolar_threshold
+    ) -> void;
 
     auto triangulate
     (
