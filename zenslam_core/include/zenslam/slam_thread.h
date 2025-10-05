@@ -4,6 +4,7 @@
 
 #include "event.h"
 #include "options.h"
+#include "stereo_folder_reader.h"
 #include "stereo_frame.h"
 
 namespace zenslam
@@ -15,6 +16,20 @@ namespace zenslam
 
         explicit slam_thread(options options);
         ~slam_thread();
+
+        static void track
+        (
+            const stereo_frame &frame_0,
+            stereo_frame &      frame_1
+        );
+
+        static void correspondences
+        (
+            const stereo_frame &      frame_0,
+            const stereo_frame &      frame_1,
+            std::vector<cv::Point3d> &points3d,
+            std::vector<cv::Point2d> &points2d
+        );
 
     private:
         options _options { };
