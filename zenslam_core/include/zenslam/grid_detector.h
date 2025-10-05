@@ -1,14 +1,17 @@
 #pragma once
 
+#include <map>
 #include <vector>
 
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 
+#include "keypoint.h"
+
 namespace zenslam
 {
     /**
-     * @brief Feature detector that divides image into grid cells and detects one feature per cell
+     * @brief Feature detector that divides an image into grid cells and detects one feature per cell
      *
      * This detector wraps any OpenCV feature detector and applies it to each grid cell
      * independently, returning the strongest keypoint from each cell. This ensures
@@ -35,10 +38,10 @@ namespace zenslam
         static cv::Ptr<grid_detector> create(const cv::Ptr<Feature2D> &detector, cv::Size cell_size);
 
 
-        // Override methods from cv::Feature2D base class
+        // Override methods from the cv::Feature2D base class
 
         /**
-         * @brief Detect keypoints in an image using grid-based approach
+         * @brief Detect keypoints in an image using a grid-based approach
          *
          * Divides the image into grid cells and detects the strongest keypoint in each cell.
          *
@@ -50,8 +53,14 @@ namespace zenslam
         (
             cv::InputArray             image_array,
             std::vector<cv::KeyPoint> &keypoints,
-            cv::InputArray             mask_array = cv::noArray()
+            cv::InputArray             mask_array
         ) override;
+
+        void detect
+        (
+            cv::InputArray              image_array,
+            std::map<size_t, keypoint> &keypoints
+        ) const;
 
         /**
          * @brief Get the algorithm descriptor name

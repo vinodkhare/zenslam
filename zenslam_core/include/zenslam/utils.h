@@ -10,6 +10,7 @@
 #include <spdlog/fmt/ostr.h> // must be included
 
 #include "calibration.h"
+#include "stereo_folder_reader.h"
 #include "stereo_frame.h"
 
 // Pretty formatter for cv::Affine3d for spdlog/fmt
@@ -116,7 +117,7 @@ namespace zenslam::utils
     auto draw_matches(const stereo_frame &frame_0, const stereo_frame &frame_1) -> cv::Mat;
     auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
 
-    auto to_map(const std::vector<cv::DMatch>& matches) -> std::map<int, int>;
+    auto to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>;
 
     auto to_points
     (
@@ -150,6 +151,14 @@ namespace zenslam::utils
         const cv::Matx34d &              projection0,
         const cv::Matx34d &              projection1
     ) -> std::vector<cv::Point3d>;
+
+    auto triangulate
+    (
+        const stereo_frame &            frame,
+        const cv::Matx34d &             projection_l,
+        const cv::Matx34d &             projection_r,
+        std::map<unsigned long, point> &points
+    ) -> void;
 
     auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
 }

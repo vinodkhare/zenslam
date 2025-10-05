@@ -111,7 +111,8 @@ auto zenslam::utils::to_map(const std::vector<cv::DMatch> &matches) -> std::map<
         [](const auto &match)
         {
             return std::make_pair(match.queryIdx, match.trainIdx);
-        });
+        }
+    );
     return map;
 }
 
@@ -273,6 +274,52 @@ auto zenslam::utils::triangulate
     }
 
     return points3d;
+}
+
+auto zenslam::utils::triangulate
+(
+    const stereo_frame &            frame,
+    const cv::Matx34d &             projection_l,
+    const cv::Matx34d &             projection_r,
+    std::map<unsigned long, point> &points
+) -> void
+{
+    std::vector<cv::Point2f> points_l { };
+    std::vector<cv::Point2f> points_r { };
+    std::vector<size_t>      indices { };
+
+    for (const auto &[index, keypoint_L]: frame.l.keypoints_)
+    {
+        if (frame.r.keypoints_.contains(index))
+        {
+            const auto &keypoint_R = frame.r.keypoints_.at(index);
+
+            points_l.emplace_back(keypoint_L.pt);
+            points_r.emplace_back(keypoint_R.pt);
+
+            indices.emplace_back(index);
+        }
+    }
+
+    cv::Mat points4d;
+    cv::triangulatePoints(projection_l, projection_r, points_l, points_r, points4d);
+
+    std::vector<cv::Point3d> points3d;
+    points3d.reserve(points4d.cols);
+
+    for (auto c = 0; c < points4d.cols; ++c)
+    {
+        cv::Vec4d point4d = points4d.col(c);
+
+        if (std::abs(point4d[3]) > 1e-9)
+        {
+            points.emplace
+            (
+                indices[c],
+                point { { point4d[0] / point4d[3], point4d[1] / point4d[3], point4d[2] / point4d[3] }, indices[c] }
+            );
+        }
+    }
 }
 
 auto zenslam::utils::undistort(const cv::Mat &image, const calibration &calibration) -> cv::Mat
