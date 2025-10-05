@@ -22,49 +22,6 @@ zenslam::slam_thread::~slam_thread()
     _stop_source.request_stop();
 }
 
-void zenslam::slam_thread::track
-(
-    const stereo_frame &frame_0,
-    stereo_frame &      frame_1
-)
-{
-    // track points from the previous frame to this frame using the KLT tracker
-    // KLT tracking of keypoints from previous frame to current frame (left image)
-    std::vector<cv::Point2f> points_0 { };
-    std::vector<cv::Point2f> points_1 { };
-    std::vector<uchar>       status { };
-    std::vector<float>       err { };
-
-    // Convert previous keypoints to Point
-    // points_0 = utils::to_points(frame_0.l.keypoints);
-
-    cv::calcOpticalFlowPyrLK
-    (
-        frame_0.l.undistorted,
-        frame_1.l.undistorted,
-        points_0,
-        points_1,
-        status,
-        err
-    );
-
-    // Verify KLT tracking results have consistent sizes
-    assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == err.size());
-
-    // Update frame.l.keypoints with tracked points
-    size_t j = 0;
-    for (size_t i = 0; i < points_1.size(); ++i)
-    {
-        if (status[i])
-        {
-            // frame_1.l.keypoints.emplace_back(frame_0.l.keypoints[i]);
-            // frame_1.l.keypoints.back().pt = points_1[i];
-
-            frame_1.temporal.matches.emplace_back(i, j++, err[i]);
-        }
-    }
-}
-
 void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &frame_1)
 {
     // track points from the previous frame to this frame using the KLT tracker
@@ -97,30 +54,6 @@ void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &fra
         {
             frame_1.keypoints_.emplace(keypoints_0[i].index, keypoints_0[i]);
             frame_1.keypoints_[keypoints_0[i].index].pt = points_1[i];
-        }
-    }
-}
-
-void zenslam::slam_thread::correspondences
-(
-    const stereo_frame &      frame_0,
-    const stereo_frame &      frame_1,
-    std::vector<cv::Point3d> &points3d,
-    std::vector<cv::Point2d> &points2d
-)
-{
-    const auto &matches_map = utils::to_map(frame_0.spatial.filtered);
-
-    for (const auto &match: frame_1.temporal.matches)
-    {
-        if (matches_map.contains(match.queryIdx))
-        {
-            points3d.emplace_back
-            (
-                // frame_0.points[std::distance(matches_map.begin(), matches_map.find(match.queryIdx))]
-            );
-
-            // points2d.emplace_back(frame_1.l.keypoints[match.trainIdx].pt);
         }
     }
 }

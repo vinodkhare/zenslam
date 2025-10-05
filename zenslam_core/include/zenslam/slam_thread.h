@@ -19,24 +19,10 @@ namespace zenslam
         explicit slam_thread(options options);
         ~slam_thread();
 
-        static void track
-        (
-            const stereo_frame &frame_0,
-            stereo_frame &      frame_1
-        );
-
         static void track_mono
         (
             const mono_frame &frame_0,
             mono_frame &      frame_1
-        );
-
-        static void correspondences
-        (
-            const stereo_frame &      frame_0,
-            const stereo_frame &      frame_1,
-            std::vector<cv::Point3d> &points3d,
-            std::vector<cv::Point2d> &points2d
         );
 
         static void correspondences_x
