@@ -145,6 +145,19 @@ auto zenslam::utils::to_points(const std::vector<cv::KeyPoint> &keypoints) -> st
     return points;
 }
 
+auto zenslam::utils::to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>
+{
+    std::vector<cv::Point2f> points;
+    points.reserve(keypoints.size());
+
+    for (const auto &value: keypoints | std::views::values)
+    {
+        points.emplace_back(value.pt);
+    }
+
+    return points;
+}
+
 auto zenslam::utils::to_string(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
 {
     return join_to_string(strings, delimiter, std::identity { });

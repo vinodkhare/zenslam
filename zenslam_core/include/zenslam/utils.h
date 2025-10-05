@@ -97,6 +97,20 @@ namespace zenslam::utils
         );
     }
 
+    template<typename T_KEY, typename T_VALUE>
+    auto values(const std::map<T_KEY, T_VALUE> &map) -> std::vector<T_VALUE>
+    {
+        std::vector<T_VALUE> values;
+        values.reserve(map.size());
+
+        for (const auto &value: map)
+        {
+            values.push_back(value.second);
+        }
+
+        return values;
+    }
+
     inline std::string version = "0.0.1";
 
     inline std::map<std::string, spdlog::level::level_enum> log_levels_from_string =
@@ -127,6 +141,7 @@ namespace zenslam::utils
     ) -> auto;
 
     auto to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>;
+    auto to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>;
 
     auto to_string(const std::vector<std::string> &strings, const std::string &delimiter = ", ") -> std::string;
     auto to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;

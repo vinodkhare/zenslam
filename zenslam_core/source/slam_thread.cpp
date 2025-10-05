@@ -65,6 +65,42 @@ void zenslam::slam_thread::track
     }
 }
 
+void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &frame_1)
+{
+    // track points from the previous frame to this frame using the KLT tracker
+    // KLT tracking of keypoints from previous frame to current frame (left image)
+    std::vector<cv::Point2f> points_1 { };
+    std::vector<uchar>       status { };
+    std::vector<float>       err { };
+
+    // Convert previous keypoints to Point
+    const auto &keypoints_0 = utils::values(frame_0.keypoints_);
+    const auto &points_0    = utils::to_points(frame_0.keypoints_);
+
+    cv::calcOpticalFlowPyrLK
+    (
+        frame_0.undistorted,
+        frame_1.undistorted,
+        points_0,
+        points_1,
+        status,
+        err
+    );
+
+    // Verify KLT tracking results have consistent sizes
+    assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == err.size());
+
+    // Update frame.l.keypoints with tracked points
+    for (size_t i = 0; i < points_1.size(); ++i)
+    {
+        if (status[i])
+        {
+            frame_1.keypoints_.emplace(keypoints_0[i].index, keypoints_0[i]);
+            frame_1.keypoints_[keypoints_0[i].index].pt = points_1[i];
+        }
+    }
+}
+
 void zenslam::slam_thread::correspondences
 (
     const stereo_frame &      frame_0,
@@ -85,6 +121,24 @@ void zenslam::slam_thread::correspondences
             );
 
             points2d.emplace_back(frame_1.l.keypoints[match.trainIdx].pt);
+        }
+    }
+}
+
+void zenslam::slam_thread::correspondences_x
+(
+    const stereo_frame &           frame,
+    const std::map<size_t, point> &points,
+    std::vector<cv::Point3d> &     points3d,
+    std::vector<cv::Point2d> &     points2d
+)
+{
+    for (const auto &[index, keypoint_l]: frame.l.keypoints_)
+    {
+        if (points.contains(index))
+        {
+            points3d.emplace_back(points.at(index));
+            points2d.emplace_back(keypoint_l.pt);
         }
     }
 }
@@ -159,6 +213,7 @@ void zenslam::slam_thread::loop()
     const auto &projection_R    = calibrations[1].projection();
 
     std::optional<stereo_frame> frame_container { };
+    std::map<size_t, point>     points { };
 
     for (auto frame_1: stereo_reader)
     {
@@ -171,16 +226,23 @@ void zenslam::slam_thread::loop()
 
             // track keypoints from the previous frame
             track(frame_0, frame_1);
-
             SPDLOG_INFO("KLT tracked {} keypoints from previous frame", frame_1.l.keypoints.size());
+
+            // track keypoints new
+            track_mono(frame_0.l, frame_1.l);
+            SPDLOG_INFO("KLT tracked {} keypoints from previous frame", frame_1.l.keypoints_.size());
 
             // detect more keypoints in empty cells
             detector->detect(frame_1.l.undistorted, frame_1.l.keypoints, cv::noArray());
 
+            // detect new
+            detector->detect(frame_1.l.undistorted, frame_1.l.keypoints_);
+            SPDLOG_INFO("Detected additional keypoints now total {}", frame_1.l.keypoints_.size());
+
             // compute PnP pose
             std::vector<cv::Point3d> points3d;
             std::vector<cv::Point2d> points2d;
-            correspondences(frame_0, frame_1, points3d, points2d);
+            correspondences_x(frame_1, points, points3d, points2d);
 
             if (points3d.size() >= 6)
             {
@@ -290,9 +352,9 @@ void zenslam::slam_thread::loop()
 
                 SPDLOG_INFO("Triangulated 3D points: {}", frame_1.points.size());
 
-                utils::triangulate(frame_1, projection_L, projection_R, _points);
+                utils::triangulate(frame_1, projection_L, projection_R, points);
 
-                SPDLOG_INFO("Triangulated 3D points: {}", _points.size());
+                SPDLOG_INFO("Triangulated 3D points: {}", points.size());
             }
         }
 

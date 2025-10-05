@@ -25,12 +25,26 @@ namespace zenslam
             stereo_frame &      frame_1
         );
 
+        static void track_mono
+        (
+            const mono_frame &frame_0,
+            mono_frame &      frame_1
+        );
+
         static void correspondences
         (
             const stereo_frame &      frame_0,
             const stereo_frame &      frame_1,
             std::vector<cv::Point3d> &points3d,
             std::vector<cv::Point2d> &points2d
+        );
+
+        static void correspondences_x
+        (
+            const stereo_frame &           frame,
+            const std::map<size_t, point> &points,
+            std::vector<cv::Point3d> &     points3d,
+            std::vector<cv::Point2d> &     points2d
         );
 
         static void solve_pnp
@@ -43,7 +57,6 @@ namespace zenslam
 
     private:
         options                 _options { };
-        std::map<size_t, point> _points { };
 
         std::stop_source _stop_source { };
         std::stop_token  _stop_token { _stop_source.get_token() };
