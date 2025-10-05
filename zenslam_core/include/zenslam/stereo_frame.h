@@ -1,11 +1,13 @@
 #pragma once
 
+#include <map>
 #include <utility>
 
 #include <opencv2/core/affine.hpp>
 
 #include "mono_frame.h"
 #include "match_data.h"
+#include "point.h"
 
 namespace zenslam
 {
@@ -16,8 +18,8 @@ namespace zenslam
         mono_frame               r        = { };
         match_data               spatial  = { };
         match_data               temporal = { };
-        std::vector<cv::Point3d> points   = { };
         cv::Affine3d             pose     = { };
+        std::vector<cv::Point3d> points3d = { };
 
         stereo_frame() = default;
 

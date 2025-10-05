@@ -2,8 +2,11 @@
 
 #include <thread>
 
+#include <opencv2/core/affine.hpp>
+
 #include "event.h"
 #include "options.h"
+#include "stereo_folder_reader.h"
 #include "stereo_frame.h"
 
 namespace zenslam
@@ -15,6 +18,28 @@ namespace zenslam
 
         explicit slam_thread(options options);
         ~slam_thread();
+
+        static void track_mono
+        (
+            const mono_frame &frame_0,
+            mono_frame &      frame_1
+        );
+
+        static void correspondences_x
+        (
+            const stereo_frame &           frame,
+            const std::map<size_t, point> &points,
+            std::vector<cv::Point3d> &     points3d,
+            std::vector<cv::Point2d> &     points2d
+        );
+
+        static void solve_pnp
+        (
+            const cv::Matx33d &             camera_matrix,
+            const std::vector<cv::Point3d> &points3d,
+            const std::vector<cv::Point2d> &points2d,
+            cv::Affine3d &                  pose
+        );
 
     private:
         options _options { };

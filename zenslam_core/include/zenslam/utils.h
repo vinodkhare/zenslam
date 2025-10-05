@@ -10,6 +10,7 @@
 #include <spdlog/fmt/ostr.h> // must be included
 
 #include "calibration.h"
+#include "stereo_folder_reader.h"
 #include "stereo_frame.h"
 
 // Pretty formatter for cv::Affine3d for spdlog/fmt
@@ -45,6 +46,20 @@ struct fmt::formatter<cv::Affine3d> : formatter<std::string>
 
 namespace zenslam::utils
 {
+    template <typename T_OUT, typename T_IN>
+    auto cast(const std::vector<T_IN> &values) -> std::vector<T_OUT>
+    {
+        std::vector<T_OUT> casted;
+        casted.reserve(values.size());
+
+        for (const auto &value: values)
+        {
+            casted.push_back(static_cast<T_OUT>(value));
+        }
+
+        return casted;
+    }
+
     template <typename T_KEY, typename T_VALUE>
     auto invert(const std::map<T_KEY, T_VALUE> &map) -> std::map<T_VALUE, T_KEY>
     {
@@ -96,6 +111,20 @@ namespace zenslam::utils
         );
     }
 
+    template <typename T_KEY, typename T_VALUE>
+    auto values(const std::map<T_KEY, T_VALUE> &map) -> std::vector<T_VALUE>
+    {
+        std::vector<T_VALUE> values;
+        values.reserve(map.size());
+
+        for (const auto &value: map)
+        {
+            values.push_back(value.second);
+        }
+
+        return values;
+    }
+
     inline std::string version = "0.0.1";
 
     inline std::map<std::string, spdlog::level::level_enum> log_levels_from_string =
@@ -113,13 +142,10 @@ namespace zenslam::utils
 
     auto draw_keypoints(const mono_frame &frame) -> cv::Mat;
     auto draw_matches(const stereo_frame &frame) -> cv::Mat;
-    auto draw_matches(const stereo_frame &frame_0, const stereo_frame &frame_1) -> cv::Mat;
+    auto draw_matches(const mono_frame &frame_0, const mono_frame &frame_1) -> cv::Mat;
     auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
 
-    auto to_keypoints(const std::vector<keypoint> &keypoints) -> std::vector<cv::KeyPoint>;
-
     auto to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>;
-    auto to_map(const std::vector<keypoint> &keypoints) -> std::map<int, keypoint>;
 
     auto to_points
     (
@@ -129,6 +155,7 @@ namespace zenslam::utils
     ) -> auto;
 
     auto to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>;
+    auto to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>;
 
     auto to_string(const std::vector<std::string> &strings, const std::string &delimiter = ", ") -> std::string;
     auto to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;
@@ -143,7 +170,15 @@ namespace zenslam::utils
         const std::vector<cv::DMatch> &  matches,
         const cv::Matx33d &              fundamental,
         double                           epipolar_threshold
-    ) -> std::tuple<std::vector<cv::DMatch>, std::vector<cv::DMatch>>;
+    ) -> std::vector<cv::DMatch>;
+
+    auto match
+    (
+        const std::map<size_t, keypoint> &keypoints_0,
+        std::map<size_t, keypoint> &      keypoints_1,
+        const cv::Matx33d &               fundamental,
+        double                            epipolar_threshold
+    ) -> void;
 
     auto triangulate
     (
@@ -156,11 +191,11 @@ namespace zenslam::utils
 
     auto triangulate
     (
-        const std::vector<keypoint> &keypoints0,
-        const std::vector<keypoint> &keypoints1,
-        const cv::Matx34d &          projection0,
-        const cv::Matx34d &          projection1
-    ) -> std::vector<cv::Point3d>;
+        const stereo_frame &            frame,
+        const cv::Matx34d &             projection_l,
+        const cv::Matx34d &             projection_r,
+        std::map<unsigned long, point> &points
+    ) -> void;
 
     auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
 }

@@ -1,15 +1,16 @@
 #include <csignal>
 #include <iostream>
 
+#include <hello_imgui/hello_imgui.h>
+
 #include <opencv2/core.hpp>
 
 #include <spdlog/spdlog.h>
 
-#include "application.h"
 #include <zenslam/options.h>
 #include <zenslam/utils.h>
 
-#include <hello_imgui/hello_imgui.h>
+#include "application.h"
 
 std::atomic is_running { true };
 
@@ -51,21 +52,10 @@ int main(const int argc, char **argv)
 
         auto application = zenslam::application { options };
 
-        HelloImGui::Run
-        (
-            [&application]
-            {
-                ImGui::Text("Hello, world!");
-
-                application.render();
-            },
-
-            // Gui code
-            "ZenSLAM!",
-            true,
-            true,
-            HelloImGui::ScreenSize({ 600, 400 })
-        );
+        while (is_running)
+        {
+            application.render();
+        }
 
         return 0;
     }

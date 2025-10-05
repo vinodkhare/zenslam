@@ -1,5 +1,6 @@
 #pragma once
 
+#include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 
 namespace zenslam
@@ -9,9 +10,7 @@ namespace zenslam
     public:
         static size_t index_next;
 
-        size_t index { };
-
-        keypoint() = default;
-        explicit keypoint(const KeyPoint &keypoint);
+        size_t  index { };
+        cv::Mat descriptor { };
     };
 }

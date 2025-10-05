@@ -5,15 +5,19 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/features2d.hpp>
 
+#include <spdlog/spdlog.h>
+
 auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
 {
-    cv::Mat keypoints_image { };
+    const auto &keypoints = utils::cast<cv::KeyPoint>(values(frame.keypoints_));
 
     // DRAW_RICH_KEYPOINTS shows size and orientation
+    cv::Mat keypoints_image { };
+
     cv::drawKeypoints
     (
         frame.undistorted,
-        frame.keypoints,
+        keypoints,
         keypoints_image,
         cv::Scalar(0, 255, 0),
         cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
@@ -26,57 +30,66 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
 {
     cv::Mat matches_image { };
 
+    const auto &keypoints_l = values(frame.l.keypoints_);
+    const auto &keypoints_r = values(frame.r.keypoints_);
+
+    std::vector<cv::DMatch> matches { };
+
+    for (auto query = 0; query < keypoints_l.size(); query++)
+    {
+        for (auto train = 0; train < keypoints_r.size(); train++)
+        {
+            if (keypoints_l[query].index == keypoints_r[train].index)
+            {
+                matches.emplace_back(cv::DMatch(query, train, 1.0));
+            }
+        }
+    }
+
     cv::drawMatches
     (
         frame.l.undistorted,
-        frame.l.keypoints,
+        utils::cast<cv::KeyPoint>(keypoints_l),
         frame.r.undistorted,
-        frame.r.keypoints,
-        frame.spatial.unmatched,
+        utils::cast<cv::KeyPoint>(keypoints_r),
+        matches,
         matches_image,
-        cv::Scalar(000, 000, 63),
+        cv::Scalar(000, 255, 000),
         cv::Scalar(255, 000, 000),
         std::vector<char>(),
         cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
     );
 
-    auto img1 = matches_image(cv::Rect(0, 0, matches_image.cols / 2, matches_image.rows)).clone();
-    auto img2 = matches_image
-    (
-        cv::Rect(matches_image.cols / 2, 0, matches_image.cols / 2, matches_image.rows)
-    ).clone();
-
-    cv::drawMatches
-    (
-        frame.l.undistorted,
-        frame.l.keypoints,
-        frame.r.undistorted,
-        frame.r.keypoints,
-        frame.spatial.filtered,
-        matches_image,
-        cv::Scalar(0, 255, 0),
-        cv::Scalar(255, 0, 0),
-        std::vector<char>(),
-
-        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS |
-        cv::DrawMatchesFlags::DRAW_OVER_OUTIMG |
-        cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS
-    );
-
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches(const stereo_frame &frame_0, const stereo_frame &frame_1) -> cv::Mat
+auto zenslam::utils::draw_matches(const mono_frame &frame_0, const mono_frame &frame_1) -> cv::Mat
 {
     cv::Mat matches_image { };
 
+    const auto &keypoints_0 = values(frame_0.keypoints_);
+    const auto &keypoints_1 = values(frame_1.keypoints_);
+
+    std::vector<cv::DMatch> matches { };
+
+    for (auto query = 0; query < keypoints_0.size(); query++)
+    {
+        for (auto train = 0; train < keypoints_1.size(); train++)
+        {
+            if (keypoints_0[query].index == keypoints_1[train].index)
+            {
+                matches.emplace_back(cv::DMatch(query, train, 0));
+            }
+        }
+    }
+
     cv::drawMatches
     (
-        frame_0.l.undistorted,
-        frame_0.l.keypoints,
-        frame_1.l.undistorted,
-        frame_1.l.keypoints,
-        frame_1.temporal.matches,
+        frame_0.undistorted,
+        utils::cast<cv::KeyPoint>(keypoints_0),
+        frame_1.undistorted,
+        utils::cast<cv::KeyPoint>(keypoints_1),
+        matches,
         matches_image,
         cv::Scalar(000, 255, 000),
         cv::Scalar(255, 000, 000),
@@ -134,18 +147,6 @@ auto zenslam::utils::to_map(const std::vector<cv::DMatch> &matches) -> std::map<
     return map;
 }
 
-auto zenslam::utils::to_map(const std::vector<keypoint> &keypoints) -> std::map<int, keypoint>
-{
-    std::map<int, keypoint> map;
-
-    for (const auto &keypoint: keypoints)
-    {
-        map.emplace(keypoint.index, keypoint);
-    }
-
-    return map;
-}
-
 auto zenslam::utils::to_points
 (
     const std::vector<cv::KeyPoint> &keypoints0,
@@ -172,6 +173,19 @@ auto zenslam::utils::to_points(const std::vector<cv::KeyPoint> &keypoints) -> st
 {
     std::vector<cv::Point2f> points;
     cv::KeyPoint::convert(keypoints, points);
+    return points;
+}
+
+auto zenslam::utils::to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>
+{
+    std::vector<cv::Point2f> points;
+    points.reserve(keypoints.size());
+
+    for (const auto &value: keypoints | std::views::values)
+    {
+        points.emplace_back(value.pt);
+    }
+
     return points;
 }
 
@@ -219,13 +233,10 @@ auto zenslam::utils::filter
     const std::vector<cv::DMatch> &  matches,
     const cv::Matx33d &              fundamental,
     const double                     epipolar_threshold
-) -> std::tuple<std::vector<cv::DMatch>, std::vector<cv::DMatch>>
+) -> std::vector<cv::DMatch>
 {
     std::vector<cv::DMatch> filtered { };
     filtered.reserve(matches.size());
-
-    std::vector<cv::DMatch> unmached { };
-    unmached.reserve(matches.size());
 
     if
     (
@@ -254,10 +265,6 @@ auto zenslam::utils::filter
             {
                 filtered.push_back(matches[i]);
             }
-            else
-            {
-                unmached.push_back(matches[i]);
-            }
         }
     }
     else
@@ -265,7 +272,88 @@ auto zenslam::utils::filter
         filtered = matches;
     }
 
-    return std::make_tuple(filtered, unmached);
+    return filtered;
+}
+
+auto zenslam::utils::match
+(
+    const std::map<size_t, keypoint> &keypoints_0,
+    std::map<size_t, keypoint> &      keypoints_1,
+    const cv::Matx33d &               fundamental,
+    double                            epipolar_threshold
+) -> void
+{
+    cv::Mat               descriptors_l { };
+    cv::Mat               descriptors_r { };
+    std::vector<keypoint> unmatched_l { };
+    std::vector<keypoint> unmatched_r { };
+
+    for (const auto& keypoint_l : keypoints_0 | std::views::values)
+    {
+        if (keypoints_1.contains(keypoint_l.index))
+        {
+            continue;
+        }
+
+        unmatched_l.emplace_back(keypoint_l);
+
+        if (descriptors_l.empty())
+        {
+            descriptors_l = keypoint_l.descriptor;
+        }
+        else
+        {
+            cv::vconcat(descriptors_l, keypoint_l.descriptor, descriptors_l);
+        }
+    }
+
+    for (const auto& keypoint_r : keypoints_1 | std::views::values)
+    {
+        if (keypoints_0.contains(keypoint_r.index))
+        {
+            continue;
+        }
+
+        unmatched_r.emplace_back(keypoint_r);
+
+        if (descriptors_r.empty())
+        {
+            descriptors_r = keypoint_r.descriptor;
+        }
+        else
+        {
+            cv::vconcat(descriptors_r, keypoint_r.descriptor, descriptors_r);
+        }
+    }
+
+    const cv::BFMatcher     matcher { cv::NORM_L2, true };
+    std::vector<cv::DMatch> matches;
+    matcher.match(descriptors_l, descriptors_r, matches);
+
+    SPDLOG_INFO("matches count: {}", matches.size());
+
+    matches = filter
+    (
+        utils::cast<cv::KeyPoint>(unmatched_l),
+        utils::cast<cv::KeyPoint>(unmatched_r),
+        matches,
+        fundamental,
+        epipolar_threshold
+    );
+
+    SPDLOG_INFO("matches filtered count: {}", matches.size());
+
+    for (const auto &match: matches)
+    {
+        const auto &keypoint_l = unmatched_l[match.queryIdx];
+        auto        keypoint_r = unmatched_r[match.trainIdx];
+
+        keypoints_1.erase(keypoint_r.index);
+
+        keypoint_r.index = keypoint_l.index;
+
+        keypoints_1.emplace(keypoint_r.index, keypoint_r);
+    }
 }
 
 auto zenslam::utils::triangulate
@@ -308,53 +396,48 @@ auto zenslam::utils::triangulate
 
 auto zenslam::utils::triangulate
 (
-    const std::vector<keypoint> &keypoints0,
-    const std::vector<keypoint> &keypoints1,
-    const cv::Matx34d &projection0,
-    const cv::Matx34d &projection1
-) -> std::vector<cv::Point3d>
+    const stereo_frame &            frame,
+    const cv::Matx34d &             projection_l,
+    const cv::Matx34d &             projection_r,
+    std::map<unsigned long, point> &points
+) -> void
 {
-    std::vector<cv::Point2f> points0;
-    points0.reserve(keypoints0.size());
-    std::vector<cv::Point2f> points1;
-    points1.reserve(keypoints1.size());
+    std::vector<cv::Point2f> points_l { };
+    std::vector<cv::Point2f> points_r { };
+    std::vector<size_t>      indices { };
 
-    const auto& map_1 = to_map(keypoints1);
-
-    for (const auto &keypoint0: keypoints0)
+    for (const auto &[index, keypoint_L]: frame.l.keypoints_)
     {
-        if (map_1.contains(keypoint0.index))
+        if (frame.r.keypoints_.contains(index))
         {
-            points0.emplace_back(keypoint0.pt);
-            points1.emplace_back(map_1.at(keypoint0.index).pt);
+            const auto &keypoint_R = frame.r.keypoints_.at(index);
+
+            points_l.emplace_back(keypoint_L.pt);
+            points_r.emplace_back(keypoint_R.pt);
+
+            indices.emplace_back(index);
         }
     }
 
     cv::Mat points4d;
-    cv::triangulatePoints(projection0, projection1, points0, points1, points4d);
+    cv::triangulatePoints(projection_l, projection_r, points_l, points_r, points4d);
 
     std::vector<cv::Point3d> points3d;
     points3d.reserve(points4d.cols);
 
     for (auto c = 0; c < points4d.cols; ++c)
     {
-        if
-        (
-            cv::Vec4d col = points4d.col(c);
+        cv::Vec4d point4d = points4d.col(c);
 
-            std::abs(col[3]) > 1e-9
-        )
+        if (std::abs(point4d[3]) > 1e-9)
         {
-            points3d.emplace_back
+            points.emplace
             (
-                col[0] / col[3],
-                col[1] / col[3],
-                col[2] / col[3]
+                indices[c],
+                point { { point4d[0] / point4d[3], point4d[1] / point4d[3], point4d[2] / point4d[3] }, indices[c] }
             );
         }
     }
-
-    return points3d;
 }
 
 auto zenslam::utils::undistort(const cv::Mat &image, const calibration &calibration) -> cv::Mat
