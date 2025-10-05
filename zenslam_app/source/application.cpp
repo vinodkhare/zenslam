@@ -6,6 +6,8 @@
 #include <opencv2/viz/widgets.hpp>
 #include <zenslam/utils.h>
 
+#include <numbers>
+
 zenslam::application::application(const options &options) :
     _options { options }
 {
@@ -19,8 +21,7 @@ zenslam::application::application(const options &options) :
 void zenslam::application::render()
 {
     // display matches spatial
-    if (_frame_1->l.keypoints_.empty())
-        return;
+    if (_frame_1->l.keypoints_.empty()) return;
 
     {
         const auto &matches_image = utils::draw_matches(_frame_1);
@@ -51,9 +52,11 @@ void zenslam::application::render()
         {
             _viewer->removeAllWidgets();
             _viewer->showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
-            _viewer->showWidget("camera", cv::viz::WCameraPosition(cv::Vec2d{90, 90}));
+            _viewer->showWidget("camera", cv::viz::WCameraPosition(cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 }, _frame_1->l.undistorted));
             _viewer->setWidgetPose("camera", _frame_1->pose);
+
             _viewer->spinOnce(0, true);
+
         }
     }
 

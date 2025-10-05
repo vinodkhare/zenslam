@@ -42,7 +42,7 @@ namespace zenslam
         );
 
     private:
-        options                 _options { };
+        options _options { };
 
         std::stop_source _stop_source { };
         std::stop_token  _stop_token { _stop_source.get_token() };

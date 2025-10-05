@@ -34,6 +34,11 @@ void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &fra
     const auto &keypoints_0 = utils::values(frame_0.keypoints_);
     const auto &points_0    = utils::to_points(frame_0.keypoints_);
 
+    if (keypoints_0.empty())
+    {
+        return;
+    }
+
     cv::calcOpticalFlowPyrLK
     (
         frame_0.undistorted,
@@ -145,84 +150,64 @@ void zenslam::slam_thread::loop()
     const auto &projection_L    = calibrations[0].projection();
     const auto &projection_R    = calibrations[1].projection();
 
-    std::optional<stereo_frame> frame_container { };
-    std::map<size_t, point>     points { };
+    stereo_frame            frame_0 { };
+    std::map<size_t, point> points { };
 
     for (auto frame_1: stereo_reader)
     {
         frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
-        if (frame_container.has_value())
+        // track keypoints new
+        track_mono(frame_0.l, frame_1.l);
+        track_mono(frame_0.r, frame_1.r);
+
+        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", frame_1.l.keypoints_.size());
+        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints_.size());
+
+        // detect new
+        detector.detect(frame_1.l.undistorted, frame_1.l.keypoints_);
+        detector.detect(frame_1.r.undistorted, frame_1.r.keypoints_);
+
+        SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints_.size());
+        SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints_.size());
+
+        // match keypoints
+        utils::match(frame_1.l.keypoints_, frame_1.r.keypoints_, fundamental, _options.slam.epipolar_threshold);
+
+        // compute PnP pose
+        std::vector<cv::Point3d> points3d;
+        std::vector<cv::Point2d> points2d;
+        correspondences_x(frame_1, points, points3d, points2d);
+
+        if (points3d.size() >= 6)
         {
-            const auto &frame_0 = frame_container.value();
+            cv::Affine3d pose_of_world_in_camera;
 
-            // track keypoints new
-            track_mono(frame_0.l, frame_1.l);
-            track_mono(frame_0.r, frame_1.r);
-
-            SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", frame_1.l.keypoints_.size());
-            SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints_.size());
-
-            // detect new
-            detector.detect(frame_1.l.undistorted, frame_1.l.keypoints_);
-            detector.detect(frame_1.r.undistorted, frame_1.r.keypoints_);
-
-            SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints_.size());
-            SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints_.size());
-
-            // match keypoints
-            utils::match(frame_1.l.keypoints_, frame_1.r.keypoints_, fundamental, _options.slam.epipolar_threshold);
-
-            // compute PnP pose
-            std::vector<cv::Point3d> points3d;
-            std::vector<cv::Point2d> points2d;
-            correspondences_x(frame_1, points, points3d, points2d);
-
-            if (points3d.size() >= 6)
+            try
             {
-                cv::Affine3d pose_of_world_in_camera;
-
-                try
-                {
-                    solve_pnp(camera_matrix_L, points3d, points2d, pose_of_world_in_camera);
-                }
-                catch (std::exception &e)
-                {
-                    SPDLOG_WARN("SolvePnP failed: {}", e.what());
-                    break;
-                }
-
-                frame_1.pose = pose_of_world_in_camera.inv();
+                solve_pnp(camera_matrix_L, points3d, points2d, pose_of_world_in_camera);
             }
-            else
+            catch (std::exception &e)
             {
-                SPDLOG_WARN("Not enough points for PnP: {}", points3d.size());
+                SPDLOG_WARN("SolvePnP failed: {}", e.what());
+                break;
             }
 
-            // triangulate filtered matches to get 3D points
-            utils::triangulate(frame_1, calibrations[0].projection(frame_1.pose), calibrations[1].projection(frame_1.pose), points);
-            SPDLOG_INFO("3D points count: {}", points.size());
+            frame_1.pose = pose_of_world_in_camera.inv();
         }
         else
         {
-            detector.detect(frame_1.l.undistorted, frame_1.l.keypoints_);
-            detector.detect(frame_1.r.undistorted, frame_1.r.keypoints_);
-
-            SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints_.size());
-            SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints_.size());
-
-            // match keypoints
-            utils::match(frame_1.l.keypoints_, frame_1.r.keypoints_, fundamental, _options.slam.epipolar_threshold);
-
-            // triangulate filtered matches to get 3D points
-            utils::triangulate(frame_1, projection_L, projection_R, points);
-            SPDLOG_INFO("Triangulated 3D points: {}", points.size());
+            SPDLOG_WARN("Not enough points for PnP: {}", points3d.size());
         }
+
+        // triangulate filtered matches to get 3D points
+        utils::triangulate(frame_1, calibrations[0].projection(frame_1.pose), calibrations[1].projection(frame_1.pose), points);
+        SPDLOG_INFO("3D points count: {}", points.size());
 
         on_frame(frame_1);
 
-        frame_container = std::move(frame_1);
+        frame_0 = std::move(frame_1);
 
         if (_stop_token.stop_requested())
         {
