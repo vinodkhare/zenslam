@@ -30,16 +30,18 @@ add_library(${PROJECT_NAME}
         source/event.cpp
         source/folder_options.cpp
         source/grid_detector.cpp
+        source/keypoint.cpp
         source/match_data.cpp
         source/mono_folder_reader.cpp
         source/mono_frame.cpp
+        source/options.cpp
+        source/point.cpp
         source/slam_thread.cpp
         source/stereo_folder_reader.cpp
         source/stereo_frame.cpp
         source/utils.cpp
         source/verb.cpp
         source/thread_safe.cpp
-        source/options.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include/zenslam PUBLIC include)
