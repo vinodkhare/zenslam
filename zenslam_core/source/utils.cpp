@@ -265,30 +265,46 @@ auto zenslam::utils::match
     double                            epipolar_threshold
 ) -> void
 {
-    cv::Mat descriptors_l;
-    cv::Mat descriptors_r;
+    cv::Mat               descriptors_l { };
+    cv::Mat               descriptors_r { };
+    std::vector<keypoint> unmatched_l { };
+    std::vector<keypoint> unmatched_r { };
 
-    for (const auto &keypoint_L: keypoints_0 | std::views::values)
+    for (const auto& keypoint_l : keypoints_0 | std::views::values)
     {
+        if (keypoints_1.contains(keypoint_l.index))
+        {
+            continue;
+        }
+
+        unmatched_l.emplace_back(keypoint_l);
+
         if (descriptors_l.empty())
         {
-            descriptors_l = keypoint_L.descriptor;
+            descriptors_l = keypoint_l.descriptor;
         }
         else
         {
-            cv::vconcat(descriptors_l, keypoint_L.descriptor, descriptors_l);
+            cv::vconcat(descriptors_l, keypoint_l.descriptor, descriptors_l);
         }
     }
 
-    for (const auto &keypoint_R: keypoints_1 | std::views::values)
+    for (const auto& keypoint_r : keypoints_1 | std::views::values)
     {
+        if (keypoints_0.contains(keypoint_r.index))
+        {
+            continue;
+        }
+
+        unmatched_r.emplace_back(keypoint_r);
+
         if (descriptors_r.empty())
         {
-            descriptors_r = keypoint_R.descriptor;
+            descriptors_r = keypoint_r.descriptor;
         }
         else
         {
-            cv::vconcat(descriptors_r, keypoint_R.descriptor, descriptors_r);
+            cv::vconcat(descriptors_r, keypoint_r.descriptor, descriptors_r);
         }
     }
 
@@ -300,8 +316,8 @@ auto zenslam::utils::match
 
     matches = filter
     (
-        utils::cast<cv::KeyPoint>(values(keypoints_0)),
-        utils::cast<cv::KeyPoint>(values(keypoints_1)),
+        utils::cast<cv::KeyPoint>(unmatched_l),
+        utils::cast<cv::KeyPoint>(unmatched_r),
         matches,
         fundamental,
         epipolar_threshold
@@ -309,19 +325,16 @@ auto zenslam::utils::match
 
     SPDLOG_INFO("matches filtered count: {}", matches.size());
 
-    const auto &keypoints_L = keypoints_0 | std::ranges::views::values | std::ranges::to<std::vector>();
-    const auto &keypoints_R = keypoints_1 | std::ranges::views::values | std::ranges::to<std::vector>();
-
     for (const auto &match: matches)
     {
-        const auto &keypoint_L = keypoints_L[match.queryIdx];
-        auto        keypoint_R = keypoints_R[match.trainIdx];
+        const auto &keypoint_l = unmatched_l[match.queryIdx];
+        auto        keypoint_r = unmatched_r[match.trainIdx];
 
-        keypoints_1.erase(keypoint_R.index);
+        keypoints_1.erase(keypoint_r.index);
 
-        keypoint_R.index = keypoint_L.index;
+        keypoint_r.index = keypoint_l.index;
 
-        keypoints_1.emplace(keypoint_R.index, keypoint_R);
+        keypoints_1.emplace(keypoint_r.index, keypoint_r);
     }
 }
 
@@ -400,7 +413,11 @@ auto zenslam::utils::triangulate
 
         if (std::abs(point4d[3]) > 1e-9)
         {
-            points[indices[c]] = point { { point4d[0] / point4d[3], point4d[1] / point4d[3], point4d[2] / point4d[3] }, indices[c] };
+            points.emplace
+            (
+                indices[c],
+                point { { point4d[0] / point4d[3], point4d[1] / point4d[3], point4d[2] / point4d[3] }, indices[c] }
+            );
         }
     }
 }

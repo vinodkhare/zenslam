@@ -13,6 +13,9 @@ message(STATUS "Using Microsoft.GSL: " ${Microsoft.GSL_VERSION})
 find_package(OpenCV CONFIG REQUIRED)
 message(STATUS "Using OpenCV: " ${OpenCV_VERSION})
 
+find_package(VTK REQUIRED)
+message(STATUS "Using VTK: " ${VTK_VERSION})
+
 find_package(concurrentqueue CONFIG REQUIRED)
 message(STATUS "Using concurrentqueue: " ${concurrentqueue_VERSION})
 
@@ -57,6 +60,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         Microsoft.GSL::GSL
         yaml-cpp::yaml-cpp
         magic_enum::magic_enum
+        ${VTK_LIBRARIES}
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 

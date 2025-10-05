@@ -43,6 +43,8 @@ void zenslam::application::render()
         if (!_viewer)
         {
             _viewer = std::make_unique<cv::viz::Viz3d>("3D Points");
+            _viewer->setGlobalWarnings(false);
+
             _viewer->setWindowSize(cv::Size(800, 600));
             _viewer->setWindowPosition(cv::Point(700, 100));
             _viewer->setBackgroundColor(); // black by default
@@ -54,6 +56,9 @@ void zenslam::application::render()
             _viewer->showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
             _viewer->showWidget("camera", cv::viz::WCameraPosition(cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 }, _frame_1->l.undistorted));
             _viewer->setWidgetPose("camera", _frame_1->pose);
+
+            _viewer->showWidget("cloud", cv::viz::WCloud(_frame_1->points3d));
+            _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);
 
             _viewer->spinOnce(0, true);
 

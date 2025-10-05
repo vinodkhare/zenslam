@@ -9,13 +9,19 @@
 
 #include <spdlog/spdlog.h>
 
+#include <vtk-9.3/vtkLogger.h>
+
 #include "calibration.h"
 #include "grid_detector.h"
 #include "stereo_folder_reader.h"
 #include "utils.h"
 
+
 zenslam::slam_thread::slam_thread(options options) :
-    _options { std::move(options) } {}
+    _options { std::move(options) }
+{
+    vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF);
+}
 
 zenslam::slam_thread::~slam_thread()
 {
@@ -105,7 +111,7 @@ void zenslam::slam_thread::solve_pnp
             tvec,
             false,
             100,
-            8.0,
+            1.0,
             0.99,
             inliers,
             cv::SOLVEPNP_ITERATIVE
@@ -204,6 +210,14 @@ void zenslam::slam_thread::loop()
         // triangulate filtered matches to get 3D points
         utils::triangulate(frame_1, calibrations[0].projection(frame_1.pose), calibrations[1].projection(frame_1.pose), points);
         SPDLOG_INFO("3D points count: {}", points.size());
+
+        frame_1.points3d = points | std::views::values | std::views::transform
+                           (
+                               [](const auto &p)
+                               {
+                                   return cv::Point3d(p);
+                               }
+                           ) | std::ranges::to<std::vector>();
 
         on_frame(frame_1);
 
