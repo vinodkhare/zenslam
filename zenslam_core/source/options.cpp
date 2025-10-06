@@ -72,7 +72,11 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
         options.verb = verb::VERSION;
     }
 
-    const auto options_map = utils::to_map(parsed.options);
+    std::map<std::string, boost::program_options::basic_option<char>> options_map{};
+    for (auto &option: parsed.options)
+    {
+        options_map[option.string_key] = option;
+    }
 
     if (options_map.contains("options-file")) options = parse(map["options-file"].as<std::string>());
 

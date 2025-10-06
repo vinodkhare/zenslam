@@ -49,41 +49,13 @@ namespace zenslam::utils
     template <typename T_OUT, typename T_IN>
     auto cast(const std::vector<T_IN> &values) -> std::vector<T_OUT>
     {
-        std::vector<T_OUT> casted;
-        casted.reserve(values.size());
-
-        for (const auto &value: values)
-        {
-            casted.push_back(static_cast<T_OUT>(value));
-        }
-
-        return casted;
+        return values | std::views::transform([](const T_IN &value) { return static_cast<T_OUT>(value); }) | std::ranges::to<std::vector>();
     }
 
     template <typename T_KEY, typename T_VALUE>
     auto invert(const std::map<T_KEY, T_VALUE> &map) -> std::map<T_VALUE, T_KEY>
     {
-        auto inverted = std::map<T_VALUE, T_KEY> { };
-
-        for (auto &pair: map)
-        {
-            inverted[pair.second] = pair.first;
-        }
-
-        return inverted;
-    }
-
-    template <typename T>
-    std::map<std::string, T> to_map(const std::vector<T> &parsed)
-    {
-        auto parsed_map = std::map<std::string, T> { };
-
-        for (auto &option: parsed)
-        {
-            parsed_map[option.string_key] = option;
-        }
-
-        return parsed_map;
+        return map | std::views::transform([](const auto &pair) { return std::make_pair(pair.second, pair.first); }) | std::ranges::to<std::map>();
     }
 
     // Generic template function to join any range of elements into a string
@@ -144,8 +116,6 @@ namespace zenslam::utils
     auto draw_matches(const stereo_frame &frame) -> cv::Mat;
     auto draw_matches(const mono_frame &frame_0, const mono_frame &frame_1) -> cv::Mat;
     auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
-
-
     auto to_keypoints(const std::vector<keypoint> &keypoints) -> std::vector<cv::KeyPoint>;
     auto to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>;
 
@@ -181,15 +151,6 @@ namespace zenslam::utils
         const cv::Matx33d &               fundamental,
         double                            epipolar_threshold
     ) -> void;
-
-    auto triangulate
-    (
-        const std::vector<cv::KeyPoint> &keypoints0,
-        const std::vector<cv::KeyPoint> &keypoints1,
-        const std::vector<cv::DMatch> &  matches,
-        const cv::Matx34d &              projection0,
-        const cv::Matx34d &              projection1
-    ) -> std::vector<cv::Point3d>;
 
     auto triangulate
     (

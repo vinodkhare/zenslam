@@ -356,36 +356,6 @@ auto zenslam::utils::match
 
 auto zenslam::utils::triangulate
 (
-    const std::vector<cv::KeyPoint> &keypoints0,
-    const std::vector<cv::KeyPoint> &keypoints1,
-    const std::vector<cv::DMatch> &  matches,
-    const cv::Matx34d &              projection0,
-    const cv::Matx34d &              projection1
-) -> std::vector<cv::Point3d>
-{
-    auto [points0, points1] = to_points(keypoints0, keypoints1, matches);
-
-    cv::Mat points4d;
-    cv::triangulatePoints(projection0, projection1, points0, points1, points4d);
-
-    std::vector<cv::Point3d> points3d;
-    points3d.reserve(points4d.cols);
-
-    for (auto c = 0; c < points4d.cols; ++c)
-    {
-        if (cv::Vec4d col = points4d.col(c);
-
-            std::abs(col[3]) > 1e-9)
-        {
-            points3d.emplace_back(col[0] / col[3], col[1] / col[3], col[2] / col[3]);
-        }
-    }
-
-    return points3d;
-}
-
-auto zenslam::utils::triangulate
-(
     stereo_frame &                  frame,
     const cv::Matx34d &             projection_l,
     const cv::Matx34d &             projection_r,

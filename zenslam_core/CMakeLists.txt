@@ -42,9 +42,10 @@ add_library(${PROJECT_NAME}
         source/slam_thread.cpp
         source/stereo_folder_reader.cpp
         source/stereo_frame.cpp
-        source/utils.cpp
-        source/verb.cpp
         source/thread_safe.cpp
+        source/utils.cpp
+        source/utils_std.cpp
+        source/verb.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include/zenslam PUBLIC include)
