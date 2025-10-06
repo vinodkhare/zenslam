@@ -183,9 +183,9 @@ void zenslam::slam_thread::loop()
         // Gather points from frame_0 and frame_1 for 3D-3D pose computation
         std::vector<cv::Point3d> points3d_0{};
         std::vector<cv::Point3d> points3d_1{};
-        for (const auto &[index, point]: frame_0.points)
+        for (const auto &index: frame_0.points | std::views::keys)
         {
-            if (frame_1.points.contains(index) && points.contains(index))
+            if (frame_1.points.contains(index))
             {
                 points3d_0.emplace_back(frame_0.points.at(index));
                 points3d_1.emplace_back(frame_1.points.at(index));
@@ -198,7 +198,7 @@ void zenslam::slam_thread::loop()
             cv::Matx33d R;
             cv::Vec3d   t;
             utils::umeyama(points3d_0, points3d_1, R, t);
-            frame_1.pose = frame_0.pose * cv::Affine3d(R, t).inv();
+            frame_1.pose = (frame_0.pose * cv::Affine3d(R, t)).inv();
             SPDLOG_INFO("Pose: {}", frame_1.pose);
         }
 
@@ -209,19 +209,17 @@ void zenslam::slam_thread::loop()
 
         if (points3d.size() >= 6)
         {
-            auto pose_of_world_in_camera = frame_0.pose.inv();
+            auto pose_of_world_in_camera = frame_1.pose.inv();
 
             try
             {
                 solve_pnp(camera_matrix_L, points3d, points2d, pose_of_world_in_camera);
+                frame_1.pose = pose_of_world_in_camera.inv();
             }
             catch (std::exception &e)
             {
                 SPDLOG_WARN("SolvePnP failed: {}", e.what());
-                break;
             }
-
-            frame_1.pose = pose_of_world_in_camera.inv();
         }
         else
         {
