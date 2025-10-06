@@ -200,4 +200,6 @@ namespace zenslam::utils
     ) -> void;
 
     auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
+
+    auto umeyama(const std::vector<cv::Point3d> &src, const std::vector<cv::Point3d> &dst, cv::Matx33d &R, cv::Vec3d &t) -> void;
 }

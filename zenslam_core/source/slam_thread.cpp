@@ -17,56 +17,7 @@
 
 namespace
 {
-    void umeyama(const std::vector<cv::Point3d> &src, const std::vector<cv::Point3d> &dst, cv::Matx33d &R, cv::Vec3d &t)
-    {
-        assert(src.size() == dst.size());
-        assert(src.size() >= 3);
-
-        cv::Vec3d mean_src(0, 0, 0), mean_dst(0, 0, 0);
-        for (size_t i = 0; i < src.size(); ++i)
-        {
-            mean_src += cv::Vec3d(src[i].x, src[i].y, src[i].z);
-            mean_dst += cv::Vec3d(dst[i].x, dst[i].y, dst[i].z);
-        }
-        mean_src *= (1.0 / static_cast<double>(src.size()));
-        mean_dst *= (1.0 / static_cast<double>(dst.size()));
-
-        cv::Matx33d Sigma(0, 0, 0, 0, 0, 0, 0, 0, 0);
-        for (size_t i = 0; i < src.size(); ++i)
-        {
-            cv::Vec3d a = cv::Vec3d(src[i].x, src[i].y, src[i].z) - mean_src;
-            cv::Vec3d b = cv::Vec3d(dst[i].x, dst[i].y, dst[i].z) - mean_dst;
-            Sigma(0, 0) += a[0] * b[0];
-            Sigma(0, 1) += a[0] * b[1];
-            Sigma(0, 2) += a[0] * b[2];
-            Sigma(1, 0) += a[1] * b[0];
-            Sigma(1, 1) += a[1] * b[1];
-            Sigma(1, 2) += a[1] * b[2];
-            Sigma(2, 0) += a[2] * b[0];
-            Sigma(2, 1) += a[2] * b[1];
-            Sigma(2, 2) += a[2] * b[2];
-        }
-        Sigma *= (1.0 / static_cast<double>(src.size()));
-
-        cv::Mat Sigma_mat(3, 3, CV_64F);
-        for (int r = 0; r < 3; ++r)
-            for (int c = 0; c < 3; ++c) Sigma_mat.at<double>(r, c) = Sigma(r, c);
-
-        cv::Mat U_mat, S_mat, Vt_mat;
-        cv::SVD::compute(Sigma_mat, S_mat, U_mat, Vt_mat);
-
-        cv::Mat R_mat = U_mat * Vt_mat;
-        if (cv::determinant(R_mat) < 0)
-        {
-            cv::Mat S          = cv::Mat::eye(3, 3, CV_64F);
-            S.at<double>(2, 2) = -1.0;
-            R_mat              = U_mat * S * Vt_mat;
-        }
-
-        R                      = cv::Matx33d(R_mat);
-        cv::Vec3d mean_src_rot = cv::Vec3d(R * mean_src);
-        t                      = mean_dst - mean_src_rot;
-    }
+    
 } // namespace
 
 zenslam::slam_thread::slam_thread(options options) : _options{ std::move(options) }
@@ -246,7 +197,7 @@ void zenslam::slam_thread::loop()
         {
             cv::Matx33d R;
             cv::Vec3d   t;
-            umeyama(points3d_0, points3d_1, R, t);
+            utils::umeyama(points3d_0, points3d_1, R, t);
             frame_1.pose = frame_0.pose * cv::Affine3d(R, t).inv();
             SPDLOG_INFO("Pose: {}", frame_1.pose);
         }
