@@ -10,6 +10,15 @@ ZenSLAM is an experimental stereo SLAM playground. It currently provides:
 Status: early / evolving. Expect APIs to change.
 
 ---
+## Coding Philosophy
+
+* Start with the most obvious solution and then refactor
+* The most obvious solution will often be versbose - let this be. Once you have enough code, patterns for refactoring will suggest themselves.
+* Premature abstraction (like premature optimization) is the root of all Evil.
+* Aim for simplicity: make things as simple as possible, but no simpler.
+* Do not overdesign. Sometimes the best solution is a simple function or a plain structure.
+
+---
 ## Repository Layout
 
 ```

@@ -52,7 +52,11 @@ void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &fra
         points_0,
         points_1,
         status,
-        err
+        err,
+        cv::Size(21, 21),
+        3,
+        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 30, 0.01),
+        cv::OPTFLOW_LK_GET_MIN_EIGENVALS
     );
 
     // Verify KLT tracking results have consistent sizes
@@ -61,7 +65,7 @@ void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &fra
     // Update frame.l.keypoints with tracked points
     for (size_t i = 0; i < points_1.size(); ++i)
     {
-        if (status[i])
+        if (status[i] && err[i] < 0.1 && std::abs(points_0[i].x - points_1[i].x) < 32 && std::abs(points_0[i].y - points_1[i].y) < 32)
         {
             frame_1.keypoints_.emplace(keypoints_0[i].index, keypoints_0[i]);
             frame_1.keypoints_[keypoints_0[i].index].pt = points_1[i];
@@ -95,9 +99,11 @@ void zenslam::slam_thread::solve_pnp
     cv::Affine3d &                  pose
 )
 {
-    cv::Mat          rvec { };
-    cv::Mat          tvec { };
+    cv::Mat          rvec { pose.rvec() };
+    cv::Mat          tvec { pose.translation() };
     std::vector<int> inliers { };
+
+    SPDLOG_INFO("SolvePnP with {} points", points3d.size());
 
     if
     (
@@ -109,7 +115,7 @@ void zenslam::slam_thread::solve_pnp
             cv::Mat(),
             rvec,
             tvec,
-            false,
+            true,
             100,
             1.0,
             0.99,
@@ -188,7 +194,7 @@ void zenslam::slam_thread::loop()
 
         if (points3d.size() >= 6)
         {
-            cv::Affine3d pose_of_world_in_camera;
+            auto pose_of_world_in_camera = frame_0.pose.inv();
 
             try
             {
