@@ -250,6 +250,11 @@ auto zenslam::utils::match(
 
     for (const auto &keypoint_l: keypoints_0 | std::views::values)
     {
+        if (keypoints_1.contains(keypoint_l.index))
+        {
+            continue;
+        }
+
         unmatched_l.emplace_back(keypoint_l);
 
         if (descriptors_l.empty())
@@ -264,6 +269,11 @@ auto zenslam::utils::match(
 
     for (const auto &keypoint_r: keypoints_1 | std::views::values)
     {
+        if (keypoints_0.contains(keypoint_r.index))
+        {
+            continue;
+        }
+
         unmatched_r.emplace_back(keypoint_r);
 
         if (descriptors_r.empty())

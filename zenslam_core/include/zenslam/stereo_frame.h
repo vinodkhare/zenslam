@@ -5,8 +5,8 @@
 
 #include <opencv2/core/affine.hpp>
 
-#include "mono_frame.h"
 #include "match_data.h"
+#include "mono_frame.h"
 #include "point.h"
 
 namespace zenslam
@@ -14,18 +14,18 @@ namespace zenslam
     class stereo_frame
     {
     public:
-        mono_frame               l        = { };
-        mono_frame               r        = { };
-        match_data               spatial  = { };
-        match_data               temporal = { };
-        cv::Affine3d             pose     = { };
-        std::vector<cv::Point3d> points3d = { };
+        mono_frame               l        = {};
+        mono_frame               r        = {};
+        match_data               spatial  = {};
+        match_data               temporal = {};
+        cv::Affine3d             pose     = {};
+        std::vector<cv::Point3d> points3d = {};
+        std::map<size_t, point>  points   = {};
 
         stereo_frame() = default;
 
-        stereo_frame(mono_frame l, mono_frame r) :
-            l(std::move(l)),
-            r(std::move(r)) {}
+        stereo_frame(mono_frame l, mono_frame r) : l(std::move(l)), r(std::move(r))
+        {}
 
         stereo_frame(const stereo_frame &other)                = default;
         stereo_frame &operator=(const stereo_frame &other)     = default;
