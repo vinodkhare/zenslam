@@ -1,9 +1,6 @@
 #pragma once
 
-#include <functional>
 #include <map>
-#include <numeric>
-#include <ranges>
 #include <string>
 
 #include <spdlog/common.h>
@@ -80,11 +77,6 @@ namespace zenslam::utils
 
     auto to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>;
     auto to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>;
-
-    auto to_string(const std::vector<std::string> &strings, const std::string &delimiter = ", ") -> std::string;
-    auto to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;
-    auto to_string(const std::vector<double> &values, const std::string &delimiter = ", ") -> std::string;
-    auto to_string_epoch(double epoch_seconds) -> std::string;
 
     // filters matches using the epipolar crterion given the fundamental matrix
     auto filter

@@ -189,43 +189,6 @@ auto zenslam::utils::to_points(const std::map<size_t, keypoint> &keypoints) -> s
     return points;
 }
 
-auto zenslam::utils::to_string(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
-{
-    return join_to_string(strings, delimiter, std::identity { });
-}
-
-auto zenslam::utils::to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter) -> std::string
-{
-    return join_to_string(strings, delimiter, std::identity { });
-}
-
-auto zenslam::utils::to_string(const std::vector<double> &values, const std::string &delimiter) -> std::string
-{
-    return join_to_string
-    (
-        values,
-        delimiter,
-        [](const double value)
-        {
-            return std::to_string(value);
-        }
-    );
-}
-
-std::string zenslam::utils::to_string_epoch(const double epoch_seconds)
-{
-    // Split into integral seconds and fractional milliseconds
-    const auto &seconds      = std::chrono::floor<std::chrono::seconds>(std::chrono::duration<double>(epoch_seconds));
-    const auto &milliseconds =
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(epoch_seconds) - seconds);
-
-    // sys_time with milliseconds precision
-    auto time_point = std::chrono::sys_seconds(seconds) + milliseconds;
-
-    // Format: YYYY-MM-DD HH:MM:SS.mmm UTC
-    return std::format("{:%F %T} UTC", time_point);
-}
-
 auto zenslam::utils::filter
 (
     const std::vector<cv::KeyPoint> &keypoints0,
@@ -506,17 +469,19 @@ void zenslam::utils::umeyama
     cv::Matx33d Sigma(0, 0, 0, 0, 0, 0, 0, 0, 0);
     for (size_t i = 0; i < src.size(); ++i)
     {
+        // Covariance should be E[(dst - mean_dst) * (src - mean_src)^T]
+        // i.e. outer product b * a^T so that SVD(C) = U S V^T and R = U * V^T
         cv::Vec3d a = cv::Vec3d(src[i].x, src[i].y, src[i].z) - mean_src;
         cv::Vec3d b = cv::Vec3d(dst[i].x, dst[i].y, dst[i].z) - mean_dst;
-        Sigma(0, 0) += a[0] * b[0];
-        Sigma(0, 1) += a[0] * b[1];
-        Sigma(0, 2) += a[0] * b[2];
-        Sigma(1, 0) += a[1] * b[0];
-        Sigma(1, 1) += a[1] * b[1];
-        Sigma(1, 2) += a[1] * b[2];
-        Sigma(2, 0) += a[2] * b[0];
-        Sigma(2, 1) += a[2] * b[1];
-        Sigma(2, 2) += a[2] * b[2];
+        Sigma(0, 0) += b[0] * a[0];
+        Sigma(0, 1) += b[0] * a[1];
+        Sigma(0, 2) += b[0] * a[2];
+        Sigma(1, 0) += b[1] * a[0];
+        Sigma(1, 1) += b[1] * a[1];
+        Sigma(1, 2) += b[1] * a[2];
+        Sigma(2, 0) += b[2] * a[0];
+        Sigma(2, 1) += b[2] * a[1];
+        Sigma(2, 2) += b[2] * a[2];
     }
     Sigma *= (1.0 / static_cast<double>(src.size()));
 
