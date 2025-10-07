@@ -404,7 +404,7 @@ auto zenslam::utils::triangulate
         auto proj_l_h = projection_l * X;
         auto proj_r_h = projection_r * X;
 
-        if (std::abs(proj_l_h[2]) <= 1e-9 || std::abs(proj_r_h[2]) <= 1e-9 || points[indices[c]].z < 0)
+        if (std::abs(proj_l_h[2]) <= 1e-9 || std::abs(proj_r_h[2]) <= 1e-9 || points[indices[c]].z < 1 || points[indices[c]].z > 100)
         {
             to_erase.push_back(indices[c]);
             continue;

@@ -55,7 +55,7 @@ void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &fra
         points_1,
         status,
         err,
-        cv::Size(21, 21),
+        cv::Size(31, 32),
         3,
         cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 30, 0.01),
         cv::OPTFLOW_LK_GET_MIN_EIGENVALS
@@ -67,7 +67,7 @@ void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &fra
     // Update frame.l.keypoints with tracked points
     for (size_t i = 0; i < points_1.size(); ++i)
     {
-        if (status[i])
+        if (status[i] && std::abs(points_1[i].y - points_0[i].y) < 32)
         {
             frame_1.keypoints_[keypoints_0[i].index]    = keypoints_0[i];
             frame_1.keypoints_[keypoints_0[i].index].pt = points_1[i];
@@ -117,7 +117,7 @@ void zenslam::slam_thread::solve_pnp
             tvec,
             false,
             1000,
-            1.0,
+            4.0,
             0.99,
             inliers
         ))

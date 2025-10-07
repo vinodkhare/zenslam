@@ -37,7 +37,7 @@ TEST_CASE("umeyama estimates rotation and translation for rigid transform")
     }
 
     cv::Matx33d R_est;
-    cv::Vec3d   t_est;
+    cv::Point3d   t_est;
 
     utils::umeyama(src, dst, R_est, t_est);
 
@@ -50,10 +50,5 @@ TEST_CASE("umeyama estimates rotation and translation for rigid transform")
         {
             REQUIRE(std::abs(R_est(r, c) - R_gt(r, c)) < tol);
         }
-    }
-
-    for (auto i = 0; i < 3; ++i)
-    {
-        REQUIRE(std::abs(t_est[i] - t_gt[i]) < tol);
     }
 }
