@@ -28,7 +28,7 @@ namespace zenslam
          */
         grid_detector(const cv::Ptr<cv::Feature2D> &detector, const cv::Ptr<cv::Feature2D> &describer, cv::Size cell_size);
 
-        void detect(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints) const;
+        void detect(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const;
 
     private:
         cv::Ptr<cv::Feature2D> _detector; // Underlying detector

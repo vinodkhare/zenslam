@@ -106,5 +106,13 @@ namespace zenslam::utils
 
     auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
 
-    auto umeyama(const std::vector<cv::Point3d> &src, const std::vector<cv::Point3d> &dst, cv::Matx33d &R, cv::Vec3d &t) -> void;
+    auto umeyama(const std::vector<cv::Point3d> &src, const std::vector<cv::Point3d> &dst, cv::Matx33d &R, cv::Point3d &t) -> void;
+
+    // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
+    // src, dst: corresponding points
+    // Returns true if successful, false otherwise
+    bool estimate_rigid(const std::vector<cv::Point3d> &src,
+                        const std::vector<cv::Point3d> &dst,
+                        cv::Matx33d &R,
+                        cv::Point3d &t);
 }

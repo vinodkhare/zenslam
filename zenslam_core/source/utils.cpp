@@ -1,6 +1,7 @@
 #include "utils.h"
 
 #include <chrono>
+#include <ranges>
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/features2d.hpp>
@@ -243,18 +244,14 @@ auto zenslam::utils::match
     double                            epipolar_threshold
 ) -> void
 {
-    cv::Mat               descriptors_l { };
-    cv::Mat               descriptors_r { };
-    std::vector<keypoint> unmatched_l { };
-    std::vector<keypoint> unmatched_r { };
+    cv::Mat                 descriptors_l { };
+    cv::Mat                 descriptors_r { };
+    std::vector<keypoint>   unmatched_l { };
+    std::vector<keypoint>   unmatched_r { };
+    std::vector<cv::DMatch> matches_existing { };
 
     for (const auto &keypoint_l: keypoints_0 | std::views::values)
     {
-        if (keypoints_1.contains(keypoint_l.index))
-        {
-            continue;
-        }
-
         unmatched_l.emplace_back(keypoint_l);
 
         if (descriptors_l.empty())
@@ -269,11 +266,6 @@ auto zenslam::utils::match
 
     for (const auto &keypoint_r: keypoints_1 | std::views::values)
     {
-        if (keypoints_0.contains(keypoint_r.index))
-        {
-            continue;
-        }
-
         unmatched_r.emplace_back(keypoint_r);
 
         if (descriptors_r.empty())
@@ -286,9 +278,40 @@ auto zenslam::utils::match
         }
     }
 
+    for (auto query_index = 0; query_index < keypoints_0.size(); ++query_index)
+    {
+        for (auto train_index = 0; train_index < keypoints_1.size(); ++train_index)
+        {
+            if (unmatched_l[query_index].index == unmatched_r[train_index].index)
+            {
+                matches_existing.emplace_back(query_index, train_index, 0);
+            }
+        }
+    }
+
     const cv::BFMatcher     matcher { cv::NORM_L2, true };
     std::vector<cv::DMatch> matches;
     matcher.match(descriptors_l, descriptors_r, matches);
+
+    auto matches_map = matches | std::views::transform
+                       (
+                           [](const auto &match)
+                           {
+                               return std::make_pair(match.queryIdx, match.trainIdx);
+                           }
+                       ) | std::ranges::to<std::map<int, int>>();
+
+    auto remove_count = 0;
+    for (const auto &match: matches_existing)
+    {
+        if (!matches_map.contains(match.queryIdx))
+        {
+            keypoints_1.erase(unmatched_r[match.trainIdx].index);
+            remove_count++;
+        }
+    }
+
+    SPDLOG_INFO("Removed {} matches", remove_count);
 
     SPDLOG_INFO("matches count: {}", matches.size());
 
@@ -313,7 +336,7 @@ auto zenslam::utils::match
 
         keypoint_r.index = keypoint_l.index;
 
-        keypoints_1.emplace(keypoint_r.index, keypoint_r);
+        keypoints_1[keypoint_r.index] = keypoint_r;
     }
 }
 
@@ -367,9 +390,9 @@ auto zenslam::utils::triangulate
     // This will help to filter out points that are not well triangulated due to noise or other issues.
 
     // Reproject and prune points with large reprojection error
-    const double               reprojection_threshold = 1.0; // pixels
+    constexpr auto             reprojection_threshold = 1.0; // pixels
     std::vector<unsigned long> to_erase;
-    for (int c = 0; c < points4d.cols; ++c)
+    for (auto c = 0; c < points4d.cols; ++c)
     {
         cv::Vec4d X = points4d.col(c);
         if (std::abs(X[3]) <= 1e-9)
@@ -378,10 +401,10 @@ auto zenslam::utils::triangulate
             continue;
         }
 
-        cv::Vec3d proj_l_h = projection_l * X;
-        cv::Vec3d proj_r_h = projection_r * X;
+        auto proj_l_h = projection_l * X;
+        auto proj_r_h = projection_r * X;
 
-        if (std::abs(proj_l_h[2]) <= 1e-9 || std::abs(proj_r_h[2]) <= 1e-9)
+        if (std::abs(proj_l_h[2]) <= 1e-9 || std::abs(proj_r_h[2]) <= 1e-9 || points[indices[c]].z < 0)
         {
             to_erase.push_back(indices[c]);
             continue;
@@ -390,13 +413,12 @@ auto zenslam::utils::triangulate
         cv::Point2d reproj_l { proj_l_h[0] / proj_l_h[2], proj_l_h[1] / proj_l_h[2] };
         cv::Point2d reproj_r { proj_r_h[0] / proj_r_h[2], proj_r_h[1] / proj_r_h[2] };
 
-        const cv::Point2f &orig_l = points_l[c];
-        const cv::Point2f &orig_r = points_r[c];
+        const auto &orig_l = points_l[c];
+        const auto &orig_r = points_r[c];
 
-        const double err_l = std::hypot(reproj_l.x - orig_l.x, reproj_l.y - orig_l.y);
-        const double err_r = std::hypot(reproj_r.x - orig_r.x, reproj_r.y - orig_r.y);
-        const double err   = 0.5 * (err_l + err_r);
-
+        const auto err_l = std::hypot(reproj_l.x - orig_l.x, reproj_l.y - orig_l.y);
+        const auto err_r = std::hypot(reproj_r.x - orig_r.x, reproj_r.y - orig_r.y);
+        const auto err   = 0.5 * (err_l + err_r);
 
         if (!std::isfinite(err) || err > reprojection_threshold)
         {
@@ -451,7 +473,7 @@ void zenslam::utils::umeyama
     const std::vector<cv::Point3d> &src,
     const std::vector<cv::Point3d> &dst,
     cv::Matx33d &                   R,
-    cv::Vec3d &                     t
+    cv::Point3d &                   t
 )
 {
     assert(src.size() == dst.size());
@@ -471,8 +493,8 @@ void zenslam::utils::umeyama
     {
         // Covariance should be E[(dst - mean_dst) * (src - mean_src)^T]
         // i.e. outer product b * a^T so that SVD(C) = U S V^T and R = U * V^T
-        cv::Vec3d a = cv::Vec3d(src[i].x, src[i].y, src[i].z) - mean_src;
-        cv::Vec3d b = cv::Vec3d(dst[i].x, dst[i].y, dst[i].z) - mean_dst;
+        auto a = cv::Vec3d(src[i].x, src[i].y, src[i].z) - mean_src;
+        auto b = cv::Vec3d(dst[i].x, dst[i].y, dst[i].z) - mean_dst;
         Sigma(0, 0) += b[0] * a[0];
         Sigma(0, 1) += b[0] * a[1];
         Sigma(0, 2) += b[0] * a[2];
@@ -486,7 +508,7 @@ void zenslam::utils::umeyama
     Sigma *= (1.0 / static_cast<double>(src.size()));
 
     cv::Mat Sigma_mat(3, 3, CV_64F);
-    for (int r = 0; r < 3; ++r) for (int c = 0; c < 3; ++c) Sigma_mat.at<double>(r, c) = Sigma(r, c);
+    for (auto r = 0; r < 3; ++r) for (auto c = 0; c < 3; ++c) Sigma_mat.at<double>(r, c) = Sigma(r, c);
 
     cv::Mat U_mat, S_mat, Vt_mat;
     cv::SVD::compute(Sigma_mat, S_mat, U_mat, Vt_mat);
@@ -502,4 +524,73 @@ void zenslam::utils::umeyama
     R                 = cv::Matx33d(R_mat);
     auto mean_src_rot = cv::Vec3d(R * mean_src);
     t                 = mean_dst - mean_src_rot;
+}
+
+bool zenslam::utils::estimate_rigid
+(
+    const std::vector<cv::Point3d> &src,
+    const std::vector<cv::Point3d> &dst,
+    cv::Matx33d &                   R,
+    cv::Point3d &                   t
+)
+{
+    if (src.size() != dst.size() || src.size() < 3) return false;
+
+    // Compute means
+    auto mean_src = std::accumulate
+    (
+        src.begin(),
+        src.end(),
+        cv::Vec3d(0, 0, 0),
+        [](const cv::Vec3d &acc, const cv::Point3d &p)
+        {
+            return acc + cv::Vec3d(p.x, p.y, p.z);
+        }
+    );
+    mean_src *= (1.0 / src.size());
+    auto mean_dst = std::accumulate
+    (
+        dst.begin(),
+        dst.end(),
+        cv::Vec3d(0, 0, 0),
+        [](const cv::Vec3d &acc, const cv::Point3d &p)
+        {
+            return acc + cv::Vec3d(p.x, p.y, p.z);
+        }
+    );
+    mean_dst *= (1.0 / dst.size());
+
+    // Compute cross-covariance
+    cv::Matx33d Sigma(0, 0, 0, 0, 0, 0, 0, 0, 0);
+    for (size_t i = 0; i < src.size(); ++i)
+    {
+        auto a = cv::Vec3d(src[i].x, src[i].y, src[i].z) - mean_src;
+        auto b = cv::Vec3d(dst[i].x, dst[i].y, dst[i].z) - mean_dst;
+        Sigma(0, 0) += b[0] * a[0];
+        Sigma(0, 1) += b[0] * a[1];
+        Sigma(0, 2) += b[0] * a[2];
+        Sigma(1, 0) += b[1] * a[0];
+        Sigma(1, 1) += b[1] * a[1];
+        Sigma(1, 2) += b[1] * a[2];
+        Sigma(2, 0) += b[2] * a[0];
+        Sigma(2, 1) += b[2] * a[1];
+        Sigma(2, 2) += b[2] * a[2];
+    }
+    Sigma *= (1.0 / src.size());
+
+    // SVD
+    cv::Mat Sigma_mat(3, 3,CV_64F);
+    for (auto r = 0; r < 3; ++r) for (auto c = 0; c < 3; ++c) Sigma_mat.at<double>(r, c) = Sigma(r, c);
+    cv::Mat U, S, Vt;
+    cv::SVD::compute(Sigma_mat, S, U, Vt);
+    cv::Mat R_mat = U * Vt;
+    if (cv::determinant(R_mat) < 0)
+    {
+        cv::Mat Sfix          = cv::Mat::eye(3, 3,CV_64F);
+        Sfix.at<double>(2, 2) = -1.0;
+        R_mat                 = U * Sfix * Vt;
+    }
+    R = cv::Matx33d(R_mat);
+    t = mean_dst - cv::Vec3d(R * mean_src);
+    return true;
 }

@@ -12,5 +12,5 @@ folder:
 
 slam:
   cell_size: [64, 64]
-  epipolar_threshold: 2.0
+  epipolar_threshold: 1.0
   fast_threshold: 8

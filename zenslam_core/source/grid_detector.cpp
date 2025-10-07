@@ -28,7 +28,7 @@ namespace zenslam
         return { lhs.width / rhs.width, lhs.height / rhs.height };
     }
 
-    void grid_detector::detect(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints) const
+    void grid_detector::detect(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const
     {
         const auto image = image_array.getMat();
 
@@ -39,7 +39,7 @@ namespace zenslam
         std::vector occupied(grid_size.width, std::vector(grid_size.height, false));
 
         // loop over all existing keypoints and update occupancy
-        for (const auto &keypoint: keypoints | std::views::values)
+        for (const auto &keypoint: keypoints_map | std::views::values)
         {
             // Calculate which grid cell this keypoint falls into
             const auto &grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
@@ -56,8 +56,7 @@ namespace zenslam
             }
         }
 
-        std::vector<cv::KeyPoint> keypoints_cv { };
-        std::vector<size_t>       indices { };
+        std::vector<size_t> indices { };
 
         // For each cell in the grid
         for (auto y = 0; y < grid_size.height; ++y)
@@ -107,20 +106,33 @@ namespace zenslam
                     // Add the best keypoint from this cell
                     keypoint keypoint { cell_keypoints[index], keypoint::index_next++ };
 
-                    keypoints.emplace(keypoint.index, keypoint);
-                    keypoints_cv.emplace_back(cell_keypoints[index]);
+                    keypoints_map.emplace(keypoint.index, keypoint);
                     indices.emplace_back(keypoint.index);
                 }
             }
         }
 
+        const auto &keypoints = keypoints_map | std::views::values | std::ranges::to<std::vector>();
+
+        auto keypoints_cv = keypoints | std::views::transform
+                            (
+                                [](const auto &keypoint) -> cv::KeyPoint
+                                {
+                                    return keypoint;
+                                }
+                            ) | std::ranges::to<std::vector>();
+
         cv::Mat descriptors;
         _describer->compute(image, keypoints_cv, descriptors);
 
-        auto i = 0;
-        for (auto index: indices)
+        if (keypoints_cv.size() != keypoints.size())
         {
-            keypoints.at(index).descriptor = descriptors.row(i++);
+            throw std::runtime_error("Keypoint count mismatch");
+        }
+
+        for (auto i = 0; i < descriptors.rows; ++i)
+        {
+            keypoints_map[keypoints[i].index].descriptor = descriptors.row(i);
         }
     }
 } // namespace zenslam

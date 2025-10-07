@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <gsl/narrow>
+
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
@@ -15,12 +17,10 @@
 #include "grid_detector.h"
 #include "utils.h"
 
-namespace
-{
-    
-} // namespace
+namespace {} // namespace
 
-zenslam::slam_thread::slam_thread(options options) : _options{ std::move(options) }
+zenslam::slam_thread::slam_thread(options options) :
+    _options { std::move(options) }
 {
     vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF);
 }
@@ -34,9 +34,9 @@ void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &fra
 {
     // track points from the previous frame to this frame using the KLT tracker
     // KLT tracking of keypoints from previous frame to current frame (left image)
-    std::vector<cv::Point2f> points_1{};
-    std::vector<uchar>       status{};
-    std::vector<float>       err{};
+    std::vector<cv::Point2f> points_1 { };
+    std::vector<uchar>       status { };
+    std::vector<float>       err { };
 
     // Convert previous keypoints to Point
     const auto &keypoints_0 = utils::values(frame_0.keypoints_);
@@ -47,17 +47,19 @@ void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &fra
         return;
     }
 
-    cv::calcOpticalFlowPyrLK(
-            frame_0.undistorted,
-            frame_1.undistorted,
-            points_0,
-            points_1,
-            status,
-            err,
-            cv::Size(21, 21),
-            3,
-            cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 30, 0.01),
-            cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
+    cv::calcOpticalFlowPyrLK
+    (
+        frame_0.undistorted,
+        frame_1.undistorted,
+        points_0,
+        points_1,
+        status,
+        err,
+        cv::Size(21, 21),
+        3,
+        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 30, 0.01),
+        cv::OPTFLOW_LK_GET_MIN_EIGENVALS
+    );
 
     // Verify KLT tracking results have consistent sizes
     assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == err.size());
@@ -65,20 +67,21 @@ void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &fra
     // Update frame.l.keypoints with tracked points
     for (size_t i = 0; i < points_1.size(); ++i)
     {
-        if (status[i] && err[i] < 0.1 && std::abs(points_0[i].x - points_1[i].x) < 32 &&
-            std::abs(points_0[i].y - points_1[i].y) < 32)
+        if (status[i])
         {
-            frame_1.keypoints_.emplace(keypoints_0[i].index, keypoints_0[i]);
+            frame_1.keypoints_[keypoints_0[i].index]    = keypoints_0[i];
             frame_1.keypoints_[keypoints_0[i].index].pt = points_1[i];
         }
     }
 }
 
-void zenslam::slam_thread::correspondences_x(
-        const stereo_frame            &frame,
-        const std::map<size_t, point> &points,
-        std::vector<cv::Point3d>      &points3d,
-        std::vector<cv::Point2d>      &points2d)
+void zenslam::slam_thread::correspondences_x
+(
+    const stereo_frame &           frame,
+    const std::map<size_t, point> &points,
+    std::vector<cv::Point3d> &     points3d,
+    std::vector<cv::Point2d> &     points2d
+)
 {
     for (const auto &[index, keypoint_l]: frame.l.keypoints_)
     {
@@ -90,36 +93,37 @@ void zenslam::slam_thread::correspondences_x(
     }
 }
 
-void zenslam::slam_thread::solve_pnp(
-        const cv::Matx33d              &camera_matrix,
-        const std::vector<cv::Point3d> &points3d,
-        const std::vector<cv::Point2d> &points2d,
-        cv::Affine3d                   &pose)
+void zenslam::slam_thread::solve_pnp
+(
+    const cv::Matx33d &             camera_matrix,
+    const std::vector<cv::Point3d> &points3d,
+    const std::vector<cv::Point2d> &points2d,
+    cv::Affine3d &                  pose
+)
 {
-    cv::Mat          rvec{ pose.rvec() };
-    cv::Mat          tvec{ pose.translation() };
-    std::vector<int> inliers{};
+    cv::Mat          rvec { pose.rvec() };
+    cv::Mat          tvec { pose.translation() };
+    std::vector<int> inliers { };
 
     SPDLOG_INFO("SolvePnP with {} points", points3d.size());
 
-    if (cv::solvePnPRansac(
-                points3d,
-                points2d,
-                camera_matrix,
-                cv::Mat(),
-                rvec,
-                tvec,
-                true,
-                100,
-                1.0,
-                0.99,
-                inliers,
-                cv::SOLVEPNP_ITERATIVE))
+    if (cv::solvePnPRansac
+        (
+            points3d,
+            points2d,
+            camera_matrix,
+            cv::Mat(),
+            rvec,
+            tvec,
+            false,
+            1000,
+            1.0,
+            0.99,
+            inliers
+        ))
     {
         SPDLOG_INFO("SolvePnP successful with {} inliers out of {} points", inliers.size(), points3d.size());
-
         pose = cv::Affine3d(rvec, tvec);
-        SPDLOG_INFO("Pose: {}", pose);
     }
     else
     {
@@ -138,8 +142,10 @@ void zenslam::slam_thread::loop()
     const auto &detector          = grid_detector(feature_detector, feature_describer, _options.slam.cell_size);
     const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, true);
 
-    const auto &calibrations = std::vector{ calibration::parse(_options.folder.calibration_file, "cam0"),
-                                            calibration::parse(_options.folder.calibration_file, "cam1") };
+    const auto &calibrations = std::vector {
+        calibration::parse(_options.folder.calibration_file, "cam0"),
+        calibration::parse(_options.folder.calibration_file, "cam1")
+    };
 
     SPDLOG_INFO("");
     calibrations[0].print();
@@ -151,41 +157,41 @@ void zenslam::slam_thread::loop()
     const auto &projection_L    = calibrations[0].projection();
     const auto &projection_R    = calibrations[1].projection();
 
-    stereo_frame            frame_0{};
-    std::map<size_t, point> points{};
+    stereo_frame            frame_0 { };
+    std::map<size_t, point> points { };
 
     for (auto frame_1: stereo_reader)
     {
         frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
-        // track keypoints new
+        // track keypoints temporal
         track_mono(frame_0.l, frame_1.l);
         track_mono(frame_0.r, frame_1.r);
 
         SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", frame_1.l.keypoints_.size());
         SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints_.size());
 
-        // detect new
+        // detect keypoints additional
         detector.detect(frame_1.l.undistorted, frame_1.l.keypoints_);
         detector.detect(frame_1.r.undistorted, frame_1.r.keypoints_);
 
         SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints_.size());
         SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints_.size());
 
-        // match keypoints
+        // match keypoints spatial
         utils::match(frame_1.l.keypoints_, frame_1.r.keypoints_, fundamental, _options.slam.epipolar_threshold);
 
         // Before we compute 3D-2D pose we should compute the 3D-3D pose
         utils::triangulate(frame_1, projection_L, projection_R, frame_1.points);
-        SPDLOG_INFO("3D points count: {}", frame_1.points.size());
+        SPDLOG_INFO("Triangulated points count: {}", frame_1.points.size());
 
         // Gather points from frame_0 and frame_1 for 3D-3D pose computation
-        std::vector<cv::Point3d> points3d_0{};
-        std::vector<cv::Point3d> points3d_1{};
-        for (const auto &index: frame_0.points | std::views::keys)
+        std::vector<cv::Point3d> points3d_0 { };
+        std::vector<cv::Point3d> points3d_1 { };
+        for (const auto &index: frame_1.points | std::views::keys)
         {
-            if (frame_1.points.contains(index))
+            if (frame_0.points.contains(index))
             {
                 points3d_0.emplace_back(frame_0.points.at(index));
                 points3d_1.emplace_back(frame_1.points.at(index));
@@ -195,42 +201,85 @@ void zenslam::slam_thread::loop()
         // Compute relative pose between frame_0 and frame_1 using 3D-3D correspondences
         if (points3d_0.size() >= 6)
         {
+            SPDLOG_INFO("Computing 3D-3D pose with {} correspondences", points3d_0.size());
+
             cv::Matx33d R;
-            cv::Vec3d   t;
-            utils::umeyama(points3d_0, points3d_1, R, t);
-            frame_1.pose = (frame_0.pose * cv::Affine3d(R, t)).inv();
-            SPDLOG_INFO("Pose: {}", frame_1.pose);
+            cv::Point3d t;
+            utils::estimate_rigid(points3d_0, points3d_1, R, t);
+
+            cv::Affine3d pose { R, t };
+            // SPDLOG_INFO("Pose relative to frame_0: {}", pose);
+
+            // check reprojection error
+            std::vector<double> errors;
+            for (auto i = 0; i < points3d_0.size(); ++i)
+            {
+                errors.emplace_back(cv::norm(pose * points3d_0[i] - points3d_1[i]));
+            }
+
+            auto mean = std::accumulate(errors.begin(), errors.end(), 0.0) / gsl::narrow<double>(errors.size());
+            SPDLOG_INFO("Reprojection error: {}", mean);
+
+            if (mean < 0.05)
+            {
+                SPDLOG_INFO("Reprojection error is below threshold. Using pose from 3D-3D.");
+                frame_1.pose = frame_0.pose * pose.inv();
+                SPDLOG_INFO("Pose: {}", frame_1.pose);
+            }
+            else
+            {
+                SPDLOG_INFO("Reprojection error is above threshold. Using PnP.");
+                std::vector<cv::Point3d> points3d;
+                std::vector<cv::Point2d> points2d;
+                correspondences_x(frame_1, frame_0.points, points3d, points2d);
+
+                if (points3d.size() >= 6)
+                {
+                    pose = cv::Affine3d::Identity();
+
+                    try
+                    {
+                        solve_pnp(camera_matrix_L, points3d, points2d, pose);
+                        frame_1.pose = frame_0.pose * pose.inv();
+                        SPDLOG_INFO("Pose: {}", frame_1.pose);
+                    }
+                    catch (std::exception &e)
+                    {
+                        SPDLOG_WARN("SolvePnP failed: {}", e.what());
+                        break;
+                    }
+                }
+                else
+                {
+                    SPDLOG_WARN("Not enough points for PnP: {}", points3d.size());
+                    break;
+                }
+            }
         }
 
         // compute PnP pose
-        std::vector<cv::Point3d> points3d;
-        std::vector<cv::Point2d> points2d;
-        correspondences_x(frame_1, points, points3d, points2d);
 
-        if (points3d.size() >= 6)
-        {
-            auto pose_of_world_in_camera = frame_1.pose.inv();
-
-            try
-            {
-                solve_pnp(camera_matrix_L, points3d, points2d, pose_of_world_in_camera);
-                frame_1.pose = pose_of_world_in_camera.inv();
-            }
-            catch (std::exception &e)
-            {
-                SPDLOG_WARN("SolvePnP failed: {}", e.what());
-            }
-        }
-        else
-        {
-            SPDLOG_WARN("Not enough points for PnP: {}", points3d.size());
-        }
 
         // triangulate filtered matches to get 3D points
-        utils::triangulate(frame_1, calibrations[0].projection(frame_1.pose), calibrations[1].projection(frame_1.pose), points);
-        SPDLOG_INFO("3D points count: {}", points.size());
+        // utils::triangulate(frame_1, calibrations[0].projection(frame_1.pose), calibrations[1].projection(frame_1.pose), points);
+        // SPDLOG_INFO("3D points count: {}", points.size());
 
-        frame_1.points3d = points | std::views::values | std::views::transform([](const auto &p) { return cv::Point3d(p); }) |
+        for (auto [index, point]: frame_1.points)
+        {
+            auto point3d  = frame_1.pose * point;
+            point3d.index = index;
+            points.emplace(index, point3d);
+        }
+
+        SPDLOG_INFO("Map points count: {}", points.size());
+
+        frame_1.points3d = points | std::views::values | std::views::transform
+                           (
+                               [](const auto &p)
+                               {
+                                   return cv::Point3d(p);
+                               }
+                           ) |
                            std::ranges::to<std::vector>();
 
         on_frame(frame_1);
