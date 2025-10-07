@@ -203,9 +203,13 @@ void zenslam::slam_thread::loop()
         {
             SPDLOG_INFO("Computing 3D-3D pose with {} correspondences", points3d_0.size());
 
-            cv::Matx33d R;
-            cv::Point3d t;
-            utils::estimate_rigid(points3d_0, points3d_1, R, t);
+            cv::Matx33d         R;
+            cv::Point3d         t;
+            std::vector<size_t> inliers { };
+            std::vector<size_t> outliers { };
+            utils::estimate_rigid_ransac(points3d_0, points3d_1, R, t, inliers, outliers, 0.01, 1000, 3);
+
+            SPDLOG_INFO("3D-3D pose inliers: {}", inliers.size());
 
             cv::Affine3d pose { R, t };
             // SPDLOG_INFO("Pose relative to frame_0: {}", pose);

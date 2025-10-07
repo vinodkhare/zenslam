@@ -8,6 +8,82 @@
 
 #include <spdlog/spdlog.h>
 
+auto zenslam::utils::estimate_rigid_ransac
+(
+    const std::vector<cv::Point3d> &src,
+    const std::vector<cv::Point3d> &dst,
+    cv::Matx33d &                   best_R,
+    cv::Point3d &                     best_t,
+    std::vector<size_t> &           inlier_indices,
+    std::vector<size_t> &           outlier_indices,
+    double                          threshold,
+    int                             max_iterations,
+    int                             min_inliers
+) -> bool
+{
+    if (src.size() != dst.size() || src.size() < 3) return false;
+
+    std::mt19937                          rng { std::random_device { }() };
+    std::uniform_int_distribution<size_t> dist(0, src.size() - 1);
+
+    int                 best_inlier_count = 0;
+    std::vector<size_t> best_inliers;
+    cv::Matx33d         bestR;
+    cv::Vec3d           bestt;
+
+    for (int iter = 0; iter < max_iterations; ++iter)
+    {
+        // Randomly sample 3 unique indices
+        std::set<size_t> idx_set;
+        while (idx_set.size() < 3) idx_set.insert(dist(rng));
+        std::vector<size_t> indices(idx_set.begin(), idx_set.end());
+
+        // Build minimal sets
+        std::vector<cv::Point3d> src_sample, dst_sample;
+        for (size_t i: indices)
+        {
+            src_sample.push_back(src[i]);
+            dst_sample.push_back(dst[i]);
+        }
+
+        cv::Matx33d R;
+        cv::Point3d   t;
+        if (!estimate_rigid(src_sample, dst_sample, R, t)) continue;
+
+        // Count inliers
+        std::vector<size_t> inliers;
+        for (size_t i = 0; i < src.size(); ++i)
+        {
+            cv::Vec3d p = R * cv::Point3d(src[i].x, src[i].y, src[i].z) + t;
+            cv::Vec3d q(dst[i].x, dst[i].y, dst[i].z);
+            double    err = cv::norm(p - q);
+            if (err < threshold) inliers.push_back(i);
+        }
+
+        if (inliers.size() > best_inlier_count && inliers.size() >= static_cast<size_t>(min_inliers))
+        {
+            best_inlier_count = static_cast<int>(inliers.size());
+            bestR             = R;
+            bestt             = t;
+            best_inliers      = inliers;
+        }
+    }
+
+    if (best_inlier_count >= min_inliers)
+    {
+        best_R         = bestR;
+        best_t         = bestt;
+        inlier_indices = best_inliers;
+        outlier_indices.clear();
+        for (size_t i = 0; i < src.size(); ++i)
+        {
+            if (std::ranges::find(inlier_indices, i) == inlier_indices.end()) outlier_indices.push_back(i);
+        }
+        return true;
+    }
+    return false;
+}
+
 auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
 {
     const auto &keypoints = utils::cast<cv::KeyPoint>(values(frame.keypoints_));
@@ -404,7 +480,8 @@ auto zenslam::utils::triangulate
         auto proj_l_h = projection_l * X;
         auto proj_r_h = projection_r * X;
 
-        if (std::abs(proj_l_h[2]) <= 1e-9 || std::abs(proj_r_h[2]) <= 1e-9 || points[indices[c]].z < 1 || points[indices[c]].z > 100)
+        if (std::abs(proj_l_h[2]) <= 1e-9 || std::abs
+            (proj_r_h[2]) <= 1e-9 || points[indices[c]].z < 1 || points[indices[c]].z > 100)
         {
             to_erase.push_back(indices[c]);
             continue;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <random>
 #include <string>
 
 #include <spdlog/common.h>
@@ -44,8 +45,6 @@ struct fmt::formatter<cv::Affine3d> : formatter<std::string>
 
 namespace zenslam::utils
 {
-
-
     inline std::string version = "0.0.1";
 
     inline std::map<std::string, spdlog::level::level_enum> log_levels_from_string =
@@ -98,7 +97,7 @@ namespace zenslam::utils
 
     auto triangulate
     (
-        stereo_frame &            frame,
+        stereo_frame &                  frame,
         const cv::Matx34d &             projection_l,
         const cv::Matx34d &             projection_r,
         std::map<unsigned long, point> &points
@@ -106,13 +105,31 @@ namespace zenslam::utils
 
     auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
 
-    auto umeyama(const std::vector<cv::Point3d> &src, const std::vector<cv::Point3d> &dst, cv::Matx33d &R, cv::Point3d &t) -> void;
+    auto umeyama
+    (const std::vector<cv::Point3d> &src, const std::vector<cv::Point3d> &dst, cv::Matx33d &R, cv::Point3d &t) -> void;
 
     // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
     // src, dst: corresponding points
     // Returns true if successful, false otherwise
-    bool estimate_rigid(const std::vector<cv::Point3d> &src,
-                        const std::vector<cv::Point3d> &dst,
-                        cv::Matx33d &R,
-                        cv::Point3d &t);
+    bool estimate_rigid
+    (
+        const std::vector<cv::Point3d> &src,
+        const std::vector<cv::Point3d> &dst,
+        cv::Matx33d &                   R,
+        cv::Point3d &                   t
+    );
+
+    // RANSAC wrapper for estimate_rigid: returns best R, t, and inlier/outlier indices
+    bool estimate_rigid_ransac
+    (
+        const std::vector<cv::Point3d> &src,
+        const std::vector<cv::Point3d> &dst,
+        cv::Matx33d &                   best_R,
+        cv::Point3d &                     best_t,
+        std::vector<size_t> &           inlier_indices,
+        std::vector<size_t> &           outlier_indices,
+        double                          threshold      = 0.01,
+        int                             max_iterations = 1000,
+        int                             min_inliers    = 3
+    );
 }
