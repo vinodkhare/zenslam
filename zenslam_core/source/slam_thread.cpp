@@ -88,17 +88,11 @@ void zenslam::slam_thread::loop()
         // Gather points from frame_0 and frame_1 for 3D-3D pose computation
         std::vector<cv::Point3d> points3d_0 { };
         std::vector<cv::Point3d> points3d_1 { };
-        for (const auto &index: frame_1.points | std::views::keys)
-        {
-            if (frame_0.points.contains(index))
-            {
-                points3d_0.emplace_back(frame_0.points.at(index));
-                points3d_1.emplace_back(frame_1.points.at(index));
-            }
-        }
+        std::vector<size_t> indexes {};
+        utils::correspondences_3d3d(frame_0.points, frame_1.points, points3d_0, points3d_1, indexes);
 
         // Compute relative pose between frame_0 and frame_1 using 3D-3D correspondences
-        if (points3d_0.size() >= 6)
+        if (points3d_0.size() >= 3)
         {
             SPDLOG_INFO("Computing 3D-3D pose with {} correspondences", points3d_0.size());
 
@@ -106,23 +100,30 @@ void zenslam::slam_thread::loop()
             cv::Point3d         t;
             std::vector<size_t> inliers { };
             std::vector<size_t> outliers { };
-            utils::estimate_rigid_ransac(points3d_0, points3d_1, R, t, inliers, outliers, 0.01, 1000, 3);
+            std::vector<double> errors {};
+            utils::estimate_rigid_ransac(points3d_0, points3d_1, R, t, inliers, outliers, errors, 0.01, 1000, 3);
 
             SPDLOG_INFO("3D-3D pose inliers: {}", inliers.size());
 
-            cv::Affine3d pose { R, t };
-
-            // check reprojection error
-            std::vector<double> errors;
-            for (auto i = 0; i < points3d_0.size(); ++i)
+            for (auto o: outliers)
             {
-                errors.emplace_back(cv::norm(pose * points3d_0[i] - points3d_1[i]));
+                frame_1.points.erase(indexes[o]);
+                frame_0.points.erase(indexes[o]);
+                points.erase(indexes[o]);
             }
 
-            auto mean = std::accumulate(errors.begin(), errors.end(), 0.0) / gsl::narrow<double>(errors.size());
+            cv::Affine3d pose { R, t };
+
+            auto mean = 0.0;
+            for (auto i : inliers)
+            {
+                mean += errors[i];
+            }
+            mean /= inliers.size();
+
             SPDLOG_INFO("Reprojection error: {}", mean);
 
-            if (mean < 0.05)
+            if (mean < 0.01)
             {
                 SPDLOG_INFO("Reprojection error is below threshold. Using pose from 3D-3D.");
                 frame_1.pose = frame_0.pose * pose.inv();
@@ -133,7 +134,7 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO("Reprojection error is above threshold. Using PnP.");
                 std::vector<cv::Point3d> points3d;
                 std::vector<cv::Point2d> points2d;
-                utils::correspondences(frame_1, frame_0.points, points3d, points2d);
+                utils::correspondences(frame_0.points, frame_1.l.keypoints, points3d, points2d);
 
                 if (points3d.size() >= 6)
                 {

@@ -12,11 +12,20 @@ namespace zenslam::utils
 {
     auto correspondences
     (
-        const stereo_frame &           frame,
-        const std::map<size_t, point> &points,
-        std::vector<cv::Point3d> &     points3d,
-        std::vector<cv::Point2d> &     points2d
+        const std::map<size_t, point> &   points,
+        const std::map<size_t, keypoint> &keypoints,
+        std::vector<cv::Point3d> &        points3d,
+        std::vector<cv::Point2d> &        points2d
     ) -> void;
+
+    void correspondences_3d3d
+    (
+        const std::map<size_t, point> &points_map_0,
+        const std::map<size_t, point> &points_map_1,
+        std::vector<cv::Point3d> &     points3d_0,
+        std::vector<cv::Point3d> &     points3d_1,
+        std::vector<size_t> &          indexes
+    );
 
     // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
     // src, dst: corresponding points
@@ -38,6 +47,7 @@ namespace zenslam::utils
         cv::Point3d &                   best_t,
         std::vector<size_t> &           inlier_indices,
         std::vector<size_t> &           outlier_indices,
+        std::vector<double> &           errors,
         double                          threshold      = 0.01,
         int                             max_iterations = 1000,
         int                             min_inliers    = 3
@@ -71,9 +81,9 @@ namespace zenslam::utils
 
     auto track
     (
-        const mono_frame &  frame_0,
-        mono_frame &        frame_1,
-        class options::slam options
+        const mono_frame &         frame_0,
+        mono_frame &               frame_1,
+        const class options::slam &options
     ) -> void;
 
     auto triangulate

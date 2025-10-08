@@ -14,18 +14,38 @@
 
 void zenslam::utils::correspondences
 (
-    const stereo_frame &           frame,
-    const std::map<size_t, point> &points,
-    std::vector<cv::Point3d> &     points3d,
-    std::vector<cv::Point2d> &     points2d
+    const std::map<size_t, point> &   points,
+    const std::map<size_t, keypoint> &keypoints,
+    std::vector<cv::Point3d> &        points3d,
+    std::vector<cv::Point2d> &        points2d
 )
 {
-    for (const auto &[index, keypoint_l]: frame.l.keypoints)
+    for (const auto &index: keypoints | std::views::keys)
     {
         if (points.contains(index))
         {
             points3d.emplace_back(points.at(index));
-            points2d.emplace_back(keypoint_l.pt);
+            points2d.emplace_back(keypoints.at(index).pt);
+        }
+    }
+}
+
+void zenslam::utils::correspondences_3d3d
+(
+    const std::map<size_t, point> &points_map_0,
+    const std::map<size_t, point> &points_map_1,
+    std::vector<cv::Point3d> &     points3d_0,
+    std::vector<cv::Point3d> &     points3d_1,
+    std::vector<size_t> &          indexes
+)
+{
+    for (const auto &index: points_map_1 | std::views::keys)
+    {
+        if (points_map_0.contains(index))
+        {
+            points3d_0.emplace_back(points_map_0.at(index));
+            points3d_1.emplace_back(points_map_1.at(index));
+            indexes.emplace_back(index);
         }
     }
 }
@@ -107,6 +127,7 @@ auto zenslam::utils::estimate_rigid_ransac
     cv::Point3d &                   best_t,
     std::vector<size_t> &           inlier_indices,
     std::vector<size_t> &           outlier_indices,
+    std::vector<double> &           errors,
     const double                    threshold,
     const int                       max_iterations,
     const int                       min_inliers
@@ -121,6 +142,7 @@ auto zenslam::utils::estimate_rigid_ransac
     std::vector<size_t> best_inliers;
     cv::Matx33d         bestR;
     cv::Vec3d           bestt;
+    std::vector<double> best_errors { };
 
     for (int iter = 0; iter < max_iterations; ++iter)
     {
@@ -143,11 +165,13 @@ auto zenslam::utils::estimate_rigid_ransac
 
         // Count inliers
         std::vector<size_t> inliers;
+        std::vector<double> errs;
         for (size_t i = 0; i < src.size(); ++i)
         {
-            cv::Vec3d p = R * cv::Point3d(src[i].x, src[i].y, src[i].z) + t;
-            cv::Vec3d q(dst[i].x, dst[i].y, dst[i].z);
-            const double    err = cv::norm(p - q);
+            cv::Vec3d  p = R * cv::Point3d(src[i].x, src[i].y, src[i].z) + t;
+            cv::Vec3d  q(dst[i].x, dst[i].y, dst[i].z);
+            const auto err = cv::norm(p - q);
+            errs.push_back(err);
             if (err < threshold) inliers.push_back(i);
         }
 
@@ -157,6 +181,7 @@ auto zenslam::utils::estimate_rigid_ransac
             bestR             = R;
             bestt             = t;
             best_inliers      = inliers;
+            best_errors       = errs;
         }
     }
 
@@ -170,6 +195,7 @@ auto zenslam::utils::estimate_rigid_ransac
         {
             if (std::ranges::find(inlier_indices, i) == inlier_indices.end()) outlier_indices.push_back(i);
         }
+        errors = best_errors;
         return true;
     }
     return false;
@@ -364,7 +390,7 @@ auto zenslam::utils::solve_pnp
     }
 }
 
-void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, class options::slam options)
+void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const class options::slam &options)
 {
     // track points from the previous frame to this frame using the KLT tracker
     // KLT tracking of keypoints from previous frame to current frame (left image)

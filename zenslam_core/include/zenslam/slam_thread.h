@@ -20,7 +20,6 @@ namespace zenslam
         ~slam_thread();
 
 
-
     private:
         options _options { };
 
