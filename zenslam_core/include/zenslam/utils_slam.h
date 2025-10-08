@@ -1,0 +1,94 @@
+#pragma once
+
+#include <map>
+
+#include "calibration.h"
+#include "keypoint.h"
+#include "point.h"
+#include "stereo_frame.h"
+
+namespace zenslam::utils
+{
+    static void correspondences
+    (
+        const stereo_frame &           frame,
+        const std::map<size_t, point> &points,
+        std::vector<cv::Point3d> &     points3d,
+        std::vector<cv::Point2d> &     points2d
+    );
+
+    // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
+    // src, dst: corresponding points
+    // Returns true if successful, false otherwise
+    bool estimate_rigid
+    (
+        const std::vector<cv::Point3d> &src,
+        const std::vector<cv::Point3d> &dst,
+        cv::Matx33d &                   R,
+        cv::Point3d &                   t
+    );
+
+    // RANSAC wrapper for estimate_rigid: returns best R, t, and inlier/outlier indices
+    bool estimate_rigid_ransac
+    (
+        const std::vector<cv::Point3d> &src,
+        const std::vector<cv::Point3d> &dst,
+        cv::Matx33d &                   best_R,
+        cv::Point3d &                   best_t,
+        std::vector<size_t> &           inlier_indices,
+        std::vector<size_t> &           outlier_indices,
+        double                          threshold      = 0.01,
+        int                             max_iterations = 1000,
+        int                             min_inliers    = 3
+    );
+
+    // filters matches using the epipolar crterion given the fundamental matrix
+    auto filter
+    (
+        const std::vector<cv::KeyPoint> &keypoints0,
+        const std::vector<cv::KeyPoint> &keypoints1,
+        const std::vector<cv::DMatch> &  matches,
+        const cv::Matx33d &              fundamental,
+        double                           epipolar_threshold
+    ) -> std::vector<cv::DMatch>;
+
+    auto match
+    (
+        const std::map<size_t, keypoint> &keypoints_0,
+        std::map<size_t, keypoint> &      keypoints_1,
+        const cv::Matx33d &               fundamental,
+        double                            epipolar_threshold
+    ) -> void;
+
+    static void solve_pnp
+    (
+        const cv::Matx33d &             camera_matrix,
+        const std::vector<cv::Point3d> &points3d,
+        const std::vector<cv::Point2d> &points2d,
+        cv::Affine3d &                  pose
+    );
+
+    static void track
+    (
+        const mono_frame &frame_0,
+        mono_frame &      frame_1
+    );
+
+    auto triangulate
+    (
+        stereo_frame &                  frame,
+        const cv::Matx34d &             projection_l,
+        const cv::Matx34d &             projection_r,
+        std::map<unsigned long, point> &points
+    ) -> void;
+
+    auto umeyama
+    (
+        const std::vector<cv::Point3d> &src,
+        const std::vector<cv::Point3d> &dst,
+        cv::Matx33d &                   R,
+        cv::Point3d &                   t
+    ) -> void;
+
+    auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
+}

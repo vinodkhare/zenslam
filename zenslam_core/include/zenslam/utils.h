@@ -5,7 +5,7 @@
 #include <string>
 
 #include <spdlog/common.h>
-#include <spdlog/fmt/ostr.h> // must be included
+#include <spdlog/fmt/ostr.h>
 
 #include "calibration.h"
 #include "stereo_folder_reader.h"
@@ -72,64 +72,10 @@ namespace zenslam::utils
         const std::vector<cv::KeyPoint> &keypoints0,
         const std::vector<cv::KeyPoint> &keypoints1,
         const std::vector<cv::DMatch> &  matches
-    ) -> auto;
+    ) -> std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>>;
 
     auto to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>;
     auto to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>;
 
-    // filters matches using the epipolar crterion given the fundamental matrix
-    auto filter
-    (
-        const std::vector<cv::KeyPoint> &keypoints0,
-        const std::vector<cv::KeyPoint> &keypoints1,
-        const std::vector<cv::DMatch> &  matches,
-        const cv::Matx33d &              fundamental,
-        double                           epipolar_threshold
-    ) -> std::vector<cv::DMatch>;
 
-    auto match
-    (
-        const std::map<size_t, keypoint> &keypoints_0,
-        std::map<size_t, keypoint> &      keypoints_1,
-        const cv::Matx33d &               fundamental,
-        double                            epipolar_threshold
-    ) -> void;
-
-    auto triangulate
-    (
-        stereo_frame &                  frame,
-        const cv::Matx34d &             projection_l,
-        const cv::Matx34d &             projection_r,
-        std::map<unsigned long, point> &points
-    ) -> void;
-
-    auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
-
-    auto umeyama
-    (const std::vector<cv::Point3d> &src, const std::vector<cv::Point3d> &dst, cv::Matx33d &R, cv::Point3d &t) -> void;
-
-    // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
-    // src, dst: corresponding points
-    // Returns true if successful, false otherwise
-    bool estimate_rigid
-    (
-        const std::vector<cv::Point3d> &src,
-        const std::vector<cv::Point3d> &dst,
-        cv::Matx33d &                   R,
-        cv::Point3d &                   t
-    );
-
-    // RANSAC wrapper for estimate_rigid: returns best R, t, and inlier/outlier indices
-    bool estimate_rigid_ransac
-    (
-        const std::vector<cv::Point3d> &src,
-        const std::vector<cv::Point3d> &dst,
-        cv::Matx33d &                   best_R,
-        cv::Point3d &                     best_t,
-        std::vector<size_t> &           inlier_indices,
-        std::vector<size_t> &           outlier_indices,
-        double                          threshold      = 0.01,
-        int                             max_iterations = 1000,
-        int                             min_inliers    = 3
-    );
 }

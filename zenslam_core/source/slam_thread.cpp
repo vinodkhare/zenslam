@@ -16,6 +16,7 @@
 #include "calibration.h"
 #include "grid_detector.h"
 #include "utils.h"
+#include "utils_slam.h"
 
 namespace {} // namespace
 
@@ -30,107 +31,6 @@ zenslam::slam_thread::~slam_thread()
     _stop_source.request_stop();
 }
 
-void zenslam::slam_thread::track_mono(const mono_frame &frame_0, mono_frame &frame_1)
-{
-    // track points from the previous frame to this frame using the KLT tracker
-    // KLT tracking of keypoints from previous frame to current frame (left image)
-    std::vector<cv::Point2f> points_1 { };
-    std::vector<uchar>       status { };
-    std::vector<float>       err { };
-
-    // Convert previous keypoints to Point
-    const auto &keypoints_0 = utils::values(frame_0.keypoints_);
-    const auto &points_0    = utils::to_points(frame_0.keypoints_);
-
-    if (keypoints_0.empty())
-    {
-        return;
-    }
-
-    cv::calcOpticalFlowPyrLK
-    (
-        frame_0.undistorted,
-        frame_1.undistorted,
-        points_0,
-        points_1,
-        status,
-        err,
-        cv::Size(31, 32),
-        3,
-        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 30, 0.01),
-        cv::OPTFLOW_LK_GET_MIN_EIGENVALS
-    );
-
-    // Verify KLT tracking results have consistent sizes
-    assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == err.size());
-
-    // Update frame.l.keypoints with tracked points
-    for (size_t i = 0; i < points_1.size(); ++i)
-    {
-        if (status[i] && std::abs(points_1[i].y - points_0[i].y) < 32)
-        {
-            frame_1.keypoints_[keypoints_0[i].index]    = keypoints_0[i];
-            frame_1.keypoints_[keypoints_0[i].index].pt = points_1[i];
-        }
-    }
-}
-
-void zenslam::slam_thread::correspondences_x
-(
-    const stereo_frame &           frame,
-    const std::map<size_t, point> &points,
-    std::vector<cv::Point3d> &     points3d,
-    std::vector<cv::Point2d> &     points2d
-)
-{
-    for (const auto &[index, keypoint_l]: frame.l.keypoints_)
-    {
-        if (points.contains(index))
-        {
-            points3d.emplace_back(points.at(index));
-            points2d.emplace_back(keypoint_l.pt);
-        }
-    }
-}
-
-void zenslam::slam_thread::solve_pnp
-(
-    const cv::Matx33d &             camera_matrix,
-    const std::vector<cv::Point3d> &points3d,
-    const std::vector<cv::Point2d> &points2d,
-    cv::Affine3d &                  pose
-)
-{
-    cv::Mat          rvec { pose.rvec() };
-    cv::Mat          tvec { pose.translation() };
-    std::vector<int> inliers { };
-
-    SPDLOG_INFO("SolvePnP with {} points", points3d.size());
-
-    if (cv::solvePnPRansac
-        (
-            points3d,
-            points2d,
-            camera_matrix,
-            cv::Mat(),
-            rvec,
-            tvec,
-            false,
-            1000,
-            4.0,
-            0.99,
-            inliers
-        ))
-    {
-        SPDLOG_INFO("SolvePnP successful with {} inliers out of {} points", inliers.size(), points3d.size());
-        pose = cv::Affine3d(rvec, tvec);
-    }
-    else
-    {
-        SPDLOG_WARN("SolvePnP failed");
-        throw std::runtime_error("SolvePnP failed");
-    }
-}
 
 void zenslam::slam_thread::loop()
 {
@@ -166,8 +66,8 @@ void zenslam::slam_thread::loop()
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
         // track keypoints temporal
-        track_mono(frame_0.l, frame_1.l);
-        track_mono(frame_0.r, frame_1.r);
+        utils::track(frame_0.l, frame_1.l);
+        utils::track(frame_0.r, frame_1.r);
 
         SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", frame_1.l.keypoints_.size());
         SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints_.size());
@@ -235,7 +135,7 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO("Reprojection error is above threshold. Using PnP.");
                 std::vector<cv::Point3d> points3d;
                 std::vector<cv::Point2d> points2d;
-                correspondences_x(frame_1, frame_0.points, points3d, points2d);
+                utils::correspondences(frame_1, frame_0.points, points3d, points2d);
 
                 if (points3d.size() >= 6)
                 {
@@ -243,7 +143,7 @@ void zenslam::slam_thread::loop()
 
                     try
                     {
-                        solve_pnp(camera_matrix_L, points3d, points2d, pose);
+                        utils::solve_pnp(camera_matrix_L, points3d, points2d, pose);
                         frame_1.pose = frame_0.pose * pose.inv();
                         SPDLOG_INFO("Pose: {}", frame_1.pose);
                     }

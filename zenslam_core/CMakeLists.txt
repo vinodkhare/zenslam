@@ -44,6 +44,7 @@ add_library(${PROJECT_NAME}
         source/stereo_frame.cpp
         source/thread_safe.cpp
         source/utils.cpp
+        source/utils_slam.cpp
         source/utils_std.cpp
         source/verb.cpp
 )
