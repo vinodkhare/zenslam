@@ -16,11 +16,12 @@ namespace zenslam
         void render();
 
     private:
-        thread_safe<stereo_frame> _frame_1 { };
-        thread_safe<stereo_frame> _frame_0 { };
+        std::mutex   _mutex { };
+        stereo_frame _frame_1 { };
+        stereo_frame _frame_0 { };
 
-        options     _options { };
-        slam_thread _slam_thread { _options };
-        std::unique_ptr<cv::viz::Viz3d> _viewer {};
+        options                         _options { };
+        slam_thread                     _slam_thread { _options };
+        std::unique_ptr<cv::viz::Viz3d> _viewer { };
     };
 }

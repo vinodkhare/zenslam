@@ -1,6 +1,7 @@
 #include "utils_slam.h"
 
 #include <numeric>
+#include <random>
 
 #include <gsl/narrow>
 
@@ -62,27 +63,26 @@ bool zenslam::utils::estimate_rigid
 
     // Compute means
     auto mean_src = std::accumulate
-    (
-        src.begin(),
-        src.end(),
-        cv::Vec3d(0, 0, 0),
-        [](const cv::Vec3d &acc, const cv::Point3d &p)
-        {
-            return acc + cv::Vec3d(p.x, p.y, p.z);
-        }
-    );
-    mean_src *= 1.0 / gsl::narrow<double>(src.size());
+                    (
+                        src.begin(),
+                        src.end(),
+                        cv::Vec3d(0, 0, 0),
+                        [](const cv::Vec3d &acc, const cv::Point3d &p)
+                        {
+                            return acc + cv::Vec3d(p.x, p.y, p.z);
+                        }
+                    ) / gsl::narrow<double>(src.size());
+
     auto mean_dst = std::accumulate
-    (
-        dst.begin(),
-        dst.end(),
-        cv::Vec3d(0, 0, 0),
-        [](const cv::Vec3d &acc, const cv::Point3d &p)
-        {
-            return acc + cv::Vec3d(p.x, p.y, p.z);
-        }
-    );
-    mean_dst *= 1.0 / gsl::narrow<double>(dst.size());
+                    (
+                        dst.begin(),
+                        dst.end(),
+                        cv::Vec3d(0, 0, 0),
+                        [](const cv::Vec3d &acc, const cv::Point3d &p)
+                        {
+                            return acc + cv::Vec3d(p.x, p.y, p.z);
+                        }
+                    ) / gsl::narrow<double>(dst.size());
 
     // Compute cross-covariance
     cv::Matx33d Sigma(0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -144,12 +144,12 @@ auto zenslam::utils::estimate_rigid_ransac
     cv::Vec3d           bestt;
     std::vector<double> best_errors { };
 
-    for (int iter = 0; iter < max_iterations; ++iter)
+    for (auto iter = 0; iter < max_iterations; ++iter)
     {
         // Randomly sample 3 unique indices
         std::set<size_t> idx_set;
         while (idx_set.size() < 3) idx_set.insert(dist(rng));
-        std::vector<size_t> indices(idx_set.begin(), idx_set.end());
+        std::vector indices(idx_set.begin(), idx_set.end());
 
         // Build minimal sets
         std::vector<cv::Point3d> src_sample, dst_sample;
@@ -417,8 +417,9 @@ void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const
         err,
         options.klt_window_size,
         options.klt_max_level,
-        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.01),
-        cv::OPTFLOW_LK_GET_MIN_EIGENVALS
+        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
+        cv::OPTFLOW_LK_GET_MIN_EIGENVALS,
+        0.00001
     );
 
     // Verify KLT tracking results have consistent sizes
@@ -427,7 +428,7 @@ void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const
     // Update frame.l.keypoints with tracked points
     for (size_t i = 0; i < points_1.size(); ++i)
     {
-        if (status[i] && std::abs(points_1[i].y - points_0[i].y) < 32)
+        if (status[i])
         {
             frame_1.keypoints[keypoints_0[i].index]    = keypoints_0[i];
             frame_1.keypoints[keypoints_0[i].index].pt = points_1[i];

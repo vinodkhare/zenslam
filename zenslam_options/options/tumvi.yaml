@@ -11,8 +11,8 @@ folder:
   calibration_file: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/camchain.yaml
 
 slam:
-  cell_size: [64, 64]
-  epipolar_threshold: 1.0
+  cell_size: [32, 32]
+  epipolar_threshold: 2.0
   fast_threshold: 8
   klt_window_size: [31, 31]
-  klt_max_level: 3
+  klt_max_level: 4

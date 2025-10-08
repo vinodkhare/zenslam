@@ -82,6 +82,11 @@ namespace zenslam
                 std::vector<cv::KeyPoint> cell_keypoints;
                 _detector->detect(cell_image, cell_keypoints, cv::noArray());
 
+                // if (cell_keypoints.empty())
+                // {
+                //     _describer->detect(cell_image, cell_keypoints, cv::noArray());
+                // }
+
                 // If any keypoints were found in this cell
                 if (!cell_keypoints.empty())
                 {

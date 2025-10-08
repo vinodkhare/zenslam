@@ -145,7 +145,7 @@ void zenslam::slam_thread::loop()
 
                 if (points3d.size() >= 6)
                 {
-                    pose = cv::Affine3d::Identity();
+                    pose = frame_1.pose.inv() * frame_0.pose;
 
                     try
                     {
@@ -185,9 +185,7 @@ void zenslam::slam_thread::loop()
 
         motion.update(frame_0.pose, frame_1.pose, dt);
 
-        on_frame(frame_1);
-
-        frame_0 = std::move(frame_1);
+        on_frame(frame_0 = std::move(frame_1));
 
         if (_stop_token.stop_requested())
         {
