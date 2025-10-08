@@ -373,7 +373,7 @@ auto zenslam::utils::solve_pnp
             cv::Mat(),
             rvec,
             tvec,
-            false,
+            true,
             1000,
             4.0,
             0.99,

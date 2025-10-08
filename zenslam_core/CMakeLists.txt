@@ -37,6 +37,7 @@ add_library(${PROJECT_NAME}
         source/match_data.cpp
         source/mono_folder_reader.cpp
         source/mono_frame.cpp
+        source/motion.cpp
         source/options.cpp
         source/point.cpp
         source/slam_thread.cpp

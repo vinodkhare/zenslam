@@ -15,6 +15,7 @@
 
 #include "calibration.h"
 #include "grid_detector.h"
+#include "motion.h"
 #include "utils.h"
 #include "utils_slam.h"
 
@@ -34,14 +35,14 @@ zenslam::slam_thread::~slam_thread()
 
 void zenslam::slam_thread::loop()
 {
-    const auto &stereo_reader = stereo_folder_reader(_options.folder);
-
-    // Create a base detector (FAST)
+    const auto &stereo_reader     = stereo_folder_reader(_options.folder);
     const auto &feature_detector  = cv::FastFeatureDetector::create(8);
     const auto &feature_describer = cv::SiftDescriptorExtractor::create();
     const auto &detector          = grid_detector(feature_detector, feature_describer, _options.slam.cell_size);
+    auto        motion            = zenslam::motion();
 
-    const auto &calibrations = std::vector {
+    const auto &calibrations = std::vector
+    {
         calibration::parse(_options.folder.calibration_file, "cam0"),
         calibration::parse(_options.folder.calibration_file, "cam1")
     };
@@ -61,6 +62,10 @@ void zenslam::slam_thread::loop()
 
     for (auto frame_1: stereo_reader)
     {
+        auto dt = isnan(frame_0.l.timestamp) ? 0.0 : frame_1.l.timestamp - frame_0.l.timestamp;
+
+        frame_1.pose = motion.predict(frame_0.pose, dt);
+
         frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
@@ -88,8 +93,10 @@ void zenslam::slam_thread::loop()
         // Gather points from frame_0 and frame_1 for 3D-3D pose computation
         std::vector<cv::Point3d> points3d_0 { };
         std::vector<cv::Point3d> points3d_1 { };
-        std::vector<size_t> indexes {};
+        std::vector<size_t>      indexes { };
         utils::correspondences_3d3d(frame_0.points, frame_1.points, points3d_0, points3d_1, indexes);
+
+        SPDLOG_DEBUG("Predicted pose: {}", frame_1.pose);
 
         // Compute relative pose between frame_0 and frame_1 using 3D-3D correspondences
         if (points3d_0.size() >= 3)
@@ -100,7 +107,7 @@ void zenslam::slam_thread::loop()
             cv::Point3d         t;
             std::vector<size_t> inliers { };
             std::vector<size_t> outliers { };
-            std::vector<double> errors {};
+            std::vector<double> errors { };
             utils::estimate_rigid_ransac(points3d_0, points3d_1, R, t, inliers, outliers, errors, 0.01, 1000, 3);
 
             SPDLOG_INFO("3D-3D pose inliers: {}", inliers.size());
@@ -115,7 +122,7 @@ void zenslam::slam_thread::loop()
             cv::Affine3d pose { R, t };
 
             auto mean = 0.0;
-            for (auto i : inliers)
+            for (auto i: inliers)
             {
                 mean += errors[i];
             }
@@ -149,13 +156,11 @@ void zenslam::slam_thread::loop()
                     catch (std::exception &e)
                     {
                         SPDLOG_WARN("SolvePnP failed: {}", e.what());
-                        break;
                     }
                 }
                 else
                 {
                     SPDLOG_WARN("Not enough points for PnP: {}", points3d.size());
-                    break;
                 }
             }
         }
@@ -177,6 +182,8 @@ void zenslam::slam_thread::loop()
                                }
                            ) |
                            std::ranges::to<std::vector>();
+
+        motion.update(frame_0.pose, frame_1.pose, dt);
 
         on_frame(frame_1);
 
