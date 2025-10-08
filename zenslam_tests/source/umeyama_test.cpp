@@ -6,6 +6,7 @@
 #include <opencv2/core.hpp>
 
 #include "zenslam/utils.h"
+#include "zenslam/utils_slam.h"
 
 TEST_CASE("umeyama estimates rotation and translation for rigid transform")
 {

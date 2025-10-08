@@ -14,3 +14,5 @@ slam:
   cell_size: [64, 64]
   epipolar_threshold: 1.0
   fast_threshold: 8
+  klt_window_size: [31, 31]
+  klt_max_level: 3

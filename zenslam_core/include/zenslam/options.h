@@ -48,6 +48,8 @@ namespace zenslam
             cv::Size cell_size { 16, 16 };
             double   epipolar_threshold { 1.0 };
             int      fast_threshold { 10 };
+            cv::Size klt_window_size { 31, 31 };
+            int      klt_max_level { 3 };
 
             void print() const;
         } slam;

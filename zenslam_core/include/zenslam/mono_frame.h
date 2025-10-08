@@ -15,7 +15,7 @@ namespace zenslam
         cv::Mat                    image       = { };
         cv::Mat                    rectified   = { };
         cv::Mat                    undistorted = { };
-        std::map<size_t, keypoint> keypoints_  = { };
+        std::map<size_t, keypoint> keypoints   = { };
 
         mono_frame() = default;
 

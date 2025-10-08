@@ -139,6 +139,18 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             {
                 options.slam.fast_threshold = fast_threshold.as<int>();
             }
+
+            if (const auto klt_window_size = slam["klt_window_size"])
+            {
+                const auto klt_window_array = klt_window_size.as<std::vector<int>>();
+                options.slam.klt_window_size.width  = klt_window_array[0];
+                options.slam.klt_window_size.height = klt_window_array[1];
+            }
+
+            if (const auto klt_max_level = slam["klt_max_level"])
+            {
+                options.slam.klt_max_level = klt_max_level.as<int>();
+            }
         }
     }
     catch (const YAML::Exception &e)
@@ -199,6 +211,8 @@ void zenslam::options::slam::print() const
     SPDLOG_INFO("cell size: [{}, {}]", cell_size.width, cell_size.height);
     SPDLOG_INFO("epipolar threshold: {}", epipolar_threshold);
     SPDLOG_INFO("fast threshold: {}", fast_threshold);
+    SPDLOG_INFO("klt window size: [{}, {}]", klt_window_size.width, klt_window_size.height);
+    SPDLOG_INFO("klt max level: {}", klt_max_level);
 }
 
 void zenslam::options::print() const

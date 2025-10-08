@@ -8,10 +8,9 @@
 #include <spdlog/spdlog.h>
 
 
-
 auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
 {
-    const auto &keypoints = utils::cast<cv::KeyPoint>(values(frame.keypoints_));
+    const auto &keypoints = utils::cast<cv::KeyPoint>(values(frame.keypoints));
 
     // DRAW_RICH_KEYPOINTS shows size and orientation
     cv::Mat keypoints_image { };
@@ -32,8 +31,8 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
 {
     cv::Mat matches_image { };
 
-    const auto &keypoints_l = values(frame.l.keypoints_);
-    const auto &keypoints_r = values(frame.r.keypoints_);
+    const auto &keypoints_l = values(frame.l.keypoints);
+    const auto &keypoints_r = values(frame.r.keypoints);
 
     std::vector<cv::DMatch> matches { };
 
@@ -69,8 +68,8 @@ auto zenslam::utils::draw_matches(const mono_frame &frame_0, const mono_frame &f
 {
     cv::Mat matches_image { };
 
-    const auto &keypoints_0 = values(frame_0.keypoints_);
-    const auto &keypoints_1 = values(frame_1.keypoints_);
+    const auto &keypoints_0 = values(frame_0.keypoints);
+    const auto &keypoints_1 = values(frame_1.keypoints);
 
     std::vector<cv::DMatch> matches { };
 

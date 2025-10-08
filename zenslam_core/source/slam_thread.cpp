@@ -1,5 +1,6 @@
 #include "slam_thread.h"
 
+
 #include <utility>
 
 #include <gsl/narrow>
@@ -7,7 +8,6 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
-#include <opencv2/video/tracking.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -18,13 +18,13 @@
 #include "utils.h"
 #include "utils_slam.h"
 
-namespace {} // namespace
 
 zenslam::slam_thread::slam_thread(options options) :
     _options { std::move(options) }
 {
     vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF);
 }
+
 
 zenslam::slam_thread::~slam_thread()
 {
@@ -40,7 +40,6 @@ void zenslam::slam_thread::loop()
     const auto &feature_detector  = cv::FastFeatureDetector::create(8);
     const auto &feature_describer = cv::SiftDescriptorExtractor::create();
     const auto &detector          = grid_detector(feature_detector, feature_describer, _options.slam.cell_size);
-    const auto &matcher           = cv::BFMatcher::create(cv::NORM_L2, true);
 
     const auto &calibrations = std::vector {
         calibration::parse(_options.folder.calibration_file, "cam0"),
@@ -66,21 +65,21 @@ void zenslam::slam_thread::loop()
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
         // track keypoints temporal
-        utils::track(frame_0.l, frame_1.l);
-        utils::track(frame_0.r, frame_1.r);
+        utils::track(frame_0.l, frame_1.l, _options.slam);
+        utils::track(frame_0.r, frame_1.r, _options.slam);
 
-        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", frame_1.l.keypoints_.size());
-        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints_.size());
+        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", frame_1.l.keypoints.size());
+        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints.size());
 
         // detect keypoints additional
-        detector.detect(frame_1.l.undistorted, frame_1.l.keypoints_);
-        detector.detect(frame_1.r.undistorted, frame_1.r.keypoints_);
+        detector.detect(frame_1.l.undistorted, frame_1.l.keypoints);
+        detector.detect(frame_1.r.undistorted, frame_1.r.keypoints);
 
-        SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints_.size());
-        SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints_.size());
+        SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints.size());
+        SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints.size());
 
         // match keypoints spatial
-        utils::match(frame_1.l.keypoints_, frame_1.r.keypoints_, fundamental, _options.slam.epipolar_threshold);
+        utils::match(frame_1.l.keypoints, frame_1.r.keypoints, fundamental, _options.slam.epipolar_threshold);
 
         // Before we compute 3D-2D pose we should compute the 3D-3D pose
         utils::triangulate(frame_1, projection_L, projection_R, frame_1.points);
@@ -112,7 +111,6 @@ void zenslam::slam_thread::loop()
             SPDLOG_INFO("3D-3D pose inliers: {}", inliers.size());
 
             cv::Affine3d pose { R, t };
-            // SPDLOG_INFO("Pose relative to frame_0: {}", pose);
 
             // check reprojection error
             std::vector<double> errors;
@@ -161,13 +159,6 @@ void zenslam::slam_thread::loop()
             }
         }
 
-        // compute PnP pose
-
-
-        // triangulate filtered matches to get 3D points
-        // utils::triangulate(frame_1, calibrations[0].projection(frame_1.pose), calibrations[1].projection(frame_1.pose), points);
-        // SPDLOG_INFO("3D points count: {}", points.size());
-
         for (auto [index, point]: frame_1.points)
         {
             auto point3d  = frame_1.pose * point;
@@ -179,9 +170,9 @@ void zenslam::slam_thread::loop()
 
         frame_1.points3d = points | std::views::values | std::views::transform
                            (
-                               [](const auto &p)
+                               [](const auto &p)-> cv::Point3d
                                {
-                                   return cv::Point3d(p);
+                                   return p;
                                }
                            ) |
                            std::ranges::to<std::vector>();

@@ -4,32 +4,33 @@
 
 #include "calibration.h"
 #include "keypoint.h"
+#include "options.h"
 #include "point.h"
 #include "stereo_frame.h"
 
 namespace zenslam::utils
 {
-    static void correspondences
+    auto correspondences
     (
         const stereo_frame &           frame,
         const std::map<size_t, point> &points,
         std::vector<cv::Point3d> &     points3d,
         std::vector<cv::Point2d> &     points2d
-    );
+    ) -> void;
 
     // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
     // src, dst: corresponding points
     // Returns true if successful, false otherwise
-    bool estimate_rigid
+    auto estimate_rigid
     (
         const std::vector<cv::Point3d> &src,
         const std::vector<cv::Point3d> &dst,
         cv::Matx33d &                   R,
         cv::Point3d &                   t
-    );
+    ) -> bool;
 
     // RANSAC wrapper for estimate_rigid: returns best R, t, and inlier/outlier indices
-    bool estimate_rigid_ransac
+    auto estimate_rigid_ransac
     (
         const std::vector<cv::Point3d> &src,
         const std::vector<cv::Point3d> &dst,
@@ -40,7 +41,7 @@ namespace zenslam::utils
         double                          threshold      = 0.01,
         int                             max_iterations = 1000,
         int                             min_inliers    = 3
-    );
+    ) -> bool;
 
     // filters matches using the epipolar crterion given the fundamental matrix
     auto filter
@@ -60,19 +61,20 @@ namespace zenslam::utils
         double                            epipolar_threshold
     ) -> void;
 
-    static void solve_pnp
+    auto solve_pnp
     (
         const cv::Matx33d &             camera_matrix,
         const std::vector<cv::Point3d> &points3d,
         const std::vector<cv::Point2d> &points2d,
         cv::Affine3d &                  pose
-    );
+    ) -> void;
 
-    static void track
+    auto track
     (
-        const mono_frame &frame_0,
-        mono_frame &      frame_1
-    );
+        const mono_frame &  frame_0,
+        mono_frame &        frame_1,
+        class options::slam options
+    ) -> void;
 
     auto triangulate
     (
