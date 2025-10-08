@@ -418,8 +418,23 @@ void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const
         options.klt_window_size,
         options.klt_max_level,
         cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
-        cv::OPTFLOW_LK_GET_MIN_EIGENVALS,
-        0.00001
+        cv::OPTFLOW_LK_GET_MIN_EIGENVALS
+    );
+
+    std::vector<cv::Point2f> points_0_back { };
+    std::vector<uchar>       status_back { };
+    cv::calcOpticalFlowPyrLK
+    (
+        frame_1.undistorted,
+        frame_0.undistorted,
+        points_1,
+        points_0_back,
+        status_back,
+        err,
+        options.klt_window_size,
+        options.klt_max_level,
+        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
+        cv::OPTFLOW_LK_GET_MIN_EIGENVALS
     );
 
     // Verify KLT tracking results have consistent sizes
@@ -428,7 +443,7 @@ void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const
     // Update frame.l.keypoints with tracked points
     for (size_t i = 0; i < points_1.size(); ++i)
     {
-        if (status[i])
+        if (status[i] && status_back[i] && cv::norm(points_0_back[i] - points_0[i]) < 1.0)
         {
             frame_1.keypoints[keypoints_0[i].index]    = keypoints_0[i];
             frame_1.keypoints[keypoints_0[i].index].pt = points_1[i];
