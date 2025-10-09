@@ -25,11 +25,13 @@ namespace zenslam
         std::vector<double> distortion_coefficients = { };
         distortion_model    distortion_model        = { distortion_model::radial_tangential };
         cv::Affine3d        pose_in_cam0            = { cv::Affine3d::Identity() };
+        cv::Mat             map_x { };
+        cv::Mat             map_y { };
 
         [[nodiscard]] auto camera_matrix() const -> cv::Matx33d;
-        [[nodiscard]] auto fundamental(const calibration& other) const -> cv::Matx33d;
+        [[nodiscard]] auto fundamental(const calibration &other) const -> cv::Matx33d;
         [[nodiscard]] auto projection() const -> cv::Matx34d;
-        [[nodiscard]] auto projection(const cv::Affine3d& pose_of_cam0_in_world) const -> cv::Matx34d;
+        [[nodiscard]] auto projection(const cv::Affine3d &pose_of_cam0_in_world) const -> cv::Matx34d;
 
         auto print() const -> void;
     };

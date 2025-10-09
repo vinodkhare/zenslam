@@ -69,6 +69,9 @@ void zenslam::slam_thread::loop()
         frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
+        frame_1.l.pyramid = utils::pyramid(frame_1.l.image, _options.slam);
+        frame_1.r.pyramid = utils::pyramid(frame_1.r.image, _options.slam);
+
         // track keypoints temporallyly
         utils::track(frame_0.l, frame_1.l, _options.slam);
         utils::track(frame_0.r, frame_1.r, _options.slam);

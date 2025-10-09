@@ -4,6 +4,7 @@
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/video/tracking.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -99,6 +100,13 @@ auto zenslam::utils::draw_matches(const mono_frame &frame_0, const mono_frame &f
     );
 
     return matches_image;
+}
+
+auto zenslam::utils::pyramid(const cv::Mat &image, const class options::slam &options) -> std::vector<cv::Mat>
+{
+    std::vector<cv::Mat> pyramid { };
+    cv::buildOpticalFlowPyramid(image, pyramid, options.klt_window_size, options.klt_max_level);
+    return pyramid;
 }
 
 auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d

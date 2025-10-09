@@ -2,6 +2,10 @@
 
 
 #include <magic_enum/magic_enum.hpp>
+
+#include <opencv2/calib3d.hpp>
+#include <opencv2/video/tracking.hpp>
+
 #include <spdlog/spdlog.h>
 
 #include <yaml-cpp/yaml.h>
@@ -90,6 +94,35 @@ auto zenslam::calibration::parse(const std::filesystem::path &path, const std::s
         calib.pose_in_cam0 = cv::Affine3d::Identity();
     }
 
+    if (calib.distortion_model == distortion_model::radial_tangential)
+    {
+        cv::initUndistortRectifyMap
+        (
+            calib.camera_matrix(),
+            calib.distortion_coefficients,
+            { },
+            calib.camera_matrix(),
+            calib.resolution,
+            CV_32FC1,
+            calib.map_x,
+            calib.map_y
+        );
+    }
+    else if (calib.distortion_model == distortion_model::equidistant)
+    {
+        cv::fisheye::initUndistortRectifyMap
+        (
+            calib.camera_matrix(),
+            calib.distortion_coefficients,
+            { },
+            calib.camera_matrix(),
+            calib.resolution,
+            CV_32FC1,
+            calib.map_x,
+            calib.map_y
+        );
+    }
+
     return calib;
 }
 
@@ -153,7 +186,7 @@ auto zenslam::calibration::projection(const cv::Affine3d &pose_of_cam0_in_world)
     // Projection matrix P = K * [R | t]
     const auto K = camera_matrix();
 
-    const auto& pose_of_this_in_world = pose_of_cam0_in_world * pose_in_cam0;
+    const auto &pose_of_this_in_world = pose_of_cam0_in_world * pose_in_cam0;
 
     // Take a 3x4 minor (top 3 rows, 4 cols) from the 4x4 affine matrix => [R|t]
     const auto Rt = pose_of_this_in_world.inv().matrix.get_minor<3, 4>(0, 0);

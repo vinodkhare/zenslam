@@ -413,8 +413,8 @@ void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const
 
     cv::calcOpticalFlowPyrLK
     (
-        frame_0.undistorted,
-        frame_1.undistorted,
+        frame_0.pyramid,
+        frame_1.pyramid,
         points_0,
         points_1,
         status,
@@ -429,8 +429,8 @@ void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const
     std::vector<uchar>       status_back { };
     cv::calcOpticalFlowPyrLK
     (
-        frame_1.undistorted,
-        frame_0.undistorted,
+        frame_1.pyramid,
+        frame_0.pyramid,
         points_1,
         points_0_back,
         status_back,
@@ -614,31 +614,6 @@ void zenslam::utils::umeyama
 auto zenslam::utils::undistort(const cv::Mat &image, const calibration &calibration) -> cv::Mat
 {
     cv::Mat undistorted { };
-
-    switch (calibration.distortion_model)
-    {
-        case calibration::distortion_model::radial_tangential:
-            cv::undistort
-            (
-                image,
-                calibration.camera_matrix(),
-                calibration.distortion_coefficients,
-                undistorted,
-                calibration.camera_matrix()
-            );
-            break;
-
-        case calibration::distortion_model::equidistant:
-            cv::fisheye::undistortImage
-            (
-                image,
-                undistorted,
-                calibration.camera_matrix(),
-                calibration.distortion_coefficients,
-                calibration.camera_matrix()
-            );
-            break;
-    }
-
+    cv::remap(image, undistorted, calibration.map_x, calibration.map_y, cv::INTER_CUBIC);
     return undistorted;
 }

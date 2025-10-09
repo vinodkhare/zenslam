@@ -16,6 +16,7 @@ namespace zenslam
         cv::Mat                    rectified   = { };
         cv::Mat                    undistorted = { };
         std::map<size_t, keypoint> keypoints   = { };
+        std::vector<cv::Mat>       pyramid     = { };
 
         mono_frame() = default;
 
