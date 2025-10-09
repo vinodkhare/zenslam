@@ -4,7 +4,6 @@
 #include <zenslam/slam_thread.h>
 #include <zenslam/options.h>
 #include <zenslam/stereo_frame.h>
-#include <zenslam/thread_safe.h>
 
 namespace zenslam
 {

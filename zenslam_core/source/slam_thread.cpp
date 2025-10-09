@@ -69,7 +69,7 @@ void zenslam::slam_thread::loop()
         frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
-        // track keypoints temporal
+        // track keypoints temporallyly
         utils::track(frame_0.l, frame_1.l, _options.slam);
         utils::track(frame_0.r, frame_1.r, _options.slam);
 
@@ -86,7 +86,7 @@ void zenslam::slam_thread::loop()
         // match keypoints spatial
         utils::match(frame_1.l.keypoints, frame_1.r.keypoints, fundamental, _options.slam.epipolar_threshold);
 
-        // Before we compute 3D-2D pose we should compute the 3D-3D pose
+        // Before we compute 3D-2D pose, we should compute the 3D-3D pose
         utils::triangulate(frame_1, projection_L, projection_R, frame_1.points);
         SPDLOG_INFO("Triangulated points count: {}", frame_1.points.size());
 

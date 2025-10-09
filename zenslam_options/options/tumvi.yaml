@@ -1,7 +1,7 @@
 # Example options file for zenslam
 application:
   log_level: "trace"
-  log_pattern: "[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v"
+  log_pattern: "[%H:%M:%S.%e] [%^%L%$] [%!:%s:%#] %v"
 
 folder:
   root: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/mav0
@@ -12,7 +12,8 @@ folder:
 
 slam:
   cell_size: [32, 32]
-  epipolar_threshold: 2.0
+  epipolar_threshold: 1.0
   fast_threshold: 8
   klt_window_size: [31, 31]
   klt_max_level: 4
+  klt_threshold: 1.0
