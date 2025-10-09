@@ -18,7 +18,7 @@
 #include "motion.h"
 #include "utils.h"
 #include "utils_slam.h"
-
+#include "time_this.h"
 
 zenslam::slam_thread::slam_thread(options options) :
     _options { std::move(options) }
@@ -69,8 +69,8 @@ void zenslam::slam_thread::loop()
         frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
 
-        frame_1.l.pyramid = utils::pyramid(frame_1.l.image, _options.slam);
-        frame_1.r.pyramid = utils::pyramid(frame_1.r.image, _options.slam);
+        frame_1.l.pyramid = utils::pyramid(frame_1.l.undistorted, _options.slam);
+        frame_1.r.pyramid = utils::pyramid(frame_1.r.undistorted, _options.slam);
 
         // track keypoints temporallyly
         utils::track(frame_0.l, frame_1.l, _options.slam);
@@ -80,11 +80,16 @@ void zenslam::slam_thread::loop()
         SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints.size());
 
         // detect keypoints additional
-        detector.detect(frame_1.l.undistorted, frame_1.l.keypoints);
-        detector.detect(frame_1.r.undistorted, frame_1.r.keypoints);
+        std::chrono::system_clock::duration detection_time {};
+        {
+            time_this time_this { detection_time };
+            detector.detect_par(frame_1.l.undistorted, frame_1.l.keypoints);
+            detector.detect_par(frame_1.r.undistorted, frame_1.r.keypoints);
+        }
 
         SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints.size());
         SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints.size());
+        SPDLOG_INFO("Detection time: {} s", std::chrono::duration<double>(detection_time).count());
 
         // match keypoints spatial
         utils::match(frame_1.l.keypoints, frame_1.r.keypoints, fundamental, _options.slam.epipolar_threshold);

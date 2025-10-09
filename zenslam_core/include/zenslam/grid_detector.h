@@ -1,7 +1,6 @@
 #pragma once
 
 #include <map>
-#include <vector>
 
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
@@ -29,6 +28,7 @@ namespace zenslam
         grid_detector(const cv::Ptr<cv::Feature2D> &detector, const cv::Ptr<cv::Feature2D> &describer, cv::Size cell_size);
 
         void detect(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const;
+        void detect_par(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const;
 
     private:
         cv::Ptr<cv::Feature2D> _detector; // Underlying detector

@@ -30,7 +30,13 @@ The `utils` file has become too big—it could be split into multiple files. Thi
 
 Many such decisions need to be made during software development. These decisions are not strictly systematic. Of course, you *could* systematize them. You could make a rule—no files larger than 1000 lines! But this seems arbitrary and absurd. What if the file is 1001 lines? Is that extra one line really so bad? As a developer, I'm tempted to delete some whitespace and check that file in. And ultimately, even if the file is 1001 lines, the time spent on this nitpicking is not worth it.
 
-It may seem like I'm going on pointlessly but you'd be suprised how much time is wasted in teams on such pointless rules and decisions. 
+It may seem like I'm going on pointlessly but you'd be suprised how much time is wasted in teams on such pointless rules and decisions.
+
+Detection time:
+    Non-Parallel: 0.032 s to 0.037 s
+    Parallel: 0.047 s to 0.047 s
+
+Parallel is not an improvement!
 
 ---
 ## Repository Layout
