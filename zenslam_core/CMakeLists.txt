@@ -43,7 +43,7 @@ add_library(${PROJECT_NAME}
         source/slam_thread.cpp
         source/stereo_folder_reader.cpp
         source/stereo_frame.cpp
-        source/thread_safe.cpp
+        source/time_this.cpp
         source/utils.cpp
         source/utils_slam.cpp
         source/utils_std.cpp
