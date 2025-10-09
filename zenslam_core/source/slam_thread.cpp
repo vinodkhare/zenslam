@@ -8,6 +8,7 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -39,6 +40,7 @@ void zenslam::slam_thread::loop()
     const auto &feature_detector  = cv::FastFeatureDetector::create(8);
     const auto &feature_describer = cv::SiftDescriptorExtractor::create();
     const auto &detector          = grid_detector(feature_detector, feature_describer, _options.slam.cell_size);
+    const auto &clahe             = cv::createCLAHE();
     auto        motion            = zenslam::motion();
 
     const auto &calibrations = std::vector
@@ -65,6 +67,15 @@ void zenslam::slam_thread::loop()
         auto dt = isnan(frame_0.l.timestamp) ? 0.0 : frame_1.l.timestamp - frame_0.l.timestamp;
 
         frame_1.pose = motion.predict(frame_0.pose, dt);
+
+        cv::cvtColor(frame_1.l.image, frame_1.l.image, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(frame_1.r.image, frame_1.r.image, cv::COLOR_BGR2GRAY);
+
+        if (_options.slam.clahe_enabled)
+        {
+            clahe->apply(frame_0.l.image, frame_0.l.image);
+            clahe->apply(frame_0.r.image, frame_0.r.image);
+        }
 
         frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
         frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);

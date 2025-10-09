@@ -45,6 +45,7 @@ namespace zenslam
         class slam
         {
         public:
+            bool     clahe_enabled { false };
             cv::Size cell_size { 16, 16 };
             double   epipolar_threshold { 1.0 };
             int      fast_threshold { 10 };

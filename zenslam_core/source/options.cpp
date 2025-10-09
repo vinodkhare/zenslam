@@ -27,6 +27,11 @@ boost::program_options::options_description zenslam::options::description()
         ("log level - pick one of: " + utils::to_string(magic_enum::enum_names<spdlog::level::level_enum>())).c_str()
     )
     (
+        "clahe-enabled",
+        boost::program_options::value<bool>()->default_value(options.slam.clahe_enabled),
+        "CLAHE enabled"
+    )
+    (
         "epipolar-threshold",
         boost::program_options::value<double>()->default_value(options.slam.epipolar_threshold),
         "Epipolar threshold"
@@ -72,7 +77,7 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
         options.verb = verb::VERSION;
     }
 
-    std::map<std::string, boost::program_options::basic_option<char>> options_map{};
+    std::map<std::string, boost::program_options::basic_option<char>> options_map { };
     for (auto &option: parsed.options)
     {
         options_map[option.string_key] = option;
@@ -90,6 +95,7 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
         ("log-level"))
         options.log_level = utils::log_levels_from_string[map["log-level"].as<std::string>()];
     if (options_map.contains("log-pattern")) options.log_pattern = map["log-pattern"].as<std::string>();
+    if (options_map.contains("clahe-enabled")) options.slam.clahe_enabled = map["clahe-enabled"].as<bool>();
     if (options_map.contains("epipolar-threshold")) options.slam.epipolar_threshold = map["epipolar-threshold"].as<double>();
     if (options_map.contains("fast-threshold")) options.slam.fast_threshold = map["fast-threshold"].as<double>();
 
@@ -130,6 +136,11 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
                 options.slam.cell_size.height = cell_array[1];
             }
 
+            if (const auto clahe_enabled = slam["clahe_enabled"])
+            {
+                options.slam.clahe_enabled = clahe_enabled.as<bool>();
+            }
+
             if (const auto epipolar_threshold = slam["epipolar_threshold"])
             {
                 options.slam.epipolar_threshold = epipolar_threshold.as<double>();
@@ -142,7 +153,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
 
             if (const auto klt_window_size = slam["klt_window_size"])
             {
-                const auto klt_window_array = klt_window_size.as<std::vector<int>>();
+                const auto klt_window_array         = klt_window_size.as<std::vector<int>>();
                 options.slam.klt_window_size.width  = klt_window_array[0];
                 options.slam.klt_window_size.height = klt_window_array[1];
             }
@@ -209,6 +220,7 @@ void zenslam::options::folder::print() const
 void zenslam::options::slam::print() const
 {
     SPDLOG_INFO("cell size: [{}, {}]", cell_size.width, cell_size.height);
+    SPDLOG_INFO("CLAHE enabled: {}", clahe_enabled ? "true" : "false");
     SPDLOG_INFO("epipolar threshold: {}", epipolar_threshold);
     SPDLOG_INFO("fast threshold: {}", fast_threshold);
     SPDLOG_INFO("klt window size: [{}, {}]", klt_window_size.width, klt_window_size.height);

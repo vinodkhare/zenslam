@@ -12,6 +12,7 @@ folder:
 
 slam:
   cell_size: [32, 32]
+  clahe_enabled: true
   epipolar_threshold: 1.0
   fast_threshold: 8
   klt_window_size: [31, 31]
