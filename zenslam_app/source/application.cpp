@@ -58,6 +58,7 @@ void zenslam::application::render()
         {
             _viewer = std::make_unique<cv::viz::Viz3d>("3D Points");
 
+            _viewer->setBackgroundColor(cv::viz::Color::white());
             _viewer->setWindowPosition(cv::Point(700, 100));
             _viewer->setWindowSize(cv::Size(1024, 1024));
         }
@@ -70,7 +71,7 @@ void zenslam::application::render()
             _viewer->showWidget("camera", cv::viz::WCameraPosition(cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 }, frame_1.l.undistorted));
             _viewer->setWidgetPose("camera", frame_1.pose);
 
-            _viewer->showWidget("cloud", cv::viz::WCloud(frame_1.points3d));
+            _viewer->showWidget("cloud", cv::viz::WCloud(frame_1.points3d, frame_1.colors));
             _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);
 
             _viewer->spinOnce(0, true);

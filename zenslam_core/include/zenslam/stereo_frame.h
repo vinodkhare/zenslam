@@ -21,6 +21,7 @@ namespace zenslam
         cv::Affine3d             pose     = { cv::Affine3d::Identity() };
         std::vector<cv::Point3d> points3d = { };
         std::map<size_t, point>  points   = { };
+        std::vector<cv::Vec3b>   colors   = { };
 
         stereo_frame() = default;
 

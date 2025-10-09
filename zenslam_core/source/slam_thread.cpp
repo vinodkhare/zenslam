@@ -80,7 +80,7 @@ void zenslam::slam_thread::loop()
         SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints.size());
 
         // detect keypoints additional
-        std::chrono::system_clock::duration detection_time {};
+        std::chrono::system_clock::duration detection_time { };
         {
             time_this time_this { detection_time };
             detector.detect_par(frame_1.l.undistorted, frame_1.l.keypoints);
@@ -175,8 +175,12 @@ void zenslam::slam_thread::loop()
 
         for (auto [index, point]: frame_1.points)
         {
+            const auto &image_point = frame_1.l.keypoints.at(point.index).pt;
+            const auto &pixel       = frame_1.l.undistorted.at<cv::Vec3b>(image_point);
+
             auto point3d  = frame_1.pose * point;
             point3d.index = index;
+            point3d.color = pixel;
             points.emplace(index, point3d);
         }
 
@@ -190,6 +194,14 @@ void zenslam::slam_thread::loop()
                                }
                            ) |
                            std::ranges::to<std::vector>();
+
+        frame_1.colors = points | std::views::values | std::views::transform
+                         (
+                             [](const auto &p)
+                             {
+                                 return p.color;
+                             }
+                         ) | std::ranges::to<std::vector>();
 
         motion.update(frame_0.pose, frame_1.pose, dt);
 
