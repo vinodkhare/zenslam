@@ -16,6 +16,6 @@ namespace zenslam
 
     private:
         size_t            _index { };
-        std::vector<pose> poses { };
+        std::vector<pose> _poses { };
     };
 }

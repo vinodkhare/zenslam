@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include <opencv2/core/affine.hpp>
 #include <opencv2/core/quaternion.hpp>
 
 namespace zenslam
