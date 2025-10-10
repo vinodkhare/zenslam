@@ -18,6 +18,7 @@
 #include "grid_detector.h"
 #include "groundtruth.h"
 #include "motion.h"
+#include "slam_frame.h"
 #include "utils.h"
 #include "utils_slam.h"
 #include "time_this.h"
@@ -42,8 +43,9 @@ void zenslam::slam_thread::loop()
     const auto &feature_describer = cv::SiftDescriptorExtractor::create();
     const auto &detector          = grid_detector(feature_detector, feature_describer, _options.slam.cell_size);
     const auto &clahe             = cv::createCLAHE();
-    const auto &groundtruth       = groundtruth::read(_options.folder.groundtruth_file);
-    auto        motion            = zenslam::motion();
+
+    auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
+    auto motion      = zenslam::motion();
 
     const auto &calibrations = std::vector
     {
@@ -61,65 +63,69 @@ void zenslam::slam_thread::loop()
     const auto &projection_L    = calibrations[0].projection();
     const auto &projection_R    = calibrations[1].projection();
 
-    stereo_frame            frame_0 { };
-    std::map<size_t, point> points { };
+    slam_frame slam { };
 
-    for (auto frame_1: stereo_reader)
+    for (auto f: stereo_reader)
     {
-        auto dt = isnan(frame_0.l.timestamp) ? 0.0 : frame_1.l.timestamp - frame_0.l.timestamp;
+        slam.frame[0] = std::move(slam.frame[1]);
+        slam.frame[1] = std::move(f);
 
-        frame_1.pose = motion.predict(frame_0.pose, dt);
+        const auto& dt    = isnan(slam.frame[0].l.timestamp) ? 0.0 : slam.frame[1].l.timestamp - slam.frame[0].l.timestamp;
+        const auto& slerp = groundtruth.slerp(slam.frame[1].l.timestamp);
 
-        cv::cvtColor(frame_1.l.image, frame_1.l.image, cv::COLOR_BGR2GRAY);
-        cv::cvtColor(frame_1.r.image, frame_1.r.image, cv::COLOR_BGR2GRAY);
+        slam.frame[1].pose_gt = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
+        slam.frame[1].pose    = motion.predict(slam.frame[0].pose, dt);
+
+        cv::cvtColor(slam.frame[1].l.image, slam.frame[1].l.image, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(slam.frame[1].r.image, slam.frame[1].r.image, cv::COLOR_BGR2GRAY);
 
         if (_options.slam.clahe_enabled)
         {
-            clahe->apply(frame_0.l.image, frame_0.l.image);
-            clahe->apply(frame_0.r.image, frame_0.r.image);
+            clahe->apply(slam.frame[1].l.image, slam.frame[1].l.image);
+            clahe->apply(slam.frame[1].r.image, slam.frame[1].r.image);
         }
 
-        frame_1.l.undistorted = utils::undistort(frame_1.l.image, calibrations[0]);
-        frame_1.r.undistorted = utils::undistort(frame_1.r.image, calibrations[1]);
+        slam.frame[1].l.undistorted = utils::undistort(slam.frame[1].l.image, calibrations[0]);
+        slam.frame[1].r.undistorted = utils::undistort(slam.frame[1].r.image, calibrations[1]);
 
-        frame_1.l.pyramid = utils::pyramid(frame_1.l.undistorted, _options.slam);
-        frame_1.r.pyramid = utils::pyramid(frame_1.r.undistorted, _options.slam);
+        slam.frame[1].l.pyramid = utils::pyramid(slam.frame[1].l.undistorted, _options.slam);
+        slam.frame[1].r.pyramid = utils::pyramid(slam.frame[1].r.undistorted, _options.slam);
 
         // track keypoints temporallyly
-        utils::track(frame_0.l, frame_1.l, _options.slam);
-        utils::track(frame_0.r, frame_1.r, _options.slam);
+        utils::track(slam.frame[0].l, slam.frame[1].l, _options.slam);
+        utils::track(slam.frame[0].r, slam.frame[1].r, _options.slam);
 
-        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", frame_1.l.keypoints.size());
-        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", frame_1.r.keypoints.size());
+        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", slam.frame[1].l.keypoints.size());
+        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", slam.frame[1].r.keypoints.size());
 
         // detect keypoints additional
         std::chrono::system_clock::duration detection_time { };
         {
             time_this time_this { detection_time };
-            detector.detect(frame_1.l.undistorted, frame_1.l.keypoints);
-            detector.detect(frame_1.r.undistorted, frame_1.r.keypoints);
+            detector.detect(slam.frame[1].l.undistorted, slam.frame[1].l.keypoints);
+            detector.detect(slam.frame[1].r.undistorted, slam.frame[1].r.keypoints);
         }
 
-        SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints.size());
-        SPDLOG_INFO("Detected points R: {}", frame_1.r.keypoints.size());
+        SPDLOG_INFO("Detected points L: {}", slam.frame[1].l.keypoints.size());
+        SPDLOG_INFO("Detected points R: {}", slam.frame[1].r.keypoints.size());
         SPDLOG_INFO("Detection time: {} s", std::chrono::duration<double>(detection_time).count());
 
         // match keypoints spatial
-        utils::match(frame_1.l.keypoints, frame_1.r.keypoints, fundamental, _options.slam.epipolar_threshold);
+        utils::match(slam.frame[1].l.keypoints, slam.frame[1].r.keypoints, fundamental, _options.slam.epipolar_threshold);
 
         // Before we compute 3D-2D pose, we should compute the 3D-3D pose
-        utils::triangulate(frame_1, projection_L, projection_R, frame_1.points);
-        SPDLOG_INFO("Triangulated points count: {}", frame_1.points.size());
+        utils::triangulate(slam.frame[1], projection_L, projection_R, slam.frame[1].points);
+        SPDLOG_INFO("Triangulated points count: {}", slam.frame[1].points.size());
 
-        // Gather points from frame_0 and frame_1 for 3D-3D pose computation
+        // Gather points from slam.frame[0] and slam.frame[1] for 3D-3D pose computation
         std::vector<cv::Point3d> points3d_0 { };
         std::vector<cv::Point3d> points3d_1 { };
         std::vector<size_t>      indexes { };
-        utils::correspondences_3d3d(frame_0.points, frame_1.points, points3d_0, points3d_1, indexes);
+        utils::correspondences_3d3d(slam.frame[0].points, slam.frame[1].points, points3d_0, points3d_1, indexes);
 
-        SPDLOG_DEBUG("Predicted pose: {}", frame_1.pose);
+        SPDLOG_DEBUG("Predicted pose: {}", slam.frame[1].pose);
 
-        // Compute relative pose between frame_0 and frame_1 using 3D-3D correspondences
+        // Compute relative pose between slam.frame[0] and slam.frame[1] using 3D-3D correspondences
         if (points3d_0.size() >= 3)
         {
             SPDLOG_INFO("Computing 3D-3D pose with {} correspondences", points3d_0.size());
@@ -135,9 +141,9 @@ void zenslam::slam_thread::loop()
 
             for (auto o: outliers)
             {
-                frame_1.points.erase(indexes[o]);
-                frame_0.points.erase(indexes[o]);
-                points.erase(indexes[o]);
+                slam.frame[1].points.erase(indexes[o]);
+                slam.frame[0].points.erase(indexes[o]);
+                slam.points.erase(indexes[o]);
             }
 
             cv::Affine3d pose { R, t };
@@ -154,25 +160,25 @@ void zenslam::slam_thread::loop()
             if (mean < 0.01)
             {
                 SPDLOG_INFO("Reprojection error is below threshold. Using pose from 3D-3D.");
-                frame_1.pose = frame_0.pose * pose.inv();
-                SPDLOG_INFO("Pose: {}", frame_1.pose);
+                slam.frame[1].pose = slam.frame[0].pose * pose.inv();
+                SPDLOG_INFO("Pose: {}", slam.frame[1].pose);
             }
             else
             {
                 SPDLOG_INFO("Reprojection error is above threshold. Using PnP.");
                 std::vector<cv::Point3d> points3d;
                 std::vector<cv::Point2d> points2d;
-                utils::correspondences(frame_0.points, frame_1.l.keypoints, points3d, points2d);
+                utils::correspondences(slam.frame[0].points, slam.frame[1].l.keypoints, points3d, points2d);
 
                 if (points3d.size() >= 6)
                 {
-                    pose = frame_1.pose.inv() * frame_0.pose;
+                    pose = slam.frame[1].pose.inv() * slam.frame[0].pose;
 
                     try
                     {
                         utils::solve_pnp(camera_matrix_L, points3d, points2d, pose);
-                        frame_1.pose = frame_0.pose * pose.inv();
-                        SPDLOG_INFO("Pose: {}", frame_1.pose);
+                        slam.frame[1].pose = slam.frame[0].pose * pose.inv();
+                        SPDLOG_INFO("Pose: {}", slam.frame[1].pose);
                     }
                     catch (std::exception &e)
                     {
@@ -186,39 +192,30 @@ void zenslam::slam_thread::loop()
             }
         }
 
-        for (auto [index, point]: frame_1.points)
+        for (auto [index, point]: slam.frame[1].points)
         {
-            const auto &image_point = frame_1.l.keypoints.at(point.index).pt;
-            const auto &pixel       = frame_1.l.undistorted.at<cv::Vec3b>(image_point);
+            const auto &image_point = slam.frame[1].l.keypoints.at(point.index).pt;
+            const auto &pixel       = slam.frame[1].l.undistorted.at<cv::Vec3b>(image_point);
 
-            auto point3d  = frame_1.pose * point;
+            auto point3d  = slam.frame[1].pose * point;
             point3d.index = index;
             point3d.color = pixel;
-            points.emplace(index, point3d);
+            slam.points.emplace(index, point3d);
         }
 
-        SPDLOG_INFO("Map points count: {}", points.size());
+        SPDLOG_INFO("Map points count: {}", slam.points.size());
 
-        frame_1.points3d = points | std::views::values | std::views::transform
-                           (
-                               [](const auto &p)-> cv::Point3d
-                               {
-                                   return p;
-                               }
-                           ) |
-                           std::ranges::to<std::vector>();
+        slam.colors = slam.points | std::views::values | std::views::transform
+                      (
+                          [](const auto &p)
+                          {
+                              return p.color;
+                          }
+                      ) | std::ranges::to<std::vector>();
 
-        frame_1.colors = points | std::views::values | std::views::transform
-                         (
-                             [](const auto &p)
-                             {
-                                 return p.color;
-                             }
-                         ) | std::ranges::to<std::vector>();
+        motion.update(slam.frame[0].pose, slam.frame[1].pose, dt);
 
-        motion.update(frame_0.pose, frame_1.pose, dt);
-
-        on_frame(frame_0 = std::move(frame_1));
+        on_frame(slam);
 
         if (_stop_token.stop_requested())
         {

@@ -6,6 +6,7 @@
 
 #include "event.h"
 #include "options.h"
+#include "slam_frame.h"
 #include "stereo_folder_reader.h"
 #include "stereo_frame.h"
 
@@ -14,7 +15,7 @@ namespace zenslam
     class slam_thread
     {
     public:
-        event<stereo_frame> on_frame;
+        event<slam_frame> on_frame;
 
         explicit slam_thread(options options);
         ~slam_thread();

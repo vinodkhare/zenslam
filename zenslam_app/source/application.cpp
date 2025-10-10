@@ -12,31 +12,28 @@
 zenslam::application::application(options options) :
     _options {std::move( options )}
 {
-    _slam_thread.on_frame += [this](const stereo_frame &frame)
+    _slam_thread.on_frame += [this](const slam_frame &slam)
     {
         std::lock_guard lock { _mutex };
 
-        _frame_0 = _frame_1;
-        _frame_1 = frame;
+        _slam = slam;
     };
 }
 
 void zenslam::application::render()
 {
-    stereo_frame frame_0 { };
-    stereo_frame frame_1 { };
+    slam_frame slam {};
     {
         std::lock_guard lock { _mutex };
+        slam = _slam;
 
-        frame_0 = _frame_0;
-        frame_1 = _frame_1;
     }
 
     // display matches spatial
-    if (frame_1.l.keypoints.empty() || frame_0.l.undistorted.empty() || frame_1.l.undistorted.empty()) return;
+    if (slam.frame[1].l.keypoints.empty() || slam.frame[0].l.undistorted.empty() || slam.frame[1].l.undistorted.empty()) return;
 
     {
-        const auto &matches_image = utils::draw_matches(frame_1);
+        const auto &matches_image = utils::draw_matches(slam.frame[1]);
 
         cv::imshow("matches_spatial", matches_image);
         cv::setWindowTitle("matches_spatial", "matches spatial");
@@ -45,7 +42,7 @@ void zenslam::application::render()
 
     // display matches temporal
     {
-        const auto &matches_image = utils::draw_matches(frame_0.l, frame_1.l);
+        const auto &matches_image = utils::draw_matches(slam.frame[0].l, slam.frame[1].l);
 
         cv::namedWindow("matches_temporal");
         cv::imshow("matches_temporal", matches_image);
@@ -63,16 +60,35 @@ void zenslam::application::render()
             _viewer->setWindowPosition(cv::Point(700, 100));
             _viewer->setWindowSize(cv::Size(1024, 1024));
         }
-        else
+        else if(!slam.points.empty())
         {
             _viewer->removeAllWidgets();
 
             _viewer->showWidget("origin", cv::viz::WCoordinateSystem());
 
-            _viewer->showWidget("camera", cv::viz::WCameraPosition(cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 }, frame_1.l.undistorted));
-            _viewer->setWidgetPose("camera", frame_1.pose);
+            _viewer->showWidget("camera", cv::viz::WCameraPosition(cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 }, slam.frame[1].l.undistorted));
+            _viewer->setWidgetPose("camera", slam.frame[1].pose);
 
-            _viewer->showWidget("cloud", cv::viz::WCloud(frame_1.points3d, frame_1.colors));
+            _viewer->showWidget("imu_gt", cv::viz::WCameraPosition(cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 }, slam.frame[1].l.undistorted));
+            _viewer->setWidgetPose("imu_gt", slam.frame[1].pose_gt);
+
+            const auto& points = slam.points | std::views::values | std::views::transform
+            (
+                [](const auto &p)
+                {
+                    return cv::Point3d { p.x, p.y, p.z };
+                }
+            ) | std::ranges::to<std::vector>();
+
+            const auto& colors = slam.points | std::views::values | std::views::transform
+                         (
+                             [](const auto &p)
+                             {
+                                 return p.color;
+                             }
+                         ) | std::ranges::to<std::vector>();
+
+            _viewer->showWidget("cloud", cv::viz::WCloud(points, colors));
             _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);
 
             _viewer->spinOnce(0, true);

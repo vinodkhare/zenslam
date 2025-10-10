@@ -14,14 +14,13 @@ namespace zenslam
     class stereo_frame
     {
     public:
-        mono_frame               l        = { };
-        mono_frame               r        = { };
-        match_data               spatial  = { };
-        match_data               temporal = { };
-        cv::Affine3d             pose     = { cv::Affine3d::Identity() };
-        std::vector<cv::Point3d> points3d = { };
-        std::map<size_t, point>  points   = { };
-        std::vector<cv::Vec3b>   colors   = { };
+        mono_frame              l        = { };
+        mono_frame              r        = { };
+        match_data              spatial  = { };
+        match_data              temporal = { };
+        std::map<size_t, point> points   = { };
+        cv::Affine3d            pose     = { };
+        cv::Affine3d            pose_gt  = { }; // groundtruth pose
 
         stereo_frame() = default;
 

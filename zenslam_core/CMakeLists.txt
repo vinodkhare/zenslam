@@ -44,6 +44,7 @@ add_library(${PROJECT_NAME}
         source/options.cpp
         source/point.cpp
         source/pose.cpp
+        source/slam_frame.cpp
         source/slam_thread.cpp
         source/stereo_folder_reader.cpp
         source/stereo_frame.cpp

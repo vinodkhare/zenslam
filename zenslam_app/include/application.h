@@ -15,9 +15,8 @@ namespace zenslam
         void render();
 
     private:
-        std::mutex   _mutex { };
-        stereo_frame _frame_1 { };
-        stereo_frame _frame_0 { };
+        std::mutex _mutex { };
+        slam_frame _slam { };
 
         options                         _options { };
         slam_thread                     _slam_thread { _options };
