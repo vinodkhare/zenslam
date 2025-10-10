@@ -9,6 +9,7 @@ folder:
   right: cam1/data
   timescale: 1.0E-9
   calibration_file: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/camchain.yaml
+  groundtruth_file: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/gt_imu.csv
 
 slam:
   cell_size: [32, 32]

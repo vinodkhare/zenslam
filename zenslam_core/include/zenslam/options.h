@@ -38,6 +38,7 @@ namespace zenslam
             std::filesystem::path right            = { "cam1" };
             double                timescale        = { 1.0 };
             std::filesystem::path calibration_file = { "camchain.yaml" };
+            std::filesystem::path groundtruth_file  = { "groundtruth.csv" };
 
             void print() const;
         } folder;

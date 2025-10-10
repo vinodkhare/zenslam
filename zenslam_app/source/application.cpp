@@ -7,9 +7,10 @@
 #include <zenslam/utils.h>
 
 #include <numbers>
+#include <utility>
 
-zenslam::application::application(const options &options) :
-    _options { options }
+zenslam::application::application(options options) :
+    _options {std::move( options )}
 {
     _slam_thread.on_frame += [this](const stereo_frame &frame)
     {

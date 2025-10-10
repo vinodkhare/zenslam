@@ -90,6 +90,8 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     if (options_map.contains("folder-right")) options.folder.right = map["folder-right"].as<std::string>();
     if (options_map.contains("folder-timescale")) options.folder.timescale = map["folder-timescale"].as<double>();
     if (options_map.contains("calibration-file")) options.folder.calibration_file = map["calibration-file"].as<std::string>();
+    if (options_map.contains("grouthtruth-file")) options.folder.groundtruth_file = map["grouthtruth-file"].as<std::string>();
+
     if (options_map.contains("options-file")) options.file = map["options-file"].as<std::string>();
     if (options_map.contains
         ("log-level"))
@@ -125,6 +127,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             options.folder.right            = folder["right"].as<std::string>();
             options.folder.timescale        = folder["timescale"].as<double>();
             options.folder.calibration_file = folder["calibration_file"].as<std::string>();
+            options.folder.groundtruth_file = folder["groundtruth_file"].as<std::string>();
         }
 
         if (const auto &slam = config["slam"])
@@ -203,6 +206,11 @@ boost::program_options::options_description zenslam::options::folder::descriptio
         "calibration-file",
         boost::program_options::value<std::string>()->default_value(folder.calibration_file),
         "calibration file path"
+    )
+    (
+        "grouthtruth-file",
+        boost::program_options::value<std::string>()->default_value(folder.groundtruth_file),
+        "groundtruth file path"
     );
 
     return description;
@@ -215,6 +223,7 @@ void zenslam::options::folder::print() const
     SPDLOG_INFO("folder right: {}", right.string());
     SPDLOG_INFO("folder timescale: {}", timescale);
     SPDLOG_INFO("calibration file: {}", calibration_file.string());
+    SPDLOG_INFO("groundtruth file: {}", groundtruth_file.string());
 }
 
 void zenslam::options::slam::print() const

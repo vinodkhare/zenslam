@@ -16,6 +16,7 @@
 
 #include "calibration.h"
 #include "grid_detector.h"
+#include "groundtruth.h"
 #include "motion.h"
 #include "utils.h"
 #include "utils_slam.h"
@@ -41,6 +42,7 @@ void zenslam::slam_thread::loop()
     const auto &feature_describer = cv::SiftDescriptorExtractor::create();
     const auto &detector          = grid_detector(feature_detector, feature_describer, _options.slam.cell_size);
     const auto &clahe             = cv::createCLAHE();
+    const auto &groundtruth       = groundtruth::read(_options.folder.groundtruth_file);
     auto        motion            = zenslam::motion();
 
     const auto &calibrations = std::vector
@@ -94,8 +96,8 @@ void zenslam::slam_thread::loop()
         std::chrono::system_clock::duration detection_time { };
         {
             time_this time_this { detection_time };
-            detector.detect_par(frame_1.l.undistorted, frame_1.l.keypoints);
-            detector.detect_par(frame_1.r.undistorted, frame_1.r.keypoints);
+            detector.detect(frame_1.l.undistorted, frame_1.l.keypoints);
+            detector.detect(frame_1.r.undistorted, frame_1.r.keypoints);
         }
 
         SPDLOG_INFO("Detected points L: {}", frame_1.l.keypoints.size());
@@ -145,7 +147,7 @@ void zenslam::slam_thread::loop()
             {
                 mean += errors[i];
             }
-            mean /= inliers.size();
+            mean /= gsl::narrow<double>(inliers.size());
 
             SPDLOG_INFO("Reprojection error: {}", mean);
 

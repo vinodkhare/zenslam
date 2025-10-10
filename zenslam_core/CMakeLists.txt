@@ -28,11 +28,14 @@ message(STATUS "Using spdlog: " ${spdlog_VERSION})
 find_package(yaml-cpp CONFIG REQUIRED)
 message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
 
+find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
+
 add_library(${PROJECT_NAME} 
         source/calibration.cpp
         source/event.cpp
         source/folder_options.cpp
         source/grid_detector.cpp
+        source/groundtruth.cpp
         source/keypoint.cpp
         source/match_data.cpp
         source/mono_folder_reader.cpp
@@ -40,6 +43,7 @@ add_library(${PROJECT_NAME}
         source/motion.cpp
         source/options.cpp
         source/point.cpp
+        source/pose.cpp
         source/slam_thread.cpp
         source/stereo_folder_reader.cpp
         source/stereo_frame.cpp
@@ -50,7 +54,7 @@ add_library(${PROJECT_NAME}
         source/verb.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE include/zenslam PUBLIC include)
+target_include_directories(${PROJECT_NAME} PRIVATE include/zenslam ${RAPIDCSV_INCLUDE_DIRS} PUBLIC include)
 target_link_libraries(${PROJECT_NAME} PRIVATE
         opencv_calib3d
         opencv_core

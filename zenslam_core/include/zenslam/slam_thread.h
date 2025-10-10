@@ -19,7 +19,6 @@ namespace zenslam
         explicit slam_thread(options options);
         ~slam_thread();
 
-
     private:
         options _options { };
 

@@ -10,7 +10,7 @@ namespace zenslam
     class application
     {
     public:
-        explicit application(const options &options);
+        explicit application(options options);
 
         void render();
 
