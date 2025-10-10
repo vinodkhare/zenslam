@@ -31,24 +31,39 @@ zenslam::groundtruth zenslam::groundtruth::read(const std::filesystem::path &pat
             doc.GetCell<double>(7, i)
         };
 
-        groundtruth.poses.emplace_back(timestamp, cv::Affine3d(q.toRotMat3x3(), t));
+        groundtruth.poses.emplace_back(timestamp, t, q);
     }
 
     for (auto i = 0; i < groundtruth.poses.size(); i++)
     {
         SPDLOG_TRACE
         (
-            "pose: [{}, {}, {}; {}, {}, {}]",
+            "pose: [{}, {}, {}; {}, {}, {}, {}]",
             groundtruth.poses[i].timestamp,
-            groundtruth.poses[i].affine.translation()[0],
-            groundtruth.poses[i].affine.translation()[1],
-            groundtruth.poses[i].affine.translation()[2],
-            groundtruth.poses[i].affine.rvec()[0],
-            groundtruth.poses[i].affine.rvec()[1],
-            groundtruth.poses[i].affine.rvec()[2]
+            groundtruth.poses[i].translation[0],
+            groundtruth.poses[i].translation[1],
+            groundtruth.poses[i].translation[2],
+            groundtruth.poses[i].quaternion[0],
+            groundtruth.poses[i].quaternion[1],
+            groundtruth.poses[i].quaternion[2],
+            groundtruth.poses[i].quaternion[3]
         );
     }
 
     return groundtruth;
+}
+
+auto zenslam::groundtruth::slerp(const double timestamp) -> pose
+{
+    while (_index < poses.size() && poses[_index].timestamp < timestamp) _index++;
+
+    const auto &t = (timestamp - poses[_index - 1].timestamp) /
+                    (poses[_index].timestamp - poses[_index - 1].timestamp);
+
+    pose pose { };
+    pose.translation = poses[_index - 1].translation * (1.0 - t) + poses[_index].translation * t;
+    pose.quaternion  = cv::Quatd::slerp(poses[_index - 1].quaternion, poses[_index].quaternion, t);
+
+    return pose;
 }
 

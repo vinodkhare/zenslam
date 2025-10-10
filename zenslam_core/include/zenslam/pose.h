@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cmath>
-#include <filesystem>
 
 #include <opencv2/core/affine.hpp>
+#include <opencv2/core/quaternion.hpp>
 
 namespace zenslam
 {
@@ -11,6 +11,7 @@ namespace zenslam
     {
     public:
         double       timestamp { std::nan("nan") };
-        cv::Affine3d affine { cv::Affine3d::Identity() };
+        cv::Vec3d    translation;
+        cv::Quatd    quaternion;
     };
 }
