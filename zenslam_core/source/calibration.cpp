@@ -89,9 +89,16 @@ auto zenslam::calibration::parse(const std::filesystem::path &path, const std::s
         }
         calib.pose_in_cam0 = cv::Affine3d(T).inv();
     }
-    else
+
+    // Parse pose
+    if (cam["T_cam_imu"] && cam["T_cam_imu"].size() == 4)
     {
-        calib.pose_in_cam0 = cv::Affine3d::Identity();
+        cv::Matx44d T;
+        for (auto i = 0; i < 16; ++i)
+        {
+            T(i / 4, i % 4) = cam["T_cam_imu"][i / 4][i % 4].as<double>();
+        }
+        calib.pose_in_imu0 = cv::Affine3d(T);
     }
 
     if (calib.distortion_model == distortion_model::radial_tangential)

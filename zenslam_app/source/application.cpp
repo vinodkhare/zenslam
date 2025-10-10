@@ -10,7 +10,7 @@
 #include <utility>
 
 zenslam::application::application(options options) :
-    _options {std::move( options )}
+    _options { std::move(options) }
 {
     _slam_thread.on_frame += [this](const slam_frame &slam)
     {
@@ -22,11 +22,10 @@ zenslam::application::application(options options) :
 
 void zenslam::application::render()
 {
-    slam_frame slam {};
+    slam_frame slam { };
     {
         std::lock_guard lock { _mutex };
         slam = _slam;
-
     }
 
     // display matches spatial
@@ -60,33 +59,47 @@ void zenslam::application::render()
             _viewer->setWindowPosition(cv::Point(700, 100));
             _viewer->setWindowSize(cv::Size(1024, 1024));
         }
-        else if(!slam.points.empty())
+        else if (!slam.points.empty())
         {
             _viewer->removeAllWidgets();
 
             _viewer->showWidget("origin", cv::viz::WCoordinateSystem());
 
-            _viewer->showWidget("camera", cv::viz::WCameraPosition(cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 }, slam.frame[1].l.undistorted));
+            cv::viz::WCameraPosition camera_position
+            (
+                cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 },
+                slam.frame[1].l.undistorted
+            );
+
+            camera_position.setColor(cv::viz::Color::red());
+            _viewer->showWidget("camera", camera_position);
             _viewer->setWidgetPose("camera", slam.frame[1].pose);
 
-            _viewer->showWidget("imu_gt", cv::viz::WCameraPosition(cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 }, slam.frame[1].l.undistorted));
-            _viewer->setWidgetPose("imu_gt", slam.frame[1].pose_gt);
-
-            const auto& points = slam.points | std::views::values | std::views::transform
+            cv::viz::WCameraPosition camera_gt
             (
-                [](const auto &p)
-                {
-                    return cv::Point3d { p.x, p.y, p.z };
-                }
-            ) | std::ranges::to<std::vector>();
+                cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 },
+                slam.frame[1].l.undistorted
+            );
 
-            const auto& colors = slam.points | std::views::values | std::views::transform
-                         (
-                             [](const auto &p)
-                             {
-                                 return p.color;
-                             }
-                         ) | std::ranges::to<std::vector>();
+            camera_gt.setColor(cv::viz::Color::bluberry());
+            _viewer->showWidget("camera_gt", camera_gt);
+            _viewer->setWidgetPose("camera_gt", slam.frame[1].pose_gt);
+
+            const auto &points = slam.points | std::views::values | std::views::transform
+                                 (
+                                     [](const auto &p)
+                                     {
+                                         return cv::Point3d { p.x, p.y, p.z };
+                                     }
+                                 ) | std::ranges::to<std::vector>();
+
+            const auto &colors = slam.points | std::views::values | std::views::transform
+                                 (
+                                     [](const auto &p)
+                                     {
+                                         return p.color;
+                                     }
+                                 ) | std::ranges::to<std::vector>();
 
             _viewer->showWidget("cloud", cv::viz::WCloud(points, colors));
             _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);

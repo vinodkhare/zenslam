@@ -70,11 +70,14 @@ void zenslam::slam_thread::loop()
         slam.frame[0] = std::move(slam.frame[1]);
         slam.frame[1] = std::move(f);
 
-        const auto& dt    = isnan(slam.frame[0].l.timestamp) ? 0.0 : slam.frame[1].l.timestamp - slam.frame[0].l.timestamp;
-        const auto& slerp = groundtruth.slerp(slam.frame[1].l.timestamp);
+        const auto &dt    = isnan(slam.frame[0].l.timestamp) ? 0.0 : slam.frame[1].l.timestamp - slam.frame[0].l.timestamp;
+        const auto &slerp = groundtruth.slerp(slam.frame[1].l.timestamp);
 
         slam.frame[1].pose_gt = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
-        slam.frame[1].pose    = motion.predict(slam.frame[0].pose, dt);
+        if (isnan(slam.frame[0].l.timestamp)) slam.frame[0].pose = slam.frame[1].pose_gt;
+        slam.frame[1].pose = motion.predict(slam.frame[0].pose, dt);
+
+        SPDLOG_DEBUG("Predicted pose: {}", slam.frame[1].pose);
 
         cv::cvtColor(slam.frame[1].l.image, slam.frame[1].l.image, cv::COLOR_BGR2GRAY);
         cv::cvtColor(slam.frame[1].r.image, slam.frame[1].r.image, cv::COLOR_BGR2GRAY);
@@ -123,7 +126,6 @@ void zenslam::slam_thread::loop()
         std::vector<size_t>      indexes { };
         utils::correspondences_3d3d(slam.frame[0].points, slam.frame[1].points, points3d_0, points3d_1, indexes);
 
-        SPDLOG_DEBUG("Predicted pose: {}", slam.frame[1].pose);
 
         // Compute relative pose between slam.frame[0] and slam.frame[1] using 3D-3D correspondences
         if (points3d_0.size() >= 3)
@@ -160,7 +162,8 @@ void zenslam::slam_thread::loop()
             if (mean < 0.01)
             {
                 SPDLOG_INFO("Reprojection error is below threshold. Using pose from 3D-3D.");
-                slam.frame[1].pose = slam.frame[0].pose * pose.inv();
+                slam.frame[1].pose = slam.frame[0].pose * calibrations[0].pose_in_imu0 * pose.inv() * calibrations[0].
+                                     pose_in_imu0.inv();
                 SPDLOG_INFO("Pose: {}", slam.frame[1].pose);
             }
             else
@@ -177,7 +180,8 @@ void zenslam::slam_thread::loop()
                     try
                     {
                         utils::solve_pnp(camera_matrix_L, points3d, points2d, pose);
-                        slam.frame[1].pose = slam.frame[0].pose * pose.inv();
+                        slam.frame[1].pose = slam.frame[0].pose * calibrations[0].pose_in_imu0 * pose.inv() * calibrations[0].
+                                             pose_in_imu0.inv();
                         SPDLOG_INFO("Pose: {}", slam.frame[1].pose);
                     }
                     catch (std::exception &e)
@@ -197,11 +201,13 @@ void zenslam::slam_thread::loop()
             const auto &image_point = slam.frame[1].l.keypoints.at(point.index).pt;
             const auto &pixel       = slam.frame[1].l.undistorted.at<cv::Vec3b>(image_point);
 
-            auto point3d  = slam.frame[1].pose * point;
+            auto point3d  = slam.frame[1].pose * calibrations[0].pose_in_imu0 * point;
             point3d.index = index;
             point3d.color = pixel;
             slam.points.emplace(index, point3d);
         }
+
+        SPDLOG_INFO("Groundtruth pose: {}", slam.frame[1].pose_gt);
 
         SPDLOG_INFO("Map points count: {}", slam.points.size());
 

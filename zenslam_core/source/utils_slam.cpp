@@ -470,7 +470,7 @@ auto zenslam::utils::triangulate
 
     for (const auto &[index, keypoint_L]: frame.l.keypoints)
     {
-        if (frame.r.keypoints.contains(index))
+        if (frame.r.keypoints.contains(index) && cv::norm(keypoint_L.pt - frame.r.keypoints.at(index).pt) > 32)
         {
             const auto &keypoint_R = frame.r.keypoints.at(index);
 

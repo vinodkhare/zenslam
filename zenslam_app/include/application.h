@@ -1,9 +1,9 @@
 #pragma once
 
 #include <opencv2/viz/viz3d.hpp>
-#include <zenslam/slam_thread.h>
+
 #include <zenslam/options.h>
-#include <zenslam/stereo_frame.h>
+#include <zenslam/slam_thread.h>
 
 namespace zenslam
 {
