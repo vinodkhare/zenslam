@@ -16,7 +16,8 @@ namespace zenslam::utils
         const std::map<size_t, point> &   points,
         const std::map<size_t, keypoint> &keypoints,
         std::vector<cv::Point3d> &        points3d,
-        std::vector<cv::Point2d> &        points2d
+        std::vector<cv::Point2d> &        points2d,
+        std::vector<size_t> &             indices
     ) -> void;
 
     void correspondences_3d3d
@@ -27,6 +28,14 @@ namespace zenslam::utils
         std::vector<cv::Point3d> &     points3d_1,
         std::vector<size_t> &          indexes
     );
+
+    auto estimate_pose_3d2d
+    (
+        const std::map<size_t, point> &   map_points_0,
+        const std::map<size_t, keypoint> &map_keypoints_1,
+        const cv::Matx33d &               camera_matrix,
+        const double &                    threshold
+    ) -> pose_data;
 
     auto estimate_pose_3d3d
     (

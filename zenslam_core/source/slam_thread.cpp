@@ -123,9 +123,29 @@ void zenslam::slam_thread::loop()
 
         try
         {
-            const auto& pose_data = utils::estimate_pose_3d3d(slam.frame[0].points, slam.frame[1].points, _options.slam.threshold_3d3d);
+            const auto &pose_data = utils::estimate_pose_3d3d
+            (
+                slam.frame[0].points,
+                slam.frame[1].points,
+                _options.slam.threshold_3d3d
+            );
         }
-        catch (const std::exception& error)
+        catch (const std::exception &error)
+        {
+            SPDLOG_WARN("{}", error.what());
+        }
+
+        try
+        {
+            const auto &pose_data = utils::estimate_pose_3d2d
+            (
+                slam.frame[0].points,
+                slam.frame[1].l.keypoints,
+                camera_matrix_L,
+                _options.slam.threshold_3d2d
+            );
+        }
+        catch (const std::runtime_error &error)
         {
             SPDLOG_WARN("{}", error.what());
         }
@@ -180,7 +200,8 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO("Reprojection error is above threshold. Using PnP.");
                 std::vector<cv::Point3d> points3d;
                 std::vector<cv::Point2d> points2d;
-                utils::correspondences_3d2d(slam.frame[0].points, slam.frame[1].l.keypoints, points3d, points2d);
+                std::vector<size_t>      indices = { };
+                utils::correspondences_3d2d(slam.frame[0].points, slam.frame[1].l.keypoints, points3d, points2d, indices);
 
                 if (points3d.size() >= 6)
                 {
@@ -205,7 +226,7 @@ void zenslam::slam_thread::loop()
             }
         }
 
-        for (const auto& [index, point]: slam.frame[1].points)
+        for (const auto &[index, point]: slam.frame[1].points)
         {
             const auto &image_point = slam.frame[1].l.keypoints.at(point.index).pt;
             const auto &pixel       = slam.frame[1].l.undistorted.at<cv::Vec3b>(image_point);
