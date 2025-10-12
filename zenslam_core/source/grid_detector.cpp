@@ -57,7 +57,7 @@ namespace zenslam
             }
         }
 
-        std::vector<size_t> indices { };
+        std::vector<keypoint> keypoints = { };
 
         // For each cell in the grid
         for (auto y = 0; y < grid_size.height; ++y)
@@ -112,13 +112,10 @@ namespace zenslam
                     // Add the best keypoint from this cell
                     keypoint keypoint { cell_keypoints[index], keypoint::index_next++ };
 
-                    keypoints_map.emplace(keypoint.index, keypoint);
-                    indices.emplace_back(keypoint.index);
+                    keypoints.emplace_back(keypoint);
                 }
             }
         }
-
-        const auto &keypoints = keypoints_map | std::views::values | std::ranges::to<std::vector>();
 
         auto keypoints_cv = keypoints | std::views::transform
                             (
@@ -127,6 +124,29 @@ namespace zenslam
                                     return keypoint;
                                 }
                             ) | std::ranges::to<std::vector>();
+
+        auto points_cv = keypoints_cv | std::views::transform
+                         (
+                             [](const auto &keypoint)
+                             {
+                                 return keypoint.pt;
+                             }
+                         ) | std::ranges::to<std::vector>();
+
+        cv::cornerSubPix
+        (
+            image,
+            points_cv,
+            cv::Size(5, 5),
+            cv::Size(-1, -1),
+            cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01)
+        );
+
+        for (auto i = 0; i < points_cv.size(); ++i)
+        {
+            keypoints_cv[i].pt = points_cv[i];
+            keypoints[i].pt    = points_cv[i];
+        }
 
         cv::Mat descriptors;
         _describer->compute(image, keypoints_cv, descriptors);
@@ -138,6 +158,7 @@ namespace zenslam
 
         for (auto i = 0; i < descriptors.rows; ++i)
         {
+            keypoints_map[keypoints[i].index]            = keypoints[i];
             keypoints_map[keypoints[i].index].descriptor = descriptors.row(i);
         }
     }

@@ -78,7 +78,8 @@ void zenslam::slam_thread::loop()
         if (isnan(slam.frame[0].l.timestamp)) slam.frame[0].pose = slam.frame[1].pose_gt;
         slam.frame[1].pose = motion.predict(slam.frame[0].pose, dt);
 
-        SPDLOG_DEBUG("Predicted pose: {}", slam.frame[1].pose);
+        SPDLOG_INFO("");
+        SPDLOG_INFO("Predicted pose: {}", slam.frame[1].pose);
 
         cv::cvtColor(slam.frame[1].l.image, slam.frame[1].l.image, cv::COLOR_BGR2GRAY);
         cv::cvtColor(slam.frame[1].r.image, slam.frame[1].r.image, cv::COLOR_BGR2GRAY);
@@ -121,23 +122,27 @@ void zenslam::slam_thread::loop()
         utils::triangulate(slam.frame[1], projection_L, projection_R, slam.frame[1].points);
         SPDLOG_INFO("Triangulated points count: {}", slam.frame[1].points.size());
 
+        auto pose           = cv::Affine3d::Identity();
+        auto pose_data_3d3d = pose_data { };
+        auto pose_data_3d2d = pose_data { };
+
         try
         {
-            const auto &pose_data = utils::estimate_pose_3d3d
+            pose_data_3d3d = utils::estimate_pose_3d3d
             (
                 slam.frame[0].points,
                 slam.frame[1].points,
                 _options.slam.threshold_3d3d
             );
         }
-        catch (const std::exception &error)
+        catch (const std::runtime_error &error)
         {
-            SPDLOG_WARN("{}", error.what());
+            SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
         }
 
         try
         {
-            const auto &pose_data = utils::estimate_pose_3d2d
+            pose_data_3d2d = utils::estimate_pose_3d2d
             (
                 slam.frame[0].points,
                 slam.frame[1].l.keypoints,
@@ -147,98 +152,38 @@ void zenslam::slam_thread::loop()
         }
         catch (const std::runtime_error &error)
         {
-            SPDLOG_WARN("{}", error.what());
+            SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
         }
 
-        // Gather points from slam.frame[0] and slam.frame[1] for 3D-3D pose computation
-        std::vector<cv::Point3d> points3d_0 { };
-        std::vector<cv::Point3d> points3d_1 { };
-        std::vector<size_t>      indexes { };
-        utils::correspondences_3d3d(slam.frame[0].points, slam.frame[1].points, points3d_0, points3d_1, indexes);
+        SPDLOG_INFO("");
+        SPDLOG_INFO("3D-3D correspondences: {}", pose_data_3d3d.indices.size());
+        SPDLOG_INFO("3D-3D inliers: {}", pose_data_3d3d.inliers.size());
+        SPDLOG_INFO("3D-3D mean error: {} m", utils::mean(pose_data_3d3d.errors));
 
-        // Compute relative pose between slam.frame[0] and slam.frame[1] using 3D-3D correspondences
-        if (points3d_0.size() >= 3)
-        {
-            SPDLOG_INFO("Computing 3D-3D pose with {} correspondences", points3d_0.size());
+        SPDLOG_INFO("");
+        SPDLOG_INFO("3D-2D correspondeces: {}", pose_data_3d2d.indices.size());
+        SPDLOG_INFO("3D-2D inliers: {}", pose_data_3d2d.inliers.size());
+        SPDLOG_INFO("3D-2D mean error: {} pixels", utils::mean(pose_data_3d2d.errors));
 
-            cv::Matx33d         R;
-            cv::Point3d         t;
-            std::vector<size_t> inliers { };
-            std::vector<size_t> outliers { };
-            std::vector<double> errors { };
-            utils::estimate_rigid_ransac(points3d_0, points3d_1, R, t, inliers, outliers, errors, 0.01, 1000);
+        pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size()
+                   ? pose_data_3d3d.pose
+                   : pose_data_3d2d.pose;
 
-            SPDLOG_INFO("3D-3D pose inliers: {}", inliers.size());
-
-            for (auto o: outliers)
-            {
-                slam.frame[1].points.erase(indexes[o]);
-                slam.frame[0].points.erase(indexes[o]);
-                slam.points.erase(indexes[o]);
-            }
-
-            cv::Affine3d pose { R, t };
-
-            auto mean = 0.0;
-            for (auto i: inliers)
-            {
-                mean += errors[i];
-            }
-            mean /= gsl::narrow<double>(inliers.size());
-
-            SPDLOG_INFO("Reprojection error: {}", mean);
-
-            if (mean < 0.01)
-            {
-                SPDLOG_INFO("Reprojection error is below threshold. Using pose from 3D-3D.");
-                slam.frame[1].pose = slam.frame[0].pose * calibrations[0].pose_in_imu0 * pose.inv() * calibrations[0].
-                                     pose_in_imu0.inv();
-                SPDLOG_INFO("Pose: {}", slam.frame[1].pose);
-            }
-            else
-            {
-                SPDLOG_INFO("Reprojection error is above threshold. Using PnP.");
-                std::vector<cv::Point3d> points3d;
-                std::vector<cv::Point2d> points2d;
-                std::vector<size_t>      indices = { };
-                utils::correspondences_3d2d(slam.frame[0].points, slam.frame[1].l.keypoints, points3d, points2d, indices);
-
-                if (points3d.size() >= 6)
-                {
-                    pose = slam.frame[1].pose.inv() * slam.frame[0].pose;
-
-                    try
-                    {
-                        utils::solve_pnp(camera_matrix_L, points3d, points2d, pose);
-                        slam.frame[1].pose = slam.frame[0].pose * calibrations[0].pose_in_imu0 * pose.inv() * calibrations[0].
-                                             pose_in_imu0.inv();
-                        SPDLOG_INFO("Pose: {}", slam.frame[1].pose);
-                    }
-                    catch (std::exception &e)
-                    {
-                        SPDLOG_WARN("SolvePnP failed: {}", e.what());
-                    }
-                }
-                else
-                {
-                    SPDLOG_WARN("Not enough points for PnP: {}", points3d.size());
-                }
-            }
-        }
+        slam.frame[1].pose =
+                slam.frame[0].pose * calibrations[0].pose_in_imu0 * pose.inv() * calibrations[0].pose_in_imu0.inv();
 
         for (const auto &[index, point]: slam.frame[1].points)
         {
-            const auto &image_point = slam.frame[1].l.keypoints.at(point.index).pt;
-            const auto &pixel       = slam.frame[1].l.undistorted.at<cv::Vec3b>(image_point);
-
             auto point3d  = slam.frame[1].pose * calibrations[0].pose_in_imu0 * point;
             point3d.index = index;
-            point3d.color = pixel;
+            point3d.color = slam.frame[1].l.undistorted.at<cv::Vec3b>(slam.frame[1].l.keypoints.at(point.index).pt);
+
             slam.points.emplace(index, point3d);
         }
 
+        SPDLOG_INFO("");
         SPDLOG_INFO("Groundtruth pose: {}", slam.frame[1].pose_gt);
-
+        SPDLOG_INFO("Estimated pose: {}", slam.frame[1].pose);
         SPDLOG_INFO("Map points count: {}", slam.points.size());
 
         slam.colors = slam.points | std::views::values | std::views::transform

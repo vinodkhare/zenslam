@@ -66,7 +66,6 @@ auto zenslam::utils::estimate_pose_3d2d
     std::vector<cv::Point2d> points2d;
     std::vector<size_t>      indices = { };
     correspondences_3d2d(map_points_0, map_keypoints_1, points3d, points2d, indices);
-    SPDLOG_DEBUG("Computing 3D-2D pose with {} correspondences", points3d.size());
 
     cv::Affine3d pose      = { cv::Affine3d::Identity()};
     auto         pose_data = zenslam::pose_data { };
@@ -103,26 +102,22 @@ auto zenslam::utils::estimate_pose_3d2d
             for (auto i: indices) if (!inliers_set.contains(i)) pose_data.outliers.push_back(i);
 
             auto points2d_back = std::vector<cv::Point2d> { };
-            cv::projectPoints(points3d, rvec, tvec, camera_matrix, cv::Mat(), points2d);
+            cv::projectPoints(points3d, rvec, tvec, camera_matrix, cv::Mat(), points2d_back);
 
-            for (size_t i = 0; i < points2d.size(); i++)
+            for (auto i: inliers)
             {
                 const auto &p = points2d[i];
                 const auto &q = points2d_back[i];
                 pose_data.errors.push_back(cv::norm(p - q));
             }
+
+            return pose_data;
         }
-        else
-        {
-            throw std::runtime_error("SolvePnP failed");
-        }
-    }
-    else
-    {
-        throw std::runtime_error("Not enough 3D-2D correspondences to compute pose (need > 6)");
+
+        throw std::runtime_error("SolvePnP failed");
     }
 
-    return pose_data;
+    throw std::runtime_error("Not enough 3D-2D correspondences to compute pose (need > 6)");
 }
 
 auto zenslam::utils::estimate_pose_3d3d
@@ -137,7 +132,6 @@ auto zenslam::utils::estimate_pose_3d3d
     std::vector<cv::Point3d> points_1 { };
     std::vector<size_t>      indices { };
     correspondences_3d3d(map_points_0, map_points_1, points_0, points_1, indices);
-    SPDLOG_DEBUG("Computing 3D-3D pose with {} correspondences", points_0.size());
 
     // Compute relative pose between slam.frame[0] and slam.frame[1] using 3D-3D correspondences
     if (points_0.size() >= 3)
@@ -152,7 +146,6 @@ auto zenslam::utils::estimate_pose_3d3d
         return { cv::Affine3d { R, t }, indices, inliers, outliers, errors };
     }
 
-    SPDLOG_WARN("Not enough 3D-3D correspondences to compute pose (need > 3)");
     throw std::runtime_error("Not enough 3D-3D correspondences to compute pose (need > 3)");
 }
 
@@ -275,8 +268,12 @@ auto zenslam::utils::estimate_rigid_ransac
             cv::Vec3d  p = R * cv::Point3d(src[i].x, src[i].y, src[i].z) + t;
             cv::Vec3d  q(dst[i].x, dst[i].y, dst[i].z);
             const auto err = cv::norm(p - q);
-            errs.push_back(err);
-            if (err < threshold) inliers.push_back(i);
+
+            if (err < threshold)
+            {
+                inliers.push_back(i);
+                errs.push_back(err);
+            }
         }
 
         if (inliers.size() > best_inlier_count)

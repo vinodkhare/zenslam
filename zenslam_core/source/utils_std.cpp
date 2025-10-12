@@ -3,6 +3,18 @@
 #include <chrono>
 #include <format>
 
+#include <gsl/narrow>
+
+auto zenslam::utils::mean(const std::vector<double> &values) -> double
+{
+    auto mean = 0.0;
+    for (const auto &value: values)
+    {
+        mean += value;
+    }
+    return mean / gsl::narrow<double>(values.size());
+}
+
 auto zenslam::utils::to_string(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
 {
     return join_to_string(strings, delimiter, std::identity { });
