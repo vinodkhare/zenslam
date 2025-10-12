@@ -68,145 +68,170 @@ void zenslam::slam_thread::loop()
 
     for (auto f: stereo_reader)
     {
-        slam.frame[0] = std::move(slam.frame[1]);
-        slam.frame[1] = std::move(f);
-
-        const auto &dt = isnan(slam.frame[0].l.timestamp) ? 0.0 : slam.frame[1].l.timestamp - slam.frame[0].l.timestamp;
-        const auto &slerp = groundtruth.slerp(slam.frame[1].l.timestamp);
-        const auto &pose_gt_of_imu0_in_world = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
-
-        slam.frame[1].pose_gt = pose_gt_of_imu0_in_world * calibrations[0].pose_in_imu0;
-
-        // if first frame, initialize pose with groundtruth
-        if (isnan(slam.frame[0].l.timestamp))
+        std::chrono::system_clock::duration frame_duration {};
         {
-            slam.frame[0].pose = slam.frame[1].pose_gt;
+            time_this t { frame_duration };
+
+            slam.frame[0] = std::move(slam.frame[1]);
+            slam.frame[1] = std::move(f);
+
+            const auto &dt = isnan(slam.frame[0].l.timestamp) ? 0.0 : slam.frame[1].l.timestamp - slam.frame[0].l.timestamp;
+            const auto &slerp = groundtruth.slerp(slam.frame[1].l.timestamp);
+            const auto &pose_gt_of_imu0_in_world = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
+
+            slam.frame[1].pose_gt = pose_gt_of_imu0_in_world * calibrations[0].pose_in_imu0;
+            slam.frame[0].pose    = isnan(slam.frame[0].l.timestamp) ? slam.frame[1].pose_gt : slam.frame[0].pose;
+            slam.frame[1].pose    = motion.predict(slam.frame[0].pose, dt);
+
+            SPDLOG_INFO("");
+            SPDLOG_INFO("Predicted pose: {}", slam.frame[1].pose);
+
+            std::chrono::system_clock::duration preprocessing_duration { };
+            {
+                time_this time_this { preprocessing_duration };
+
+                cv::cvtColor(slam.frame[1].l.image, slam.frame[1].l.image, cv::COLOR_BGR2GRAY);
+                cv::cvtColor(slam.frame[1].r.image, slam.frame[1].r.image, cv::COLOR_BGR2GRAY);
+
+                if (_options.slam.clahe_enabled)
+                {
+                    clahe->apply(slam.frame[1].l.image, slam.frame[1].l.image);
+                    clahe->apply(slam.frame[1].r.image, slam.frame[1].r.image);
+                }
+
+                slam.frame[1].l.undistorted = utils::undistort(slam.frame[1].l.image, calibrations[0]);
+                slam.frame[1].r.undistorted = utils::undistort(slam.frame[1].r.image, calibrations[1]);
+
+                slam.frame[1].l.pyramid = utils::pyramid(slam.frame[1].l.undistorted, _options.slam);
+                slam.frame[1].r.pyramid = utils::pyramid(slam.frame[1].r.undistorted, _options.slam);
+            }
+            SPDLOG_INFO("Preprocessing duration: {} s", std::chrono::duration<double>(preprocessing_duration).count());
+
+            // track keypoints temporallyly
+            std::chrono::system_clock::duration tracking_duration { };
+            {
+                time_this time_this { tracking_duration };
+
+                utils::track(slam.frame[0].l, slam.frame[1].l, _options.slam);
+                utils::track(slam.frame[0].r, slam.frame[1].r, _options.slam);
+            }
+            SPDLOG_INFO("Tracking duration: {} s", std::chrono::duration<double>(tracking_duration).count());
+
+            SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", slam.frame[1].l.keypoints.size());
+            SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", slam.frame[1].r.keypoints.size());
+
+            // detect keypoints additional
+            std::chrono::system_clock::duration detection_duration { };
+            {
+                time_this time_this { detection_duration };
+
+                detector.detect(slam.frame[1].l.undistorted, slam.frame[1].l.keypoints);
+                detector.detect(slam.frame[1].r.undistorted, slam.frame[1].r.keypoints);
+            }
+            SPDLOG_INFO("Detection duration: {} s", std::chrono::duration<double>(detection_duration).count());
+
+            SPDLOG_INFO("Detected points L: {}", slam.frame[1].l.keypoints.size());
+            SPDLOG_INFO("Detected points R: {}", slam.frame[1].r.keypoints.size());
+
+            // match keypoints spatial
+            std::chrono::system_clock::duration matching_duration { };
+            {
+                time_this time_this { matching_duration };
+
+                utils::match
+                        (slam.frame[1].l.keypoints, slam.frame[1].r.keypoints, fundamental, _options.slam.threshold_epipolar);
+                utils::triangulate(slam.frame[1], projection_L, projection_R, slam.frame[1].points);
+            }
+            SPDLOG_INFO("Matching & triangulation duration: {} s", std::chrono::duration<double>(matching_duration).count());
+
+            SPDLOG_INFO("Triangulated points count: {}", slam.frame[1].points.size());
+
+            auto pose_data_3d3d = pose_data { };
+            auto pose_data_3d2d = pose_data { };
+
+            std::chrono::system_clock::duration pose_estimation_duration { };
+            {
+                time_this time_this { pose_estimation_duration };
+
+                try
+                {
+                    pose_data_3d3d = utils::estimate_pose_3d3d
+                    (
+                        slam.frame[0].points,
+                        slam.frame[1].points,
+                        _options.slam.threshold_3d3d
+                    );
+                }
+                catch (const std::runtime_error &error)
+                {
+                    SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
+                }
+
+                try
+                {
+                    pose_data_3d2d = utils::estimate_pose_3d2d
+                    (
+                        slam.frame[0].points,
+                        slam.frame[1].l.keypoints,
+                        camera_matrix_L,
+                        _options.slam.threshold_3d2d
+                    );
+                }
+                catch (const std::runtime_error &error)
+                {
+                    SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
+                }
+            }
+            SPDLOG_INFO("Pose estimation duration: {} s", std::chrono::duration<double>(pose_estimation_duration).count());
+
+            SPDLOG_INFO("");
+            SPDLOG_INFO("3D-3D correspondences: {}", pose_data_3d3d.indices.size());
+            SPDLOG_INFO("3D-3D inliers: {}", pose_data_3d3d.inliers.size());
+            SPDLOG_INFO("3D-3D mean error: {} m", utils::mean(pose_data_3d3d.errors));
+
+            SPDLOG_INFO("");
+            SPDLOG_INFO("3D-2D correspondeces: {}", pose_data_3d2d.indices.size());
+            SPDLOG_INFO("3D-2D inliers: {}", pose_data_3d2d.inliers.size());
+            SPDLOG_INFO("3D-2D mean error: {} pixels", utils::mean(pose_data_3d2d.errors));
+
+            const auto &pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size()
+                                   ? pose_data_3d3d.pose
+                                   : pose_data_3d2d.pose;
+
+            slam.frame[1].pose = slam.frame[0].pose * pose.inv();
+
+            for (const auto &[index, point]: slam.frame[1].points)
+            {
+                auto point3d = slam.frame[1].pose * point;
+
+                point3d.index = index;
+                point3d.color = slam.frame[1].l.undistorted.at<cv::Vec3b>(slam.frame[1].l.keypoints.at(point.index).pt);
+
+                slam.points.emplace(index, point3d);
+            }
+
+            SPDLOG_INFO("");
+            SPDLOG_INFO("Groundtruth pose: {}", slam.frame[1].pose_gt);
+            SPDLOG_INFO("Estimated pose: {}", slam.frame[1].pose);
+            SPDLOG_INFO("Map points count: {}", slam.points.size());
+
+            slam.colors = slam.points | std::views::values | std::views::transform
+                          (
+                              [](const auto &p)
+                              {
+                                  return p.color;
+                              }
+                          ) | std::ranges::to<std::vector>();
+
+            motion.update(slam.frame[0].pose, slam.frame[1].pose, dt);
+
+            on_frame(slam);
+
+            if (_stop_token.stop_requested())
+            {
+                break;
+            }
         }
-
-        slam.frame[1].pose = motion.predict(slam.frame[0].pose, dt);
-
-        SPDLOG_INFO("");
-        SPDLOG_INFO("Predicted pose: {}", slam.frame[1].pose);
-
-        cv::cvtColor(slam.frame[1].l.image, slam.frame[1].l.image, cv::COLOR_BGR2GRAY);
-        cv::cvtColor(slam.frame[1].r.image, slam.frame[1].r.image, cv::COLOR_BGR2GRAY);
-
-        if (_options.slam.clahe_enabled)
-        {
-            clahe->apply(slam.frame[1].l.image, slam.frame[1].l.image);
-            clahe->apply(slam.frame[1].r.image, slam.frame[1].r.image);
-        }
-
-        slam.frame[1].l.undistorted = utils::undistort(slam.frame[1].l.image, calibrations[0]);
-        slam.frame[1].r.undistorted = utils::undistort(slam.frame[1].r.image, calibrations[1]);
-
-        slam.frame[1].l.pyramid = utils::pyramid(slam.frame[1].l.undistorted, _options.slam);
-        slam.frame[1].r.pyramid = utils::pyramid(slam.frame[1].r.undistorted, _options.slam);
-
-        // track keypoints temporallyly
-        utils::track(slam.frame[0].l, slam.frame[1].l, _options.slam);
-        utils::track(slam.frame[0].r, slam.frame[1].r, _options.slam);
-
-        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", slam.frame[1].l.keypoints.size());
-        SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", slam.frame[1].r.keypoints.size());
-
-        // detect keypoints additional
-        std::chrono::system_clock::duration detection_time { };
-        {
-            time_this time_this { detection_time };
-            detector.detect(slam.frame[1].l.undistorted, slam.frame[1].l.keypoints);
-            detector.detect(slam.frame[1].r.undistorted, slam.frame[1].r.keypoints);
-        }
-
-        SPDLOG_INFO("Detected points L: {}", slam.frame[1].l.keypoints.size());
-        SPDLOG_INFO("Detected points R: {}", slam.frame[1].r.keypoints.size());
-        SPDLOG_INFO("Detection time: {} s", std::chrono::duration<double>(detection_time).count());
-
-        // match keypoints spatial
-        utils::match(slam.frame[1].l.keypoints, slam.frame[1].r.keypoints, fundamental, _options.slam.threshold_epipolar);
-
-        // Before we compute 3D-2D pose, we should compute the 3D-3D pose
-        utils::triangulate(slam.frame[1], projection_L, projection_R, slam.frame[1].points);
-        SPDLOG_INFO("Triangulated points count: {}", slam.frame[1].points.size());
-
-        auto pose_data_3d3d = pose_data { };
-        auto pose_data_3d2d = pose_data { };
-
-        try
-        {
-            pose_data_3d3d = utils::estimate_pose_3d3d
-            (
-                slam.frame[0].points,
-                slam.frame[1].points,
-                _options.slam.threshold_3d3d
-            );
-        }
-        catch (const std::runtime_error &error)
-        {
-            SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
-        }
-
-        try
-        {
-            pose_data_3d2d = utils::estimate_pose_3d2d
-            (
-                slam.frame[0].points,
-                slam.frame[1].l.keypoints,
-                camera_matrix_L,
-                _options.slam.threshold_3d2d
-            );
-        }
-        catch (const std::runtime_error &error)
-        {
-            SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
-        }
-
-        SPDLOG_INFO("");
-        SPDLOG_INFO("3D-3D correspondences: {}", pose_data_3d3d.indices.size());
-        SPDLOG_INFO("3D-3D inliers: {}", pose_data_3d3d.inliers.size());
-        SPDLOG_INFO("3D-3D mean error: {} m", utils::mean(pose_data_3d3d.errors));
-
-        SPDLOG_INFO("");
-        SPDLOG_INFO("3D-2D correspondeces: {}", pose_data_3d2d.indices.size());
-        SPDLOG_INFO("3D-2D inliers: {}", pose_data_3d2d.inliers.size());
-        SPDLOG_INFO("3D-2D mean error: {} pixels", utils::mean(pose_data_3d2d.errors));
-
-        const auto &pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size()
-                               ? pose_data_3d3d.pose
-                               : pose_data_3d2d.pose;
-
-        slam.frame[1].pose = slam.frame[0].pose * pose.inv();
-
-        for (const auto &[index, point]: slam.frame[1].points)
-        {
-            auto point3d = slam.frame[1].pose * point;
-
-            point3d.index = index;
-            point3d.color = slam.frame[1].l.undistorted.at<cv::Vec3b>(slam.frame[1].l.keypoints.at(point.index).pt);
-
-            slam.points.emplace(index, point3d);
-        }
-
-        SPDLOG_INFO("");
-        SPDLOG_INFO("Groundtruth pose: {}", slam.frame[1].pose_gt);
-        SPDLOG_INFO("Estimated pose: {}", slam.frame[1].pose);
-        SPDLOG_INFO("Map points count: {}", slam.points.size());
-
-        slam.colors = slam.points | std::views::values | std::views::transform
-                      (
-                          [](const auto &p)
-                          {
-                              return p.color;
-                          }
-                      ) | std::ranges::to<std::vector>();
-
-        motion.update(slam.frame[0].pose, slam.frame[1].pose, dt);
-
-        on_frame(slam);
-
-        if (_stop_token.stop_requested())
-        {
-            break;
-        }
+        SPDLOG_INFO("Frame duration: {} s", std::chrono::duration<double>(frame_duration).count());
     }
 }
