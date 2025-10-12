@@ -369,7 +369,9 @@ auto zenslam::utils::solve_pnp
 
     SPDLOG_INFO("SolvePnP with {} points", points3d.size());
 
-    if (cv::solvePnPRansac
+    if
+    (
+        cv::solvePnPRansac
         (
             points3d,
             points2d,
@@ -382,7 +384,8 @@ auto zenslam::utils::solve_pnp
             4.0,
             0.99,
             inliers
-        ))
+        )
+    )
     {
         SPDLOG_INFO("SolvePnP successful with {} inliers out of {} points", inliers.size(), points3d.size());
         pose = cv::Affine3d(rvec, tvec);

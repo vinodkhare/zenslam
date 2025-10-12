@@ -58,10 +58,7 @@ namespace zenslam::utils
 
     inline auto log_levels_to_string = invert(log_levels_from_string);
 
-    auto draw_keypoints(const mono_frame &frame) -> cv::Mat;
-    auto draw_matches(const stereo_frame &frame) -> cv::Mat;
-    auto draw_matches(const mono_frame &frame_0, const mono_frame &frame_1) -> cv::Mat;
-    auto pyramid(const cv::Mat & image, const class options::slam& options) -> std::vector<cv::Mat>;
+
     auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
     auto to_keypoints(const std::vector<keypoint> &keypoints) -> std::vector<cv::KeyPoint>;
     auto to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>;
@@ -75,6 +72,4 @@ namespace zenslam::utils
 
     auto to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>;
     auto to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>;
-
-
 }

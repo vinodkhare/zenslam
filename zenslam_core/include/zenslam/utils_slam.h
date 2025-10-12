@@ -102,5 +102,5 @@ namespace zenslam::utils
         cv::Point3d &                   t
     ) -> void;
 
-    auto undistort(const cv::Mat &image, const zenslam::calibration &calibration) -> cv::Mat;
+    auto undistort(const cv::Mat &image, const calibration &calibration) -> cv::Mat;
 }

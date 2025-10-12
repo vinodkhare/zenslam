@@ -9,6 +9,8 @@
 #include <numbers>
 #include <utility>
 
+#include "zenslam/utils_opencv.h"
+
 zenslam::application::application(options options) :
     _options { std::move(options) }
 {

@@ -7,8 +7,8 @@
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
-#include <opencv2/core/types.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/core/types.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -19,9 +19,10 @@
 #include "groundtruth.h"
 #include "motion.h"
 #include "slam_frame.h"
-#include "utils.h"
-#include "utils_slam.h"
 #include "time_this.h"
+#include "utils.h"
+#include "utils_opencv.h"
+#include "utils_slam.h"
 
 zenslam::slam_thread::slam_thread(options options) :
     _options { std::move(options) }
@@ -196,7 +197,7 @@ void zenslam::slam_thread::loop()
             }
         }
 
-        for (auto [index, point]: slam.frame[1].points)
+        for (const auto& [index, point]: slam.frame[1].points)
         {
             const auto &image_point = slam.frame[1].l.keypoints.at(point.index).pt;
             const auto &pixel       = slam.frame[1].l.undistorted.at<cv::Vec3b>(image_point);

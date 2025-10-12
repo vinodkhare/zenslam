@@ -50,6 +50,7 @@ add_library(${PROJECT_NAME}
         source/stereo_frame.cpp
         source/time_this.cpp
         source/utils.cpp
+        source/utils_opencv.cpp
         source/utils_slam.cpp
         source/utils_std.cpp
         source/verb.cpp
