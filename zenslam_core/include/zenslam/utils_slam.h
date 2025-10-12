@@ -6,11 +6,12 @@
 #include "keypoint.h"
 #include "options.h"
 #include "point.h"
+#include "pose_data.h"
 #include "stereo_frame.h"
 
 namespace zenslam::utils
 {
-    auto correspondences
+    auto correspondences_3d2d
     (
         const std::map<size_t, point> &   points,
         const std::map<size_t, keypoint> &keypoints,
@@ -26,6 +27,13 @@ namespace zenslam::utils
         std::vector<cv::Point3d> &     points3d_1,
         std::vector<size_t> &          indexes
     );
+
+    auto estimate_pose_3d3d
+    (
+        const std::map<size_t, point> &map_points_0,
+        const std::map<size_t, point> &map_points_1,
+        const double &                 threshold
+    ) -> pose_data;
 
     // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
     // src, dst: corresponding points
@@ -49,8 +57,7 @@ namespace zenslam::utils
         std::vector<size_t> &           outlier_indices,
         std::vector<double> &           errors,
         double                          threshold      = 0.01,
-        int                             max_iterations = 1000,
-        int                             min_inliers    = 3
+        int                             max_iterations = 1000
     ) -> bool;
 
     // filters matches using the epipolar crterion given the fundamental matrix

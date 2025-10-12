@@ -34,22 +34,6 @@ zenslam::groundtruth zenslam::groundtruth::read(const std::filesystem::path &pat
         groundtruth._poses.emplace_back(timestamp, t, q);
     }
 
-    for (auto i = 0; i < groundtruth._poses.size(); i++)
-    {
-        SPDLOG_TRACE
-        (
-            "pose: [{}, {}, {}; {}, {}, {}, {}]",
-            groundtruth._poses[i].timestamp,
-            groundtruth._poses[i].translation[0],
-            groundtruth._poses[i].translation[1],
-            groundtruth._poses[i].translation[2],
-            groundtruth._poses[i].quaternion[0],
-            groundtruth._poses[i].quaternion[1],
-            groundtruth._poses[i].quaternion[2],
-            groundtruth._poses[i].quaternion[3]
-        );
-    }
-
     return groundtruth;
 }
 

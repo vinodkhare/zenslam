@@ -10,10 +10,11 @@
 
 #include <spdlog/spdlog.h>
 
+#include "pose_data.h"
 #include "slam_thread.h"
 #include "utils.h"
 
-void zenslam::utils::correspondences
+void zenslam::utils::correspondences_3d2d
 (
     const std::map<size_t, point> &   points,
     const std::map<size_t, keypoint> &keypoints,
@@ -49,6 +50,37 @@ void zenslam::utils::correspondences_3d3d
             indexes.emplace_back(index);
         }
     }
+}
+
+auto zenslam::utils::estimate_pose_3d3d
+(
+    const std::map<size_t, point> &map_points_0,
+    const std::map<size_t, point> &map_points_1,
+    const double &                threshold
+) -> pose_data
+{
+    // Gather points from slam.frame[0] and slam.frame[1] for 3D-3D pose computation
+    std::vector<cv::Point3d> points_0 { };
+    std::vector<cv::Point3d> points_1 { };
+    std::vector<size_t>      indexes { };
+    correspondences_3d3d(map_points_0, map_points_1, points_0, points_1, indexes);
+    SPDLOG_DEBUG("Computing 3D-3D pose with {} correspondences", points_0.size());
+
+    // Compute relative pose between slam.frame[0] and slam.frame[1] using 3D-3D correspondences
+    if (points_0.size() >= 3)
+    {
+        cv::Matx33d         R;
+        cv::Point3d         t;
+        std::vector<size_t> inliers { };
+        std::vector<size_t> outliers { };
+        std::vector<double> errors { };
+        estimate_rigid_ransac(points_0, points_1, R, t, inliers, outliers, errors, threshold, 1000);
+
+        return { cv::Affine3d{R, t}, inliers, outliers, errors };
+    }
+
+    SPDLOG_WARN("Not enough 3D-3D correspondences to compute pose (need > 3)");
+    throw std::runtime_error("Not enough 3D-3D correspondences to compute pose (need > 3)");
 }
 
 bool zenslam::utils::estimate_rigid
@@ -129,8 +161,7 @@ auto zenslam::utils::estimate_rigid_ransac
     std::vector<size_t> &           outlier_indices,
     std::vector<double> &           errors,
     const double                    threshold,
-    const int                       max_iterations,
-    const int                       min_inliers
+    const int                       max_iterations
 ) -> bool
 {
     if (src.size() != dst.size() || src.size() < 3) return false;
@@ -175,7 +206,7 @@ auto zenslam::utils::estimate_rigid_ransac
             if (err < threshold) inliers.push_back(i);
         }
 
-        if (inliers.size() > best_inlier_count && inliers.size() >= static_cast<size_t>(min_inliers))
+        if (inliers.size() > best_inlier_count)
         {
             best_inlier_count = static_cast<int>(inliers.size());
             bestR             = R;
@@ -185,17 +216,19 @@ auto zenslam::utils::estimate_rigid_ransac
         }
     }
 
-    if (best_inlier_count >= min_inliers)
+    outlier_indices.clear();
+    if (best_inlier_count >= 3)
     {
         best_R         = bestR;
         best_t         = bestt;
+        errors         = best_errors;
         inlier_indices = best_inliers;
-        outlier_indices.clear();
+
         for (size_t i = 0; i < src.size(); ++i)
         {
             if (std::ranges::find(inlier_indices, i) == inlier_indices.end()) outlier_indices.push_back(i);
         }
-        errors = best_errors;
+
         return true;
     }
     return false;

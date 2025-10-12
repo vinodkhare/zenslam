@@ -115,18 +115,26 @@ void zenslam::slam_thread::loop()
         SPDLOG_INFO("Detection time: {} s", std::chrono::duration<double>(detection_time).count());
 
         // match keypoints spatial
-        utils::match(slam.frame[1].l.keypoints, slam.frame[1].r.keypoints, fundamental, _options.slam.epipolar_threshold);
+        utils::match(slam.frame[1].l.keypoints, slam.frame[1].r.keypoints, fundamental, _options.slam.threshold_epipolar);
 
         // Before we compute 3D-2D pose, we should compute the 3D-3D pose
         utils::triangulate(slam.frame[1], projection_L, projection_R, slam.frame[1].points);
         SPDLOG_INFO("Triangulated points count: {}", slam.frame[1].points.size());
+
+        try
+        {
+            const auto& pose_data = utils::estimate_pose_3d3d(slam.frame[0].points, slam.frame[1].points, _options.slam.threshold_3d3d);
+        }
+        catch (const std::exception& error)
+        {
+            SPDLOG_WARN("{}", error.what());
+        }
 
         // Gather points from slam.frame[0] and slam.frame[1] for 3D-3D pose computation
         std::vector<cv::Point3d> points3d_0 { };
         std::vector<cv::Point3d> points3d_1 { };
         std::vector<size_t>      indexes { };
         utils::correspondences_3d3d(slam.frame[0].points, slam.frame[1].points, points3d_0, points3d_1, indexes);
-
 
         // Compute relative pose between slam.frame[0] and slam.frame[1] using 3D-3D correspondences
         if (points3d_0.size() >= 3)
@@ -138,7 +146,7 @@ void zenslam::slam_thread::loop()
             std::vector<size_t> inliers { };
             std::vector<size_t> outliers { };
             std::vector<double> errors { };
-            utils::estimate_rigid_ransac(points3d_0, points3d_1, R, t, inliers, outliers, errors, 0.01, 1000, 3);
+            utils::estimate_rigid_ransac(points3d_0, points3d_1, R, t, inliers, outliers, errors, 0.01, 1000);
 
             SPDLOG_INFO("3D-3D pose inliers: {}", inliers.size());
 
@@ -172,7 +180,7 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO("Reprojection error is above threshold. Using PnP.");
                 std::vector<cv::Point3d> points3d;
                 std::vector<cv::Point2d> points2d;
-                utils::correspondences(slam.frame[0].points, slam.frame[1].l.keypoints, points3d, points2d);
+                utils::correspondences_3d2d(slam.frame[0].points, slam.frame[1].l.keypoints, points3d, points2d);
 
                 if (points3d.size() >= 6)
                 {

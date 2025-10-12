@@ -33,13 +33,23 @@ boost::program_options::options_description zenslam::options::description()
     )
     (
         "epipolar-threshold",
-        boost::program_options::value<double>()->default_value(options.slam.epipolar_threshold),
+        boost::program_options::value<double>()->default_value(options.slam.threshold_epipolar),
         "Epipolar threshold"
     )
     (
         "fast-threshold",
         boost::program_options::value<double>()->default_value(options.slam.fast_threshold),
         "FAST threshold"
+    )
+    (
+        "threshold-3d3d",
+        boost::program_options::value<double>()->default_value(options.slam.threshold_3d3d),
+        "3D-3D RANSAC pose estimation threshold in meters"
+    )
+    (
+        "threshold-3d2d",
+        boost::program_options::value<double>()->default_value(options.slam.threshold_3d2d),
+        "3D-2D RANSAC pose estimation threshold in pixels"
     )
     (
         "help,h",
@@ -98,8 +108,10 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
         options.log_level = utils::log_levels_from_string[map["log-level"].as<std::string>()];
     if (options_map.contains("log-pattern")) options.log_pattern = map["log-pattern"].as<std::string>();
     if (options_map.contains("clahe-enabled")) options.slam.clahe_enabled = map["clahe-enabled"].as<bool>();
-    if (options_map.contains("epipolar-threshold")) options.slam.epipolar_threshold = map["epipolar-threshold"].as<double>();
+    if (options_map.contains("epipolar-threshold")) options.slam.threshold_epipolar = map["epipolar-threshold"].as<double>();
     if (options_map.contains("fast-threshold")) options.slam.fast_threshold = map["fast-threshold"].as<double>();
+    if (options_map.contains("threshold-3d3d")) options.slam.threshold_3d3d = map["threshold-3d3d"].as<double>();
+    if (options_map.contains("threshold-3d2d")) options.slam.threshold_3d2d = map["threshold-3d2d"].as<double>();
 
     return options;
 }
@@ -144,9 +156,9 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
                 options.slam.clahe_enabled = clahe_enabled.as<bool>();
             }
 
-            if (const auto epipolar_threshold = slam["epipolar_threshold"])
+            if (const auto epipolar_threshold = slam["threshold_epipolar"])
             {
-                options.slam.epipolar_threshold = epipolar_threshold.as<double>();
+                options.slam.threshold_epipolar = epipolar_threshold.as<double>();
             }
 
             if (const auto fast_threshold = slam["fast_threshold"])
@@ -164,6 +176,16 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             if (const auto klt_max_level = slam["klt_max_level"])
             {
                 options.slam.klt_max_level = klt_max_level.as<int>();
+            }
+
+            if (const auto threshold_3d3d = slam["threshold_3d3d"])
+            {
+                options.slam.threshold_3d3d = threshold_3d3d.as<double>();
+            }
+
+            if (const auto threshold_3d2d = slam["threshold_3d2d"])
+            {
+                options.slam.threshold_3d2d = threshold_3d2d.as<double>();
             }
         }
     }
@@ -230,10 +252,12 @@ void zenslam::options::slam::print() const
 {
     SPDLOG_INFO("cell size: [{}, {}]", cell_size.width, cell_size.height);
     SPDLOG_INFO("CLAHE enabled: {}", clahe_enabled ? "true" : "false");
-    SPDLOG_INFO("epipolar threshold: {}", epipolar_threshold);
+    SPDLOG_INFO("epipolar threshold: {}", threshold_epipolar);
     SPDLOG_INFO("fast threshold: {}", fast_threshold);
     SPDLOG_INFO("klt window size: [{}, {}]", klt_window_size.width, klt_window_size.height);
     SPDLOG_INFO("klt max level: {}", klt_max_level);
+    SPDLOG_INFO("3D-3D RANSAC threshold: {} m", threshold_3d3d);
+    SPDLOG_INFO("3D-2D RANSAC threshold: {} px", threshold_3d2d);
 }
 
 void zenslam::options::print() const
