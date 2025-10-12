@@ -5,6 +5,7 @@
 
 #include "utils_std.h"
 
+#include <gsl/narrow>
 
 auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
 {
@@ -97,6 +98,55 @@ auto zenslam::utils::draw_matches(const mono_frame &frame_0, const mono_frame &f
     );
 
     return matches_image;
+}
+
+auto zenslam::utils::project(const std::vector<cv::Point3d> &points, const cv::Matx34d &projection) -> std::vector<cv::Point2d>
+{
+    std::vector<cv::Point2d> points2d { };
+    cv::Mat                  points3d_mat(4, gsl::narrow<int>(points.size()), CV_64F);
+
+    for (int i = 0; i < points.size(); i++)
+    {
+        points3d_mat.at<double>(0, i) = points[i].x;
+        points3d_mat.at<double>(1, i) = points[i].y;
+        points3d_mat.at<double>(2, i) = points[i].z;
+        points3d_mat.at<double>(3, i) = 1.0;
+    }
+
+    cv::Mat points2d_mat = projection * points3d_mat;
+
+    points2d = std::views::iota(0, gsl::narrow<int>(points.size())) | std::views::transform
+               (
+                   [&points2d_mat](const auto &i)
+                   {
+                       return std::abs(points2d_mat.at<double>(2, i)) > 1E-9
+                                  ? cv::Point2d
+                                  (
+                                      points2d_mat.at<double>(0, i) / points2d_mat.at<double>(2, i),
+                                      points2d_mat.at<double>(1, i) / points2d_mat.at<double>(2, i)
+                                  )
+                                  : cv::Point2d(0.0, 0.0);
+                   }
+               ) | std::ranges::to<std::vector>();
+
+    for (int i = 0; i < points.size(); i++)
+    {
+        double w = points2d_mat.at<double>(2, i);
+        if (std::abs(w) > 1E-9)
+        {
+            points2d.emplace_back
+            (
+                points2d_mat.at<double>(0, i) / w,
+                points2d_mat.at<double>(1, i) / w
+            );
+        }
+        else
+        {
+            points2d.emplace_back(0.0, 0.0);
+        }
+    }
+
+    return points2d;
 }
 
 auto zenslam::utils::pyramid(const cv::Mat &image, const class options::slam &options) -> std::vector<cv::Mat>

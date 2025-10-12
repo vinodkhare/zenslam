@@ -83,10 +83,10 @@ namespace zenslam
                 std::vector<cv::KeyPoint> cell_keypoints;
                 _detector->detect(cell_image, cell_keypoints, cv::noArray());
 
-                // if (cell_keypoints.empty())
-                // {
-                //     _describer->detect(cell_image, cell_keypoints, cv::noArray());
-                // }
+                if (cell_keypoints.empty())
+                {
+                    _describer->detect(cell_image, cell_keypoints, cv::noArray());
+                }
 
                 // If any keypoints were found in this cell
                 if (!cell_keypoints.empty())
@@ -110,9 +110,7 @@ namespace zenslam
                     cell_keypoints[index].pt.y += gsl::narrow<float, int>(cell_rect.y);
 
                     // Add the best keypoint from this cell
-                    keypoint keypoint { cell_keypoints[index], keypoint::index_next++ };
-
-                    keypoints.emplace_back(keypoint);
+                    keypoints.emplace_back(keypoint { cell_keypoints[index], keypoint::index_next++ });
                 }
             }
         }
@@ -133,14 +131,17 @@ namespace zenslam
                              }
                          ) | std::ranges::to<std::vector>();
 
-        cv::cornerSubPix
-        (
-            image,
-            points_cv,
-            cv::Size(5, 5),
-            cv::Size(-1, -1),
-            cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01)
-        );
+        if (!points_cv.empty())
+        {
+            cv::cornerSubPix
+            (
+                image,
+                points_cv,
+                cv::Size(5, 5),
+                cv::Size(-1, -1),
+                cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01)
+            );
+        }
 
         for (auto i = 0; i < points_cv.size(); ++i)
         {

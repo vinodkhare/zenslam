@@ -57,7 +57,7 @@ namespace zenslam::utils
         );
     }
 
-    auto mean(const std::vector<double>& values) -> double;
+    auto mean(const std::vector<double> &values) -> double;
 
     template <typename T_KEY, typename T_VALUE>
     auto values(const std::map<T_KEY, T_VALUE> &map) -> std::vector<T_VALUE>

@@ -157,7 +157,7 @@ auto zenslam::calibration::print() const -> void
     SPDLOG_INFO("  Principal point: [{}, {}]", principal_point[0], principal_point[1]);
     SPDLOG_INFO("  Distortion model: {}", magic_enum::enum_name(distortion_model));
     SPDLOG_INFO("  Distortion coefficients: [{}]", zenslam::utils::to_string(distortion_coefficients));
-    SPDLOG_INFO("  Pose in cam0: \n {}", pose_in_cam0);
+    SPDLOG_INFO("  Pose in cam0: {}", pose_in_cam0);
 }
 
 auto zenslam::calibration::fundamental(const calibration &other) const -> cv::Matx33d

@@ -81,11 +81,11 @@ namespace zenslam::utils
 
     auto match
     (
-        const std::map<size_t, keypoint> &keypoints_0,
-        std::map<size_t, keypoint> &      keypoints_1,
+        const std::map<size_t, keypoint> &map_keypoints_l,
+        const std::map<size_t, keypoint> &map_keypoints_r,
         const cv::Matx33d &               fundamental,
         double                            epipolar_threshold
-    ) -> void;
+    ) -> std::vector<cv::DMatch>;
 
     auto solve_pnp
     (
@@ -104,11 +104,10 @@ namespace zenslam::utils
 
     auto triangulate
     (
-        stereo_frame &                  frame,
-        const cv::Matx34d &             projection_l,
-        const cv::Matx34d &             projection_r,
-        std::map<unsigned long, point> &points
-    ) -> void;
+        stereo_frame &     frame,
+        const cv::Matx34d &projection_l,
+        const cv::Matx34d &projection_r
+    ) -> std::tuple<std::map<size_t, point>, std::vector<double>>;
 
     auto umeyama
     (

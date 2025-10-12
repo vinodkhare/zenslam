@@ -8,7 +8,9 @@
 #include "zenslam/utils.h"
 #include "zenslam/utils_slam.h"
 
-TEST_CASE("umeyama estimates rotation and translation for rigid transform")
+TEST_CASE (
+"umeyama estimates rotation and translation for rigid transform"
+)
 {
     using namespace zenslam;
 

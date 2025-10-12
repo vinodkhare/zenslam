@@ -7,8 +7,8 @@
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
 #include <opencv2/core/types.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -48,8 +48,7 @@ void zenslam::slam_thread::loop()
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto motion      = zenslam::motion();
 
-    const auto &calibrations = std::vector
-    {
+    const auto &calibrations = std::vector {
         calibration::parse(_options.folder.calibration_file, "cam0"),
         calibration::parse(_options.folder.calibration_file, "cam1")
     };
@@ -68,7 +67,7 @@ void zenslam::slam_thread::loop()
 
     for (auto f: stereo_reader)
     {
-        std::chrono::system_clock::duration frame_duration {};
+        std::chrono::system_clock::duration frame_duration { };
         {
             time_this t { frame_duration };
 
@@ -138,13 +137,39 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { matching_duration };
 
-                utils::match
-                        (slam.frame[1].l.keypoints, slam.frame[1].r.keypoints, fundamental, _options.slam.threshold_epipolar);
-                utils::triangulate(slam.frame[1], projection_L, projection_R, slam.frame[1].points);
+                const auto &matches = utils::match
+                (
+                    slam.frame[1].l.keypoints,
+                    slam.frame[1].r.keypoints,
+                    fundamental,
+                    _options.slam.threshold_epipolar
+                );
+
+                SPDLOG_INFO("Matched points: {}", matches.size());
+
+                for (const auto &match: matches)
+                {
+                    const auto keypoint_l = slam.frame[1].l.keypoints.at(match.queryIdx);
+                    const auto keypoint_r = slam.frame[1].r.keypoints.at(match.trainIdx);
+
+                    slam.frame[1].r.keypoints.erase(keypoint_r.index);
+
+                    slam.frame[1].r.keypoints[keypoint_l.index]       = keypoint_r;
+                    slam.frame[1].r.keypoints[keypoint_l.index].index = keypoint_l.index;
+                }
+
+                std::vector<double> errors { };
+                std::tie(slam.frame[1].points, errors) = utils::triangulate(slam.frame[1], projection_L, projection_R);
+
+                SPDLOG_INFO("Triangulated point count: {}", slam.frame[1].points.size());
+                SPDLOG_INFO
+                (
+                    "Triangulation mean error: {} pixels",
+                    utils::mean(errors | std::views::filter([this](const auto &e) { return e <= _options.slam.
+                        threshold_triangulate; }) | std::ranges::to<std::vector>())
+                );
             }
             SPDLOG_INFO("Matching & triangulation duration: {} s", std::chrono::duration<double>(matching_duration).count());
-
-            SPDLOG_INFO("Triangulated points count: {}", slam.frame[1].points.size());
 
             auto pose_data_3d3d = pose_data { };
             auto pose_data_3d2d = pose_data { };
@@ -155,12 +180,8 @@ void zenslam::slam_thread::loop()
 
                 try
                 {
-                    pose_data_3d3d = utils::estimate_pose_3d3d
-                    (
-                        slam.frame[0].points,
-                        slam.frame[1].points,
-                        _options.slam.threshold_3d3d
-                    );
+                    pose_data_3d3d =
+                            utils::estimate_pose_3d3d(slam.frame[0].points, slam.frame[1].points, _options.slam.threshold_3d3d);
                 }
                 catch (const std::runtime_error &error)
                 {
@@ -194,9 +215,8 @@ void zenslam::slam_thread::loop()
             SPDLOG_INFO("3D-2D inliers: {}", pose_data_3d2d.inliers.size());
             SPDLOG_INFO("3D-2D mean error: {} pixels", utils::mean(pose_data_3d2d.errors));
 
-            const auto &pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size()
-                                   ? pose_data_3d3d.pose
-                                   : pose_data_3d2d.pose;
+            const auto &pose =
+                    pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;
 
             slam.frame[1].pose = slam.frame[0].pose * pose.inv();
 
@@ -221,7 +241,8 @@ void zenslam::slam_thread::loop()
                               {
                                   return p.color;
                               }
-                          ) | std::ranges::to<std::vector>();
+                          ) |
+                          std::ranges::to<std::vector>();
 
             motion.update(slam.frame[0].pose, slam.frame[1].pose, dt);
 

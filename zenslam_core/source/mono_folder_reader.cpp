@@ -10,8 +10,7 @@ namespace zenslam { namespace
     {
         bool is_equals(const std::string &a, const std::string &b)
         {
-            if (a.size() != b.size())
-                return false;
+            if (a.size() != b.size()) return false;
             for (size_t i = 0; i < a.size(); ++i)
                 if (std::tolower(static_cast<unsigned char>(a[i])) !=
                     std::tolower(static_cast<unsigned char>(b[i])))
@@ -29,7 +28,14 @@ namespace zenslam { namespace
 
         const auto ext = p.extension().string();
 
-        return std::ranges::any_of(extensions, [&ext](auto e) { return is_equals(e, ext); });
+        return std::ranges::any_of
+        (
+            extensions,
+            [&ext](auto e)
+            {
+                return is_equals(e, ext);
+            }
+        );
     }
 
     void mono_folder_reader::scan(const path_type &directory, const bool recursive)
@@ -52,7 +58,8 @@ namespace zenslam { namespace
                     _files.push_back(entry.path());
                 }
             }
-        } else
+        }
+        else
         {
             for (auto &entry: std::filesystem::directory_iterator(directory))
             {

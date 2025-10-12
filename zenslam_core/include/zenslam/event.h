@@ -7,7 +7,7 @@
 
 namespace zenslam
 {
-    template<typename... Args>
+    template <typename... Args>
     class event
     {
     public:

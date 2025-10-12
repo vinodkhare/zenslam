@@ -14,12 +14,12 @@ Requirements: pip install -r requirements.txt
 from __future__ import annotations
 
 import argparse
-import sys
 import io
+import numpy as np
+import sys
+from PIL import Image as PILImage
 from pathlib import Path
 from typing import Optional, Sequence, Tuple, Dict
-import numpy as np
-from PIL import Image as PILImage
 
 try:
     from rosbags.highlevel import AnyReader
@@ -31,7 +31,7 @@ except ImportError as exc:  # pragma: no cover
 # ROS message type names we handle
 IMAGE_TYPES = {
     'sensor_msgs/msg/Image',  # ROS2 style
-    'sensor_msgs/Image',      # ROS1 style
+    'sensor_msgs/Image',  # ROS1 style
 }
 COMPRESSED_IMAGE_TYPES = {
     'sensor_msgs/msg/CompressedImage',
@@ -43,10 +43,13 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description='Extract images from a ROS bag using rosbags.')
     p.add_argument('bag', help='Path to bag file or folder (ROS2)')
     p.add_argument('output', help='Output directory root')
-    p.add_argument('--topics', nargs='*', default=None, help='Specific image topics to extract (default: all image topics)')
-    p.add_argument('--image-format', default='png', choices=['png', 'jpg', 'jpeg'], help='Image format/extension to write.')
+    p.add_argument('--topics', nargs='*', default=None,
+                   help='Specific image topics to extract (default: all image topics)')
+    p.add_argument('--image-format', default='png', choices=['png', 'jpg', 'jpeg'],
+                   help='Image format/extension to write.')
     p.add_argument('--limit-per-topic', type=int, default=None, help='Maximum number of images per topic.')
-    p.add_argument('--flat', action='store_true', help='Do not create per-topic subdirectories, put all images in output root.')
+    p.add_argument('--flat', action='store_true',
+                   help='Do not create per-topic subdirectories, put all images in output root.')
     p.add_argument('--quiet', action='store_true', help='Reduce logging output.')
     p.add_argument('--no-progress', action='store_true', help='Disable progress bar display.')
     return p.parse_args(argv)
@@ -161,7 +164,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         total_candidate = reader.message_count
 
         if not args.quiet:
-            print(f'Found {len(image_connections)} image topic(s). Extracting {total_candidate} messages (before filtering time/limits)...')
+            print(
+                f'Found {len(image_connections)} image topic(s). Extracting {total_candidate} messages (before filtering time/limits)...')
 
         progress_iter = reader.messages(connections=image_connections)
         pbar = None
@@ -224,7 +228,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
             counts[topic] = idx + 1
             written += 1
-            
+
             if pbar:
                 pbar.update(1)
             elif not args.quiet and written % 50 == 0:

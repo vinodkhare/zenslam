@@ -7,10 +7,12 @@ After detecting and describing features independently in left and right images:
 3. Matches are stored in `stereo_frame.matches`.
 
 ## Potential Issues
+
 - Descriptor asymmetry (lighting, viewpoint) can reduce raw matches.
 - Scale / orientation differences mitigated by multi-scale descriptors (e.g., SIFT).
 
 ## Future Improvements
+
 - Lowe’s ratio test
 - Symmetry check if cross-check removed
 - Epipolar-guided candidate reduction

@@ -15,4 +15,3 @@ namespace zenslam
         void print() const;
     };
 }
-

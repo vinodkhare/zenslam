@@ -13,6 +13,7 @@
 #include "pose_data.h"
 #include "slam_thread.h"
 #include "utils.h"
+#include "utils_opencv.h"
 
 void zenslam::utils::correspondences_3d2d
 (
@@ -67,7 +68,7 @@ auto zenslam::utils::estimate_pose_3d2d
     std::vector<size_t>      indices = { };
     correspondences_3d2d(map_points_0, map_keypoints_1, points3d, points2d, indices);
 
-    cv::Affine3d pose      = { cv::Affine3d::Identity()};
+    cv::Affine3d pose      = { cv::Affine3d::Identity() };
     auto         pose_data = zenslam::pose_data { };
 
     if (points3d.size() >= 6)
@@ -75,9 +76,7 @@ auto zenslam::utils::estimate_pose_3d2d
         cv::Mat          rvec { pose.rvec() };
         cv::Mat          tvec { pose.translation() };
         std::vector<int> inliers { };
-        if
-        (
-            cv::solvePnPRansac
+        if (cv::solvePnPRansac
             (
                 points3d,
                 points2d,
@@ -90,8 +89,7 @@ auto zenslam::utils::estimate_pose_3d2d
                 gsl::narrow<float>(threshold),
                 0.99,
                 inliers
-            )
-        )
+            ))
         {
             pose_data.pose    = cv::Affine3d(rvec, tvec);
             pose_data.indices = indices;
@@ -169,7 +167,8 @@ bool zenslam::utils::estimate_rigid
                         {
                             return acc + cv::Vec3d(p.x, p.y, p.z);
                         }
-                    ) / gsl::narrow<double>(src.size());
+                    ) /
+                    gsl::narrow<double>(src.size());
 
     auto mean_dst = std::accumulate
                     (
@@ -180,7 +179,8 @@ bool zenslam::utils::estimate_rigid
                         {
                             return acc + cv::Vec3d(p.x, p.y, p.z);
                         }
-                    ) / gsl::narrow<double>(dst.size());
+                    ) /
+                    gsl::narrow<double>(dst.size());
 
     // Compute cross-covariance
     cv::Matx33d Sigma(0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -201,14 +201,14 @@ bool zenslam::utils::estimate_rigid
     Sigma *= 1.0 / gsl::narrow<double>(src.size());
 
     // SVD
-    cv::Mat Sigma_mat(3, 3,CV_64F);
+    cv::Mat Sigma_mat(3, 3, CV_64F);
     for (auto r = 0; r < 3; ++r) for (auto c = 0; c < 3; ++c) Sigma_mat.at<double>(r, c) = Sigma(r, c);
     cv::Mat U, S, Vt;
     cv::SVD::compute(Sigma_mat, S, U, Vt);
     cv::Mat R_mat = U * Vt;
     if (cv::determinant(R_mat) < 0)
     {
-        cv::Mat Sfix          = cv::Mat::eye(3, 3,CV_64F);
+        cv::Mat Sfix          = cv::Mat::eye(3, 3, CV_64F);
         Sfix.at<double>(2, 2) = -1.0;
         R_mat                 = U * Sfix * Vt;
     }
@@ -352,21 +352,21 @@ auto zenslam::utils::filter
 
 auto zenslam::utils::match
 (
-    const std::map<size_t, keypoint> &keypoints_0,
-    std::map<size_t, keypoint> &      keypoints_1,
+    const std::map<size_t, keypoint> &map_keypoints_l,
+    const std::map<size_t, keypoint> &map_keypoints_r,
     const cv::Matx33d &               fundamental,
     double                            epipolar_threshold
-) -> void
+) -> std::vector<cv::DMatch>
 {
     cv::Mat                 descriptors_l { };
     cv::Mat                 descriptors_r { };
     std::vector<keypoint>   unmatched_l { };
     std::vector<keypoint>   unmatched_r { };
-    std::vector<cv::DMatch> matches_existing { };
+    std::vector<cv::DMatch> matches_new { };
 
-    for (const auto &keypoint_l: keypoints_0 | std::views::values)
+    for (const auto &keypoint_l: map_keypoints_l | std::views::values)
     {
-        if (keypoints_1.contains(keypoint_l.index)) continue;
+        if (map_keypoints_r.contains(keypoint_l.index)) continue;
 
         unmatched_l.emplace_back(keypoint_l);
 
@@ -380,9 +380,9 @@ auto zenslam::utils::match
         }
     }
 
-    for (const auto &keypoint_r: keypoints_1 | std::views::values)
+    for (const auto &keypoint_r: map_keypoints_r | std::views::values)
     {
-        if (keypoints_0.contains(keypoint_r.index)) continue;
+        if (map_keypoints_l.contains(keypoint_r.index)) continue;
 
         unmatched_r.emplace_back(keypoint_r);
 
@@ -396,42 +396,9 @@ auto zenslam::utils::match
         }
     }
 
-    for (auto query_index = 0; query_index < keypoints_0.size(); ++query_index)
-    {
-        for (auto train_index = 0; train_index < keypoints_1.size(); ++train_index)
-        {
-            if (unmatched_l[query_index].index == unmatched_r[train_index].index)
-            {
-                matches_existing.emplace_back(query_index, train_index, 0);
-            }
-        }
-    }
-
     const cv::BFMatcher     matcher { cv::NORM_L2, true };
     std::vector<cv::DMatch> matches;
     matcher.match(descriptors_l, descriptors_r, matches);
-
-    auto matches_map = matches | std::views::transform
-                       (
-                           [](const auto &match)
-                           {
-                               return std::make_pair(match.queryIdx, match.trainIdx);
-                           }
-                       ) | std::ranges::to<std::map<int, int>>();
-
-    auto remove_count = 0;
-    for (const auto &match: matches_existing)
-    {
-        if (!matches_map.contains(match.queryIdx))
-        {
-            keypoints_1.erase(unmatched_r[match.trainIdx].index);
-            remove_count++;
-        }
-    }
-
-    SPDLOG_INFO("Removed {} matches", remove_count);
-
-    SPDLOG_INFO("matches count: {}", matches.size());
 
     matches =
             filter
@@ -443,19 +410,15 @@ auto zenslam::utils::match
                 epipolar_threshold
             );
 
-    SPDLOG_INFO("matches filtered count: {}", matches.size());
-
     for (const auto &match: matches)
     {
         const auto &keypoint_l = unmatched_l[match.queryIdx];
-        auto        keypoint_r = unmatched_r[match.trainIdx];
+        const auto &keypoint_r = unmatched_r[match.trainIdx];
 
-        keypoints_1.erase(keypoint_r.index);
-
-        keypoint_r.index = keypoint_l.index;
-
-        keypoints_1[keypoint_r.index] = keypoint_r;
+        matches_new.emplace_back(keypoint_l.index, keypoint_r.index, match.distance);
     }
+
+    return matches_new;
 }
 
 auto zenslam::utils::solve_pnp
@@ -472,23 +435,7 @@ auto zenslam::utils::solve_pnp
 
     SPDLOG_INFO("SolvePnP with {} points", points3d.size());
 
-    if
-    (
-        cv::solvePnPRansac
-        (
-            points3d,
-            points2d,
-            camera_matrix,
-            cv::Mat(),
-            rvec,
-            tvec,
-            true,
-            1000,
-            4.0,
-            0.99,
-            inliers
-        )
-    )
+    if (cv::solvePnPRansac(points3d, points2d, camera_matrix, cv::Mat(), rvec, tvec, true, 1000, 4.0, 0.99, inliers))
     {
         SPDLOG_INFO("SolvePnP successful with {} inliers out of {} points", inliers.size(), points3d.size());
         pose = cv::Affine3d(rvec, tvec);
@@ -553,7 +500,7 @@ void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const
     // Update frame.l.keypoints with tracked points
     for (size_t i = 0; i < points_1.size(); ++i)
     {
-        if (status[i] && status_back[i] && cv::norm(points_0_back[i] - points_0[i]) < 1.0)
+        if (status[i] && status_back[i] && cv::norm(points_0_back[i] - points_0[i]) < options.klt_threshold)
         {
             frame_1.keypoints[keypoints_0[i].index]    = keypoints_0[i];
             frame_1.keypoints[keypoints_0[i].index].pt = points_1[i];
@@ -564,99 +511,95 @@ void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const
 
 auto zenslam::utils::triangulate
 (
-    stereo_frame &                  frame,
-    const cv::Matx34d &             projection_l,
-    const cv::Matx34d &             projection_r,
-    std::map<unsigned long, point> &points
-) -> void
+    stereo_frame &     frame,
+    const cv::Matx34d &projection_l,
+    const cv::Matx34d &projection_r
+
+) -> std::tuple<std::map<size_t, point>, std::vector<double>>
 {
-    std::vector<cv::Point2f> points_l { };
-    std::vector<cv::Point2f> points_r { };
-    std::vector<size_t>      indices { };
+    auto indices = frame.l.keypoints | std::views::keys |
+                   std::ranges::views::filter
+                   (
+                       [&frame](const auto &index)
+                       {
+                           return frame.r.keypoints.contains(index);
+                       }
+                   ) |
+                   std::ranges::to<std::vector>();
 
-    for (const auto &[index, keypoint_L]: frame.l.keypoints)
-    {
-        if (frame.r.keypoints.contains(index) && cv::norm(keypoint_L.pt - frame.r.keypoints.at(index).pt) > 32)
-        {
-            const auto &keypoint_R = frame.r.keypoints.at(index);
+    const auto &points_l = indices |
+                           std::views::transform
+                           (
+                               [&frame](const auto &index)
+                               {
+                                   return frame.l.keypoints.at(index).pt;
+                               }
+                           ) |
+                           std::ranges::to<std::vector>();
 
-            points_l.emplace_back(keypoint_L.pt);
-            points_r.emplace_back(keypoint_R.pt);
+    const auto &points_r = indices |
+                           std::views::transform
+                           (
+                               [&frame](const auto &index)
+                               {
+                                   return frame.r.keypoints.at(index).pt;
+                               }
+                           ) |
+                           std::ranges::to<std::vector>();
 
-            indices.emplace_back(index);
-        }
-    }
-
-    cv::Mat points4d;
+    cv::Mat points4d { };
     cv::triangulatePoints(projection_l, projection_r, points_l, points_r, points4d);
 
-    std::vector<cv::Point3d> points3d;
-    points3d.reserve(points4d.cols);
+    auto points3d = std::views::iota(0, points4d.cols) |
+                    std::views::transform
+                    (
+                        [&points4d](const auto &i)
+                        {
+                            cv::Vec4d X = points4d.col(i);
+                            return std::abs(X[3]) > 1E-9
+                                       ? cv::Point3d(X[0] / X[3], X[1] / X[3], X[2] / X[3])
+                                       : cv::Point3d(0, 0, 0);
+                        }
+                    ) |
+                    std::ranges::to<std::vector>();
 
-    for (auto c = 0; c < points4d.cols; ++c)
+
+    auto points = std::views::iota(static_cast<size_t>(0), points3d.size()) |
+                  std::views::transform
+                  (
+                      [&indices, &points3d](const size_t &i)
+                      {
+                          return std::make_pair(indices[i], point { points3d[i], indices[i] });
+                      }
+                  ) |
+                  std::ranges::to<std::map>();
+
+    // Reproject points to compute reprojection error
+    const auto &points_l_back = utils::project(points3d, projection_l);
+    const auto &points_r_back = utils::project(points3d, projection_r);
+
+    const auto &errors = std::views::zip(points_l_back, points_r_back, points_l, points_r) |
+                         std::views::transform
+                         (
+                             [](const auto &t)
+                             {
+                                 const auto &[plb, prb, pl, pr] = t;
+                                 const auto  err_l              = cv::norm(plb - cv::Point2d(pl));
+                                 const auto  err_r              = cv::norm(prb - cv::Point2d(pr));
+                                 return 0.5 * (err_l + err_r);
+                             }
+                         ) |
+                         std::ranges::to<std::vector>();
+
+    for (auto i = 0; i < points3d.size(); ++i)
     {
-        cv::Vec4d point4d = points4d.col(c);
-
-        if (std::abs(point4d[3]) > 1e-9)
+        if (points3d[i].z <= 0 || errors[i] > 1.0) // 4 pixel reprojection error threshold
         {
-            points.emplace
-            (
-                indices[c],
-                point { { point4d[0] / point4d[3], point4d[1] / point4d[3], point4d[2] / point4d[3] }, indices[c] }
-            );
+            points.erase(indices[i]);
         }
     }
 
-    // What we need to do at this point is to reproject the 3D points back onto both images
-    // and check the reprojection error. If the error is too high, we should discard the point.
-    // This will help to filter out points that are not well triangulated due to noise or other issues.
-
-    // Reproject and prune points with large reprojection error
-    constexpr auto             reprojection_threshold = 1.0; // pixels
-    std::vector<unsigned long> to_erase;
-    for (auto c = 0; c < points4d.cols; ++c)
-    {
-        cv::Vec4d X = points4d.col(c);
-        if (std::abs(X[3]) <= 1e-9)
-        {
-            to_erase.push_back(indices[c]);
-            continue;
-        }
-
-        auto proj_l_h = projection_l * X;
-        auto proj_r_h = projection_r * X;
-
-        if (std::abs(proj_l_h[2]) <= 1e-9 || std::abs
-            (proj_r_h[2]) <= 1e-9 || points[indices[c]].z < 1 || points[indices[c]].z > 100)
-        {
-            to_erase.push_back(indices[c]);
-            continue;
-        }
-
-        const cv::Point2d reproj_l { proj_l_h[0] / proj_l_h[2], proj_l_h[1] / proj_l_h[2] };
-        const cv::Point2d reproj_r { proj_r_h[0] / proj_r_h[2], proj_r_h[1] / proj_r_h[2] };
-
-        const auto &orig_l = points_l[c];
-        const auto &orig_r = points_r[c];
-
-        const auto err_l = std::hypot(reproj_l.x - orig_l.x, reproj_l.y - orig_l.y);
-        const auto err_r = std::hypot(reproj_r.x - orig_r.x, reproj_r.y - orig_r.y);
-        const auto err   = 0.5 * (err_l + err_r);
-
-        if (!std::isfinite(err) || err > reprojection_threshold)
-        {
-            SPDLOG_INFO("Reprojection error for point {}: {:.3f} pixels", indices[c], err);
-
-            to_erase.push_back(indices[c]);
-        }
-    }
-
-    for (auto id: to_erase)
-    {
-        points.erase(id);
-        frame.l.keypoints.erase(id);
-        frame.r.keypoints.erase(id);
-    }
+    return { points, errors };
 }
 
 void zenslam::utils::umeyama

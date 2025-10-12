@@ -9,11 +9,6 @@ zenslam::stereo_folder_reader::stereo_folder_reader
     _left(left_dir, false, timescale),
     _right(right_dir, false, timescale) {}
 
-zenslam::stereo_folder_reader::stereo_folder_reader(const class options::folder &options):
+zenslam::stereo_folder_reader::stereo_folder_reader(const class options::folder &options) :
     _left { options.root / options.left, false, options.timescale },
-    _right { options.root / options.right, false, options.timescale }
-{
-
-}
-
-
+    _right { options.root / options.right, false, options.timescale } {}

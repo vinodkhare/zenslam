@@ -9,8 +9,8 @@ namespace zenslam
     class pose
     {
     public:
-        double       timestamp { std::nan("nan") };
-        cv::Vec3d    translation;
-        cv::Quatd    quaternion;
+        double    timestamp { std::nan("nan") };
+        cv::Vec3d translation;
+        cv::Quatd quaternion;
     };
 }

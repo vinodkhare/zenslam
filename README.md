@@ -2,43 +2,64 @@
 
 ZenSLAM is an experimental stereo SLAM playground. It currently provides:
 
-* A core C++23 library (`zenslam_core`) with calibration parsing, frame abstractions, feature detection (grid + FAST/ORB/SIFT backends), stereo matching, epipolar filtering, triangulation utilities, threading helpers, and option parsing.
-* An application layer (`zenslam_app`) with a simple GUI (HelloImGui + OpenCV viz) for visualizing frames, matches, and (work-in-progress) reconstructed 3D points.
-* A Python utility (`zenslam_py/scripts/bag_to_images.py`) to extract image sequences from ROS1/ROS2 bag files using `rosbags` (no ROS install needed).
+* A core C++23 library (`zenslam_core`) with calibration parsing, frame abstractions, feature detection (grid +
+  FAST/ORB/SIFT backends), stereo matching, epipolar filtering, triangulation utilities, threading helpers, and option
+  parsing.
+* An application layer (`zenslam_app`) with a simple GUI (HelloImGui + OpenCV viz) for visualizing frames, matches,
+  and (work-in-progress) reconstructed 3D points.
+* A Python utility (`zenslam_py/scripts/bag_to_images.py`) to extract image sequences from ROS1/ROS2 bag files using
+  `rosbags` (no ROS install needed).
 * A Catch2 based test target (`zenslam_tests`) for unit / regression tests.
 
 Status: early / evolving. Expect APIs to change.
 
 ---
+
 ## Coding Philosophy
 
 * Start with the most obvious solution and then refactor
-* The most obvious solution will often be versbose - let this be. Once you have enough code, patterns for refactoring will suggest themselves.
+* The most obvious solution will often be versbose - let this be. Once you have enough code, patterns for refactoring
+  will suggest themselves.
 * Premature abstraction (like premature optimization) is the root of all Evil.
 * Aim for simplicity: make things as simple as possible, but no simpler.
 * Do not overdesign. Sometimes the best solution is a simple function or a plain structure.
 
 ### Refactoring
 
-Refactoring is the process of taking existing code and reshaping it into a different form without changing what it does. Why do we refactor when it doesn't change the behavior of the code? Refactoring is discovering a new way to look at your code and what it does. Refactoring makes things easier to understand, to maintain and sometimes more efficient. But more than that, refactoring helps you think about your problem is a new, different, more fertile way. One reason to refactor is to open up new possibilities.
+Refactoring is the process of taking existing code and reshaping it into a different form without changing what it does.
+Why do we refactor when it doesn't change the behavior of the code? Refactoring is discovering a new way to look at your
+code and what it does. Refactoring makes things easier to understand, to maintain and sometimes more efficient. But more
+than that, refactoring helps you think about your problem is a new, different, more fertile way. One reason to refactor
+is to open up new possibilities.
 
 #### Lumping and Splitting
 
-Lumping and splitting are two fundamental ways to refactor something. At this point in the project, several opportunities for lumping and splitting present themselves. 
+Lumping and splitting are two fundamental ways to refactor something. At this point in the project, several
+opportunities for lumping and splitting present themselves.
 
-The `utils` file has become too big—it could be split into multiple files. This would allow for faster compilation times and easier maintenance. This is an example of splitting. But note how there is a judgment to be made here. How big is too big? There is no principled answer to this question. One person may think that a 1000-line file is too big. Another may think that 1000 lines is just fine. But despite this, we can kinda sorta agree about what too big is. A "perfect" choice doesn't matter. *Any* choice will do.
+The `utils` file has become too big—it could be split into multiple files. This would allow for faster compilation times
+and easier maintenance. This is an example of splitting. But note how there is a judgment to be made here. How big is
+too big? There is no principled answer to this question. One person may think that a 1000-line file is too big. Another
+may think that 1000 lines is just fine. But despite this, we can kinda sorta agree about what too big is. A "perfect"
+choice doesn't matter. *Any* choice will do.
 
-Many such decisions need to be made during software development. These decisions are not strictly systematic. Of course, you *could* systematize them. You could make a rule—no files larger than 1000 lines! But this seems arbitrary and absurd. What if the file is 1001 lines? Is that extra one line really so bad? As a developer, I'm tempted to delete some whitespace and check that file in. And ultimately, even if the file is 1001 lines, the time spent on this nitpicking is not worth it.
+Many such decisions need to be made during software development. These decisions are not strictly systematic. Of course,
+you *could* systematize them. You could make a rule—no files larger than 1000 lines! But this seems arbitrary and
+absurd. What if the file is 1001 lines? Is that extra one line really so bad? As a developer, I'm tempted to delete some
+whitespace and check that file in. And ultimately, even if the file is 1001 lines, the time spent on this nitpicking is
+not worth it.
 
-It may seem like I'm going on pointlessly but you'd be suprised how much time is wasted in teams on such pointless rules and decisions.
+It may seem like I'm going on pointlessly but you'd be suprised how much time is wasted in teams on such pointless rules
+and decisions.
 
 Detection time:
-    Non-Parallel: 0.032 s to 0.037 s
-    Parallel: 0.047 s to 0.047 s
+Non-Parallel: 0.032 s to 0.037 s
+Parallel: 0.047 s to 0.047 s
 
 Parallel is not an improvement!
 
 ---
+
 ## Repository Layout
 
 ```
@@ -50,6 +71,7 @@ zenslam_py/       # Python helper scripts (bag extraction)
 ```
 
 ---
+
 ## Dependencies
 
 Installed via vcpkg (recommended). Core components require:
@@ -66,6 +88,7 @@ Installed via vcpkg (recommended). Core components require:
 * Catch2 (tests)
 
 Example vcpkg install (adjust triplet, add --overlay-ports if needed):
+
 ```bash
 ./vcpkg install \
   boost-program-options \
@@ -81,6 +104,7 @@ Example vcpkg install (adjust triplet, add --overlay-ports if needed):
 Ensure `CMAKE_TOOLCHAIN_FILE` points to your vcpkg toolchain when configuring.
 
 ---
+
 ## Configure & Build (All Targets)
 
 ```bash
@@ -90,16 +114,19 @@ cmake --build build -j
 ```
 
 Run the app:
+
 ```bash
 ./build/zenslam_app/zenslam_app   # or from install prefix after `cmake --install build`
 ```
 
 Run tests:
+
 ```bash
 ctest --test-dir build -j --output-on-failure
 ```
 
 ---
+
 ## Core Features (Implemented So Far)
 
 * YAML stereo calibration parsing (Kalibr-style) with fundamental & projection matrix helpers.
@@ -111,9 +138,11 @@ ctest --test-dir build -j --output-on-failure
 * Utility helpers (string joins, undistortion, keypoint conversions, logging formatters for Affine3d).
 
 ---
+
 ## Python: Bag Image Extraction
 
 Create venv & install:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -121,6 +150,7 @@ pip install -r zenslam_py/scripts/requirements.txt
 ```
 
 Usage:
+
 ```bash
 python zenslam_py/scripts/bag_to_images.py <bag_path> <output_dir> \
   [--topics /cam0/image_raw /cam1/image_raw] \
@@ -128,11 +158,13 @@ python zenslam_py/scripts/bag_to_images.py <bag_path> <output_dir> \
 ```
 
 Notes:
+
 * Supports ROS1 `.bag` and ROS2 directory bags.
 * Extracts `sensor_msgs/Image` + `CompressedImage`.
 * Filenames encode (relative) timestamp.
 
 ---
+
 ## Development Tips
 
 * Enable compile commands for clangd / IDE: `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`.
@@ -145,6 +177,7 @@ Notes:
 * Fundamental matrix: `F = K2^{-T} [t]_x R K1^{-1}` derived from relative pose.
 
 ---
+
 ## Documentation
 
 Extended docs live in `zenslam_docs/`:
@@ -164,6 +197,7 @@ Extended docs live in `zenslam_docs/`:
 These documents are evolving—contributions and corrections are welcome.
 
 ---
+
 ## Roadmap (Short-Term)
 
 * Maintain persistent keypoint tracks (KLT + descriptor refresh).
@@ -173,16 +207,20 @@ These documents are evolving—contributions and corrections are welcome.
 * Benchmark scripts & dataset loaders (TUM-VI, EuRoC).
 
 ---
+
 ## Contributing
 
-Early stage: feel free to open issues / PRs for ideas or small improvements. Larger architectural changes: start a discussion first.
+Early stage: feel free to open issues / PRs for ideas or small improvements. Larger architectural changes: start a
+discussion first.
 
 ---
+
 ## License
 
 See `LICENSE`.
 
 ---
+
 ## Acknowledgements
 
 Built with fantastic open-source libraries: OpenCV, VTK, HelloImGui, yaml-cpp, spdlog, magic_enum, Catch2, and more.

@@ -15,7 +15,7 @@ AlwaysBreakAfterDefinitionReturnType: false
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: false
 BinPackParameters: false
-BraceWrapping: 
+BraceWrapping:
   AfterCaseLabel: true
   AfterClass: true
   AfterControlStatement: true
@@ -41,7 +41,7 @@ CompactNamespaces: true
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 ContinuationIndentWidth: 8
 Cpp11BracedListStyle: false
-IncludeCategories: 
+IncludeCategories:
   - Regex: '^<.*'
     Priority: 1
   - Regex: '^".*'

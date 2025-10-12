@@ -9,8 +9,6 @@
 #include <spdlog/spdlog.h>
 
 
-
-
 auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d
 {
     auto skew = cv::Matx33d::zeros();
