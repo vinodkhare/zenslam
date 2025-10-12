@@ -71,11 +71,18 @@ void zenslam::slam_thread::loop()
         slam.frame[0] = std::move(slam.frame[1]);
         slam.frame[1] = std::move(f);
 
-        const auto &dt    = isnan(slam.frame[0].l.timestamp) ? 0.0 : slam.frame[1].l.timestamp - slam.frame[0].l.timestamp;
+        const auto &dt = isnan(slam.frame[0].l.timestamp) ? 0.0 : slam.frame[1].l.timestamp - slam.frame[0].l.timestamp;
         const auto &slerp = groundtruth.slerp(slam.frame[1].l.timestamp);
+        const auto &pose_gt_of_imu0_in_world = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
 
-        slam.frame[1].pose_gt = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
-        if (isnan(slam.frame[0].l.timestamp)) slam.frame[0].pose = slam.frame[1].pose_gt;
+        slam.frame[1].pose_gt = pose_gt_of_imu0_in_world * calibrations[0].pose_in_imu0;
+
+        // if first frame, initialize pose with groundtruth
+        if (isnan(slam.frame[0].l.timestamp))
+        {
+            slam.frame[0].pose = slam.frame[1].pose_gt;
+        }
+
         slam.frame[1].pose = motion.predict(slam.frame[0].pose, dt);
 
         SPDLOG_INFO("");
@@ -122,7 +129,6 @@ void zenslam::slam_thread::loop()
         utils::triangulate(slam.frame[1], projection_L, projection_R, slam.frame[1].points);
         SPDLOG_INFO("Triangulated points count: {}", slam.frame[1].points.size());
 
-        auto pose           = cv::Affine3d::Identity();
         auto pose_data_3d3d = pose_data { };
         auto pose_data_3d2d = pose_data { };
 
@@ -165,16 +171,16 @@ void zenslam::slam_thread::loop()
         SPDLOG_INFO("3D-2D inliers: {}", pose_data_3d2d.inliers.size());
         SPDLOG_INFO("3D-2D mean error: {} pixels", utils::mean(pose_data_3d2d.errors));
 
-        pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size()
-                   ? pose_data_3d3d.pose
-                   : pose_data_3d2d.pose;
+        const auto &pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size()
+                               ? pose_data_3d3d.pose
+                               : pose_data_3d2d.pose;
 
-        slam.frame[1].pose =
-                slam.frame[0].pose * calibrations[0].pose_in_imu0 * pose.inv() * calibrations[0].pose_in_imu0.inv();
+        slam.frame[1].pose = slam.frame[0].pose * pose.inv();
 
         for (const auto &[index, point]: slam.frame[1].points)
         {
-            auto point3d  = slam.frame[1].pose * calibrations[0].pose_in_imu0 * point;
+            auto point3d = slam.frame[1].pose * point;
+
             point3d.index = index;
             point3d.color = slam.frame[1].l.undistorted.at<cv::Vec3b>(slam.frame[1].l.keypoints.at(point.index).pt);
 
