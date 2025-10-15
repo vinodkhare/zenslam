@@ -34,7 +34,7 @@ void zenslam::application::render()
     if (slam.frame[1].l.keypoints.empty() || slam.frame[0].l.undistorted.empty() || slam.frame[1].l.undistorted.empty()) return;
 
     {
-        const auto &matches_image = utils::draw_matches(slam.frame[1]);
+        const auto &matches_image = utils::draw_matches(slam.frame[1], slam.points);
 
         cv::imshow("matches_spatial", matches_image);
         cv::setWindowTitle("matches_spatial", "matches spatial");
