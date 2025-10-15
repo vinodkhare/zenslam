@@ -1,6 +1,7 @@
 #include "utils_opencv.h"
 
 #include <opencv2/features2d.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/video/tracking.hpp>
 
 #include "utils_std.h"
@@ -26,14 +27,24 @@ auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
     return keypoints_image;
 }
 
-auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
+auto zenslam::utils::draw_matches(const stereo_frame &frame, const std::map<size_t, point> &points) -> cv::Mat
 {
     cv::Mat matches_image { };
 
     const auto &keypoints_l = values(frame.l.keypoints);
     const auto &keypoints_r = values(frame.r.keypoints);
 
-    std::vector<cv::DMatch> matches { };
+    // Create base image by concatenating left and right images
+    cv::hconcat(frame.l.undistorted, frame.r.undistorted, matches_image);
+    cv::cvtColor(matches_image, matches_image, cv::COLOR_GRAY2BGR);
+
+    // Track which keypoints are matched
+    std::vector<bool> l_matched(keypoints_l.size(), false);
+    std::vector<bool> r_matched(keypoints_r.size(), false);
+
+    // Separate matches into triangulated and not triangulated
+    std::vector<cv::DMatch> triangulated_matches { };
+    std::vector<cv::DMatch> matched_not_triangulated { };
 
     for (auto query = 0; query < keypoints_l.size(); query++)
     {
@@ -41,24 +52,69 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame) -> cv::Mat
         {
             if (keypoints_l[query].index == keypoints_r[train].index)
             {
-                matches.emplace_back(query, train, 1.0);
+                l_matched[query] = true;
+                r_matched[train] = true;
+
+                // Check if this keypoint has been triangulated
+                if (points.contains(keypoints_l[query].index))
+                {
+                    triangulated_matches.emplace_back(query, train, 1.0);
+                }
+                else
+                {
+                    matched_not_triangulated.emplace_back(query, train, 1.0);
+                }
             }
         }
     }
 
-    cv::drawMatches
-    (
-        frame.l.undistorted,
-        utils::cast<cv::KeyPoint>(keypoints_l),
-        frame.r.undistorted,
-        utils::cast<cv::KeyPoint>(keypoints_r),
-        matches,
-        matches_image,
-        cv::Scalar(000, 255, 000),
-        cv::Scalar(255, 000, 000),
-        std::vector<char>(),
-        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
-    );
+    // Draw unmatched keypoints in red
+    for (auto i = 0; i < keypoints_l.size(); i++)
+    {
+        if (!l_matched[i])
+        {
+            const auto &kp = static_cast<cv::KeyPoint>(keypoints_l[i]);
+            cv::circle(matches_image, kp.pt, gsl::narrow<int>(kp.size * 2), cv::Scalar(000, 000, 255), 2);
+        }
+    }
+    for (auto i = 0; i < keypoints_r.size(); i++)
+    {
+        if (!r_matched[i])
+        {
+            const auto &kp = static_cast<cv::KeyPoint>(keypoints_r[i]);
+            cv::Point2f pt_shifted = kp.pt;
+            pt_shifted.x += static_cast<float>(frame.l.undistorted.cols);
+            cv::circle(matches_image, pt_shifted, gsl::narrow<int>(kp.size * 2), cv::Scalar(000, 000, 255), 2);
+        }
+    }
+
+    // Draw matched but not triangulated in yellowish-orange
+    for (const auto &match : matched_not_triangulated)
+    {
+        const auto &kp_l = static_cast<cv::KeyPoint>(keypoints_l[match.queryIdx]);
+        const auto &kp_r = static_cast<cv::KeyPoint>(keypoints_r[match.trainIdx]);
+        
+        cv::Point2f pt_r_shifted = kp_r.pt;
+        pt_r_shifted.x += static_cast<float>(frame.l.undistorted.cols);
+        
+        cv::line(matches_image, kp_l.pt, pt_r_shifted, cv::Scalar(000, 165, 255), 1);
+        cv::circle(matches_image, kp_l.pt, gsl::narrow<int>(kp_l.size * 2), cv::Scalar(000, 165, 255), 2);
+        cv::circle(matches_image, pt_r_shifted, gsl::narrow<int>(kp_r.size * 2), cv::Scalar(000, 165, 255), 2);
+    }
+
+    // Draw triangulated matches in green
+    for (const auto &match : triangulated_matches)
+    {
+        const auto &kp_l = static_cast<cv::KeyPoint>(keypoints_l[match.queryIdx]);
+        const auto &kp_r = static_cast<cv::KeyPoint>(keypoints_r[match.trainIdx]);
+        
+        cv::Point2f pt_r_shifted = kp_r.pt;
+        pt_r_shifted.x += static_cast<float>(frame.l.undistorted.cols);
+        
+        cv::line(matches_image, kp_l.pt, pt_r_shifted, cv::Scalar(000, 255, 000), 1);
+        cv::circle(matches_image, kp_l.pt, gsl::narrow<int>(kp_l.size * 2), cv::Scalar(000, 255, 000), 2);
+        cv::circle(matches_image, pt_r_shifted, gsl::narrow<int>(kp_r.size * 2), cv::Scalar(000, 255, 000), 2);
+    }
 
     return matches_image;
 }

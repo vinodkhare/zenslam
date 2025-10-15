@@ -49,4 +49,6 @@
 # MacOS files
 .DS_Store
 
+# Build directories
+build/
 
