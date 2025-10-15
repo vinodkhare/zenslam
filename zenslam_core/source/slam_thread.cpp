@@ -7,8 +7,10 @@
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
-#include <opencv2/core/types.hpp>
+#include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/xfeatures2d.hpp>
+#include <opencv2/core/types.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -39,11 +41,9 @@ zenslam::slam_thread::~slam_thread()
 
 void zenslam::slam_thread::loop()
 {
-    const auto &stereo_reader     = stereo_folder_reader(_options.folder);
-    const auto &feature_detector  = cv::FastFeatureDetector::create(8);
-    const auto &feature_describer = cv::ORB::create();
-    const auto &detector          = grid_detector(feature_detector, feature_describer, _options.slam.cell_size);
-    const auto &clahe             = cv::createCLAHE();
+    const auto &stereo_reader = stereo_folder_reader(_options.folder);
+    const auto &clahe         = cv::createCLAHE();
+    const auto &detector      = grid_detector::create(_options.slam);
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto motion      = zenslam::motion();

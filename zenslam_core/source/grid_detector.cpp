@@ -6,9 +6,44 @@
 #include <gsl/gsl>
 
 #include <opencv2/imgproc.hpp> // For cv::Rect
+#include <opencv2/xfeatures2d.hpp>
 
 namespace zenslam
 {
+    auto grid_detector::create(const class options::slam &options) -> grid_detector
+    {
+        auto feature_detector  = cv::Ptr<cv::Feature2D>();
+        auto feature_describer = cv::Ptr<cv::Feature2D>();
+
+        switch (options.feature)
+        {
+            case feature_type::FAST:
+                feature_detector = cv::FastFeatureDetector::create(options.fast_threshold);
+                break;
+            case feature_type::ORB:
+                feature_detector = cv::ORB::create();
+                break;
+            case feature_type::SIFT:
+                feature_detector = cv::SIFT::create();
+                break;
+        }
+
+        switch (options.descriptor)
+        {
+            case descriptor_type::ORB:
+                feature_describer = cv::ORB::create();
+                break;
+            case descriptor_type::SIFT:
+                feature_describer = cv::SIFT::create();
+                break;
+            case descriptor_type::FREAK:
+                feature_describer = cv::xfeatures2d::FREAK::create();
+                break;
+        }
+
+        return { feature_detector, feature_describer, options.cell_size };
+    }
+
     grid_detector::grid_detector
     (
         const cv::Ptr<cv::Feature2D> &detector,

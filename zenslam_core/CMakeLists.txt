@@ -63,6 +63,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         opencv_features2d
         opencv_imgproc
         opencv_video
+        opencv_xfeatures2d
         Boost::program_options
         spdlog::spdlog
         concurrentqueue::concurrentqueue

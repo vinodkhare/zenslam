@@ -271,6 +271,8 @@ void zenslam::options::slam::print() const
     SPDLOG_INFO("cell size: [{}, {}]", cell_size.width, cell_size.height);
     SPDLOG_INFO("CLAHE enabled: {}", clahe_enabled ? "true" : "false");
     SPDLOG_INFO("epipolar threshold: {}", threshold_epipolar);
+    SPDLOG_INFO("feature type: {}", magic_enum::enum_name(feature));
+    SPDLOG_INFO("descriptor type: {}", magic_enum::enum_name(descriptor));
     SPDLOG_INFO("fast threshold: {}", fast_threshold);
     SPDLOG_INFO("klt window size: [{}, {}]", klt_window_size.width, klt_window_size.height);
     SPDLOG_INFO("klt max level: {}", klt_max_level);
