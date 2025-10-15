@@ -65,9 +65,14 @@ namespace zenslam::utils
         return map | std::views::values | std::ranges::to<std::vector>();
     }
 
+    template <size_t N>
+    auto to_string(const std::array<std::string_view, N> &strings, const std::string &delimiter = ", ") -> std::string
+    {
+        return join_to_string(strings, delimiter, std::identity { });
+    }
+
     // FUNCTIONS
     auto to_string(const std::vector<std::string> &strings, const std::string &delimiter = ", ") -> std::string;
-    auto to_string(const std::array<std::string_view, 8> &strings, const std::string &delimiter = ", ") -> std::string;
     auto to_string(const std::vector<double> &values, const std::string &delimiter = ", ") -> std::string;
     auto to_string_epoch(double epoch_seconds) -> std::string;
 }

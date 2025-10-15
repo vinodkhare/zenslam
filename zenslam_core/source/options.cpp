@@ -1,11 +1,11 @@
 #include "options.h"
 
+#include <boost/program_options.hpp>
 #include <print>
 #include <yaml-cpp/yaml.h>
-#include <boost/program_options.hpp>
 
-#include "utils.h"
 #include <magic_enum/magic_enum.hpp>
+#include "utils.h"
 
 #include <spdlog/spdlog.h>
 
@@ -37,6 +37,16 @@ boost::program_options::options_description zenslam::options::description()
         "Epipolar threshold"
     )
     (
+        "feature",
+        boost::program_options::value<std::string>()->default_value(std::string(magic_enum::enum_name(options.slam.feature))),
+        ("feature type - pick one of: " + utils::to_string(magic_enum::enum_names<feature_type>())).c_str()
+    )
+    (
+        "descriptor",
+        boost::program_options::value<std::string>()->default_value(std::string(magic_enum::enum_name(options.slam.descriptor))),
+        ("descriptor type - pick one of: " + utils::to_string(magic_enum::enum_names<descriptor_type>())).c_str()
+    )
+    (
         "fast-threshold",
         boost::program_options::value<double>()->default_value(options.slam.fast_threshold),
         "FAST threshold"
@@ -50,15 +60,7 @@ boost::program_options::options_description zenslam::options::description()
         "threshold-3d2d",
         boost::program_options::value<double>()->default_value(options.slam.threshold_3d2d),
         "3D-2D RANSAC pose estimation threshold in pixels"
-    )
-    (
-        "help,h",
-        "Show help"
-    )
-    (
-        "version,v",
-        "Show version"
-    );
+    )("help,h", "Show help")("version,v", "Show version");
 
     description.add(folder::description());
 
@@ -109,7 +111,11 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     if (options_map.contains("log-pattern")) options.log_pattern = map["log-pattern"].as<std::string>();
     if (options_map.contains("clahe-enabled")) options.slam.clahe_enabled = map["clahe-enabled"].as<bool>();
     if (options_map.contains("epipolar-threshold")) options.slam.threshold_epipolar = map["epipolar-threshold"].as<double>();
-    if (options_map.contains("fast-threshold")) options.slam.fast_threshold = map["fast-threshold"].as<double>();
+    if (options_map.contains("feature")) options.slam.feature = magic_enum::enum_cast<feature_type>
+                                         (map["feature"].as<std::string>()).value_or(options.slam.feature);
+    if (options_map.contains("descriptor")) options.slam.descriptor = magic_enum::enum_cast<descriptor_type>
+                                            (map["descriptor"].as<std::string>()).value_or(options.slam.descriptor);
+    if (options_map.contains("fast-threshold")) options.slam.fast_threshold = map["fast-threshold"].as<int>();
     if (options_map.contains("threshold-3d3d")) options.slam.threshold_3d3d = map["threshold-3d3d"].as<double>();
     if (options_map.contains("threshold-3d2d")) options.slam.threshold_3d2d = map["threshold-3d2d"].as<double>();
 
@@ -159,6 +165,18 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             if (const auto epipolar_threshold = slam["threshold_epipolar"])
             {
                 options.slam.threshold_epipolar = epipolar_threshold.as<double>();
+            }
+
+            if (const auto feature = slam["feature"])
+            {
+                options.slam.feature =
+                        magic_enum::enum_cast<feature_type>(feature.as<std::string>()).value_or(options.slam.feature);
+            }
+
+            if (const auto descriptor = slam["descriptor"])
+            {
+                options.slam.descriptor = magic_enum::enum_cast<descriptor_type>(descriptor.as<std::string>())
+                        .value_or(options.slam.descriptor);
             }
 
             if (const auto fast_threshold = slam["fast_threshold"])

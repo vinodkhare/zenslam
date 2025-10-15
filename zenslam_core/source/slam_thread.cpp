@@ -41,7 +41,7 @@ void zenslam::slam_thread::loop()
 {
     const auto &stereo_reader     = stereo_folder_reader(_options.folder);
     const auto &feature_detector  = cv::FastFeatureDetector::create(8);
-    const auto &feature_describer = cv::SiftDescriptorExtractor::create();
+    const auto &feature_describer = cv::ORB::create();
     const auto &detector          = grid_detector(feature_detector, feature_describer, _options.slam.cell_size);
     const auto &clahe             = cv::createCLAHE();
 
@@ -227,7 +227,7 @@ void zenslam::slam_thread::loop()
                 point3d.index = index;
                 point3d.color = slam.frame[1].l.undistorted.at<cv::Vec3b>(slam.frame[1].l.keypoints.at(point.index).pt);
 
-                slam.points.emplace(index, point3d);
+                slam.points[index] = point3d;
             }
 
             SPDLOG_INFO("");

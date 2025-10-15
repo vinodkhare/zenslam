@@ -57,7 +57,7 @@ namespace zenslam
             }
         }
 
-        std::vector<keypoint> keypoints = { };
+        std::vector<cv::KeyPoint> keypoints_cv { };
 
         // For each cell in the grid
         for (auto y = 0; y < grid_size.height; ++y)
@@ -110,18 +110,10 @@ namespace zenslam
                     cell_keypoints[index].pt.y += gsl::narrow<float, int>(cell_rect.y);
 
                     // Add the best keypoint from this cell
-                    keypoints.emplace_back(keypoint { cell_keypoints[index], keypoint::index_next++ });
+                    keypoints_cv.emplace_back(cell_keypoints[index]);
                 }
             }
         }
-
-        auto keypoints_cv = keypoints | std::views::transform
-                            (
-                                [](const auto &keypoint) -> cv::KeyPoint
-                                {
-                                    return keypoint;
-                                }
-                            ) | std::ranges::to<std::vector>();
 
         auto points_cv = keypoints_cv | std::views::transform
                          (
@@ -146,21 +138,17 @@ namespace zenslam
         for (auto i = 0; i < points_cv.size(); ++i)
         {
             keypoints_cv[i].pt = points_cv[i];
-            keypoints[i].pt    = points_cv[i];
         }
 
         cv::Mat descriptors;
         _describer->compute(image, keypoints_cv, descriptors);
 
-        if (keypoints_cv.size() != keypoints.size())
-        {
-            throw std::runtime_error("Keypoint count mismatch");
-        }
-
         for (auto i = 0; i < descriptors.rows; ++i)
         {
-            keypoints_map[keypoints[i].index]            = keypoints[i];
-            keypoints_map[keypoints[i].index].descriptor = descriptors.row(i);
+            keypoints_map[keypoint::index_next]            = keypoint { keypoints_cv[i], keypoint::index_next };
+            keypoints_map[keypoint::index_next].descriptor = descriptors.row(i);
+
+            keypoint::index_next++;
         }
     }
 
@@ -232,10 +220,15 @@ namespace zenslam
                     std::launch::async,
                     [this, &image, cell]() -> cell_result
                     {
-                        const auto                cell_image = image(cell.rect);
-                        std::vector<cv::KeyPoint> cell_keypoints;
+                        const auto cell_image = image(cell.rect);
 
+                        std::vector<cv::KeyPoint> cell_keypoints;
                         _detector->detect(cell_image, cell_keypoints, cv::noArray());
+
+                        if (cell_keypoints.empty())
+                        {
+                            _describer->detect(cell_image, cell_keypoints, cv::noArray());
+                        }
 
                         if (cell_keypoints.empty())
                         {
@@ -287,9 +280,27 @@ namespace zenslam
             std::vector<cv::KeyPoint> keypoints_cv;
             keypoints_cv.reserve(new_keypoints.size());
 
+            std::vector<cv::Point2f> points_cv;
+            points_cv.reserve(new_keypoints.size());
+
             for (const auto &kp: new_keypoints)
             {
                 keypoints_cv.push_back(kp);
+                points_cv.push_back(kp.pt);
+            }
+
+            cv::cornerSubPix
+            (
+                image,
+                points_cv,
+                cv::Size(5, 5),
+                cv::Size(-1, -1),
+                cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01)
+            );
+
+            for (auto i = 0; i < points_cv.size(); ++i)
+            {
+                keypoints_cv[i].pt = points_cv[i];
             }
 
             // Compute descriptors
@@ -302,9 +313,10 @@ namespace zenslam
             }
 
             // Update descriptors
-            for (size_t i = 0; i < descriptors.rows; ++i)
+            for (auto i = 0; i < descriptors.rows; ++i)
             {
                 keypoints_map[new_keypoints[i].index].descriptor = descriptors.row(i);
+                keypoints_map[new_keypoints[i].index].pt         = keypoints_cv[i].pt;
             }
         }
     }

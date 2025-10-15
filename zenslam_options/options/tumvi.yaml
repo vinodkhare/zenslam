@@ -12,9 +12,11 @@ folder:
   groundtruth_file: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/gt_imu.csv
 
 slam:
-  cell_size: [ 64, 64 ]
+  cell_size: [ 32, 32 ]
   clahe_enabled: false
-  fast_threshold: 8
+  feature:  "FAST"
+  detector: "ORB"
+  fast_threshold: 16
   klt_window_size: [ 31, 31 ]
   klt_max_level: 3
   klt_threshold: 1.0
