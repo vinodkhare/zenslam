@@ -101,8 +101,8 @@ void zenslam::slam_thread::loop()
                 utils::track(slam.frame[0].r, slam.frame[1].r, _options.slam);
             }
 
-            SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", slam.frame[1].l.keypoints.size());
-            SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", slam.frame[1].r.keypoints.size());
+            slam.counts.keypoints_l_tracked = slam.frame[1].l.keypoints.size();
+            slam.counts.keypoints_r_tracked = slam.frame[1].r.keypoints.size();
 
             // DETECT
             {
@@ -112,8 +112,8 @@ void zenslam::slam_thread::loop()
                 detector.detect(slam.frame[1].r.undistorted, slam.frame[1].r.keypoints);
             }
 
-            SPDLOG_INFO("Detected points L: {}", slam.frame[1].l.keypoints.size());
-            SPDLOG_INFO("Detected points R: {}", slam.frame[1].r.keypoints.size());
+            slam.counts.keypoints_l = slam.frame[1].l.keypoints.size();
+            slam.counts.keypoints_r = slam.frame[1].r.keypoints.size();
 
             // MATCH & TRIANGULATE
             {
@@ -126,8 +126,6 @@ void zenslam::slam_thread::loop()
                     calibration.fundamental_matrix[0],
                     _options.slam.threshold_epipolar
                 );
-
-                SPDLOG_INFO("Matched points: {}", matches.size());
 
                 for (const auto &match: matches)
                 {
@@ -142,9 +140,22 @@ void zenslam::slam_thread::loop()
 
                 std::vector<double> errors { };
                 std::tie(slam.frame[1].points, errors) = utils::triangulate
-                        (slam.frame[1], calibration.projection_matrix[0], calibration.projection_matrix[1]);
+                (
+                    slam.frame[1],
+                    calibration.projection_matrix[0],
+                    calibration.projection_matrix[1]
+                );
 
-                SPDLOG_INFO("Triangulated point count: {}", slam.frame[1].points.size());
+                slam.counts.maches_triangulated = slam.frame[1].points.size();
+                slam.counts.matches             = std::ranges::count_if
+                (
+                    slam.frame[1].l.keypoints | std::views::keys,
+                    [&slam](const auto &index)
+                    {
+                        return slam.frame[1].r.keypoints.contains(index);
+                    }
+                );
+
                 SPDLOG_INFO
                 (
                     "Triangulation mean error: {} pixels",
@@ -191,6 +202,11 @@ void zenslam::slam_thread::loop()
                 }
             }
 
+            slam.counts.correspondences_3d2d         = pose_data_3d2d.indices.size();
+            slam.counts.correspondences_3d3d         = pose_data_3d3d.indices.size();
+            slam.counts.correspondences_3d2d_inliers = pose_data_3d2d.inliers.size();
+            slam.counts.correspondences_3d3d_inliers = pose_data_3d3d.inliers.size();
+
             SPDLOG_INFO("");
             SPDLOG_INFO("3D-3D correspondences: {}", pose_data_3d3d.indices.size());
             SPDLOG_INFO("3D-3D inliers: {}", pose_data_3d3d.inliers.size());
@@ -232,7 +248,9 @@ void zenslam::slam_thread::loop()
 
             motion.update(slam.frame[0].pose, slam.frame[1].pose, dt);
 
+            slam.counts.print();
             slam.durations.print();
+
             writer.write(slam);
 
             on_frame(slam);
