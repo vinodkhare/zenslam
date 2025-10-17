@@ -1,5 +1,7 @@
 #include "application.h"
 
+#include <imgui.h>
+
 #include <opencv2/highgui.hpp>
 #include <opencv2/viz.hpp>
 
@@ -109,6 +111,8 @@ void zenslam::application::render()
             _viewer->spinOnce(0, true);
         }
     }
+
+    ImGui::Text("Hello Metal!");
 
     cv::waitKey(1);
 }

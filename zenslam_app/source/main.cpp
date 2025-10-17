@@ -50,25 +50,17 @@ int main(const int argc, char **argv)
 
         options.print();
 
-        auto application = zenslam::application { options };
+        zenslam::application     application { options };
+        HelloImGui::RunnerParams params { };
 
-        HelloImGui::RunnerParams params;
-    
         // Force Metal backend
         params.rendererBackendType = HelloImGui::RendererBackendType::Metal;
-        
-        // Your app setup
-        params.callbacks.ShowGui = [&application]() {
-            application.render();
-            ImGui::Text("Hello Metal!");
-        };
-    
-        HelloImGui::Run(params);
-
-        while (is_running)
+        params.callbacks.ShowGui   = [&application]()
         {
             application.render();
-        }
+        };
+
+        HelloImGui::Run(params);
 
         return 0;
     }

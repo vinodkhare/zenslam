@@ -42,7 +42,6 @@ add_library(${PROJECT_NAME}
         source/groundtruth.cpp
         source/imu_calibration.cpp
         source/keypoint.cpp
-        source/match_data.cpp
         source/mono_folder_reader.cpp
         source/mono_frame.cpp
         source/motion.cpp

@@ -5,7 +5,6 @@
 
 #include <opencv2/core/affine.hpp>
 
-#include "match_data.h"
 #include "mono_frame.h"
 #include "point.h"
 
@@ -16,8 +15,6 @@ namespace zenslam
     public:
         mono_frame              l        = { };
         mono_frame              r        = { };
-        match_data              spatial  = { };
-        match_data              temporal = { };
         std::map<size_t, point> points   = { };
         cv::Affine3d            pose     = { };
         cv::Affine3d            pose_gt  = { }; // groundtruth pose
