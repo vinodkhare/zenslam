@@ -186,10 +186,21 @@ namespace zenslam
         std::vector<cv::line_descriptor::KeyLine> keylines_cv { };
         _line_detector->detect(image, keylines_cv, 2.0f, 1);
 
-        std::vector<keyline> keylines { };
-        for (const auto &kl: keylines_cv)
+        // Compute descriptors for detected keylines
+        auto bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
+        cv::Mat descriptors;
+        if (!keylines_cv.empty())
         {
-            keylines.emplace_back(kl, keyline::index_next++);
+            bd->compute(image, keylines_cv, descriptors);
+        }
+
+        std::vector<keyline> keylines { };
+        for (size_t i = 0; i < keylines_cv.size(); ++i)
+        {
+            keylines.emplace_back(keylines_cv[i], keyline::index_next);
+            if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows))
+                keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
+            keyline::index_next++;
         }
 
         return keylines;
@@ -222,10 +233,21 @@ namespace zenslam
         std::vector<cv::line_descriptor::KeyLine> keylines_cv { };
         _line_detector->detect(image, keylines_cv, 2.0f, 1, mask);
 
-        std::vector<keyline> keylines { };
-        for (const auto &kl: keylines_cv)
+        // Compute descriptors for detected keylines
+        auto bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
+        cv::Mat descriptors;
+        if (!keylines_cv.empty())
         {
-            keylines.emplace_back(kl, keyline::index_next++);
+            bd->compute(image, keylines_cv, descriptors);
+        }
+
+        std::vector<keyline> keylines { };
+        for (size_t i = 0; i < keylines_cv.size(); ++i)
+        {
+            keylines.emplace_back(keylines_cv[i], keyline::index_next);
+            if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows))
+                keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
+            keyline::index_next++;
         }
 
         return keylines;

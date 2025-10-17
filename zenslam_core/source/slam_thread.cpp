@@ -136,6 +136,14 @@ void zenslam::slam_thread::loop()
                     _options.slam.threshold_epipolar
                 );
 
+                slam.frames[1].cameras[1].keylines *= utils::match_keylines
+                (
+                    slam.frames[0].cameras[1].keylines,
+                    slam.frames[1].cameras[1].keylines,
+                    calibration.camera_matrix[1],
+                    _options.slam.threshold_epipolar
+                );
+
                 std::vector<double> errors { };
                 std::tie(slam.frames[1].points, errors) = utils::triangulate
                 (

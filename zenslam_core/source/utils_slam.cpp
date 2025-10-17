@@ -1,3 +1,5 @@
+
+
 #include "utils_slam.h"
 
 #include <numeric>
@@ -423,6 +425,93 @@ auto zenslam::utils::match
     return matches_new;
 }
 
+auto zenslam::utils::match_keylines
+(
+    const std::map<size_t, keyline> &keylines_map_0,
+    const std::map<size_t, keyline> &keylines_map_1,
+    const cv::Matx33d &              fundamental,
+    double                           epipolar_threshold
+) -> std::vector<cv::DMatch>
+{
+    // Prepare descriptors and keyline vectors
+    std::vector<keyline> keylines_0,    keylines_1;
+    cv::Mat              descriptors_0, descriptors_1;
+
+    for (const auto &kl: keylines_map_0 | std::views::values)
+    {
+        keylines_0.push_back(kl);
+        if (descriptors_0.empty()) descriptors_0 = kl.descriptor;
+        else cv::vconcat(descriptors_0, kl.descriptor, descriptors_0);
+    }
+
+    for (const auto &kl: keylines_map_1 | std::views::values)
+    {
+        keylines_1.push_back(kl);
+        if (descriptors_1.empty()) descriptors_1 = kl.descriptor;
+        else cv::vconcat(descriptors_1, kl.descriptor, descriptors_1);
+    }
+
+    // Match descriptors
+    const cv::BFMatcher     matcher(cv::NORM_HAMMING, true);
+    std::vector<cv::DMatch> matches;
+    if (!descriptors_0.empty() && !descriptors_1.empty()) matcher.match(descriptors_0, descriptors_1, matches);
+
+    // Epipolar filtering on endpoints and midpoint
+    std::vector<cv::DMatch> filtered;
+    filtered.reserve(matches.size());
+
+    for (const auto &match: matches)
+    {
+        const auto &kl0 = keylines_0[match.queryIdx];
+        const auto &kl1 = keylines_1[match.trainIdx];
+
+        // Endpoints and midpoint
+        std::vector pts0 =
+        {
+            cv::Point2f(kl0.startPointX, kl0.startPointY),
+            cv::Point2f(kl0.endPointX, kl0.endPointY),
+            cv::Point2f(kl0.pt.x, kl0.pt.y)
+        };
+
+        std::vector pts1 =
+        {
+            cv::Point2f(kl1.startPointX, kl1.startPointY),
+            cv::Point2f(kl1.endPointX, kl1.endPointY),
+            cv::Point2f(kl1.pt.x, kl1.pt.y)
+        };
+
+        // Compute epilines for pts0 in image 1, and pts1 in image 0
+        std::vector<cv::Vec3f> epilines0, epilines1;
+        cv::computeCorrespondEpilines(pts0, 1, fundamental, epilines1);
+        cv::computeCorrespondEpilines(pts1, 2, fundamental, epilines0);
+
+        auto good = true;
+        for (auto i = 0; i < 3; ++i)
+        {
+            // Error for pt0 to epiline in image 0
+            double err0 = std::abs(epilines0[i][0] * pts0[i].x + epilines0[i][1] * pts0[i].y + epilines0[i][2]) /
+                          std::sqrt(epilines0[i][0] * epilines0[i][0] + epilines0[i][1] * epilines0[i][1]);
+
+            // Error for pt1 to epiline in image 1
+            double err1 = std::abs(epilines1[i][0] * pts1[i].x + epilines1[i][1] * pts1[i].y + epilines1[i][2]) /
+                          std::sqrt(epilines1[i][0] * epilines1[i][0] + epilines1[i][1] * epilines1[i][1]);
+
+            if (err0 > epipolar_threshold || err1 > epipolar_threshold)
+            {
+                good = false;
+                break;
+            }
+        }
+        if (good)
+        {
+            // Use keyline indices for DMatch
+            filtered.emplace_back(kl0.index, kl1.index, match.distance);
+        }
+    }
+
+    return filtered;
+}
+
 auto zenslam::utils::match_temporal
 (
     const std::map<size_t, keypoint> &keypoints_map_0,
@@ -718,7 +807,7 @@ auto zenslam::utils::track_keylines
     end_points_0.reserve(keylines_map_0.size());
     keylines_0.reserve(keylines_map_0.size());
 
-    for (const auto &[idx, keyline] : keylines_map_0)
+    for (const auto &[idx, keyline]: keylines_map_0)
     {
         keylines_0.push_back(keyline);
         start_points_0.emplace_back(keyline.startPointX, keyline.startPointY);
@@ -726,12 +815,12 @@ auto zenslam::utils::track_keylines
     }
 
     // Forward tracking: track start and end points from frame 0 to frame 1
-    std::vector<cv::Point2f> start_points_1 = start_points_0;
-    std::vector<cv::Point2f> end_points_1 = end_points_0;
-    std::vector<uchar>       status_start_fwd;
-    std::vector<uchar>       status_end_fwd;
-    std::vector<float>       err_start_fwd;
-    std::vector<float>       err_end_fwd;
+    auto               start_points_1 = start_points_0;
+    auto               end_points_1   = end_points_0;
+    std::vector<uchar> status_start_fwd;
+    std::vector<uchar> status_end_fwd;
+    std::vector<float> err_start_fwd;
+    std::vector<float> err_end_fwd;
 
     cv::calcOpticalFlowPyrLK
     (
@@ -809,26 +898,26 @@ auto zenslam::utils::track_keylines
         {
             // Compute forward-backward error for both endpoints
             const float fb_error_start = cv::norm(start_points_0_back[i] - start_points_0[i]);
-            const float fb_error_end = cv::norm(end_points_0_back[i] - end_points_0[i]);
+            const float fb_error_end   = cv::norm(end_points_0_back[i] - end_points_0[i]);
 
             // Accept the track only if both endpoints pass the forward-backward threshold
             if (fb_error_start < options.klt_threshold && fb_error_end < options.klt_threshold)
             {
-                keyline tracked_keyline = keylines_0[i];
+                auto tracked_keyline = keylines_0[i];
 
                 // Update keyline endpoints with tracked positions
                 tracked_keyline.startPointX = start_points_1[i].x;
                 tracked_keyline.startPointY = start_points_1[i].y;
-                tracked_keyline.endPointX = end_points_1[i].x;
-                tracked_keyline.endPointY = end_points_1[i].y;
+                tracked_keyline.endPointX   = end_points_1[i].x;
+                tracked_keyline.endPointY   = end_points_1[i].y;
 
                 // Update keyline midpoint (pt)
                 tracked_keyline.pt.x = (start_points_1[i].x + end_points_1[i].x) * 0.5f;
                 tracked_keyline.pt.y = (start_points_1[i].y + end_points_1[i].y) * 0.5f;
 
                 // Update keyline length
-                const float dx = tracked_keyline.endPointX - tracked_keyline.startPointX;
-                const float dy = tracked_keyline.endPointY - tracked_keyline.startPointY;
+                const auto dx              = tracked_keyline.endPointX - tracked_keyline.startPointX;
+                const auto dy              = tracked_keyline.endPointY - tracked_keyline.startPointY;
                 tracked_keyline.lineLength = std::sqrt(dx * dx + dy * dy);
 
                 // Update keyline angle

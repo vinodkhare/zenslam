@@ -60,6 +60,28 @@ inline auto operator*=
     return keypoints_map;
 }
 
+inline auto operator*=
+(
+    std::map<size_t, zenslam::keyline> &keylines_map,
+    const std::vector<cv::DMatch> &      matches
+) -> std::map<size_t, zenslam::keyline> &
+{
+    for (const auto &match: matches)
+    {
+        const auto index_new = match.queryIdx;
+        const auto index_old = match.trainIdx;
+
+        auto keyline  = keylines_map.at(index_old);
+        keyline.index = index_new;
+
+        keylines_map.erase(index_old);
+
+        keylines_map[index_new] = keyline;
+    }
+
+    return keylines_map;
+}
+
 
 namespace zenslam::utils
 {
@@ -71,6 +93,7 @@ namespace zenslam::utils
         std::vector<cv::Point2d> &        points2d,
         std::vector<size_t> &             indices
     ) -> void;
+
 
     void correspondences_3d3d
     (
@@ -137,6 +160,24 @@ namespace zenslam::utils
         const std::map<size_t, keypoint> &map_keypoints_r,
         const cv::Matx33d &               fundamental,
         double                            epipolar_threshold
+    ) -> std::vector<cv::DMatch>;
+
+    /**
+     * Match keylines between two frames using their descriptors, then filter matches using epipolar constraint
+     * on both endpoints and the midpoint.
+     *
+     * @param keylines_map_0 Keylines from frame 0
+     * @param keylines_map_1 Keylines from frame 1
+     * @param fundamental Fundamental matrix between the two frames
+     * @param epipolar_threshold Threshold for epipolar error (pixels)
+     * @return Vector of cv::DMatch for good matches
+     */
+    auto match_keylines
+    (
+        const std::map<size_t, keyline> &keylines_map_0,
+        const std::map<size_t, keyline> &keylines_map_1,
+        const cv::Matx33d &              fundamental,
+        double                           epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
     auto match_temporal

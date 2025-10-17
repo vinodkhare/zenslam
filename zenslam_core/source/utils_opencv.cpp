@@ -215,8 +215,8 @@ auto zenslam::utils::draw_matches(const zenslam::frame::camera &frame_0, const z
     const auto &keypoints_1 = values(frame_1.keypoints);
     
     // Prepare images with keylines
-    cv::Mat img_0 = frame_0.undistorted.clone();
-    cv::Mat img_1 = frame_1.undistorted.clone();
+    auto img_0 = frame_0.undistorted.clone();
+    auto img_1 = frame_1.undistorted.clone();
     
     if (img_0.channels() == 1)
     {
