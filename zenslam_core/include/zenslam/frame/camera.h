@@ -5,6 +5,7 @@
 
 #include <opencv2/core.hpp>
 
+#include "zenslam/keyline.h"
 #include "zenslam/keypoint.h"
 
 namespace zenslam::frame
@@ -17,6 +18,7 @@ namespace zenslam::frame
         cv::Mat                    rectified   = { };
         cv::Mat                    undistorted = { };
         std::map<size_t, keypoint> keypoints   = { };
+        std::map<size_t, keyline>  keylines    = { };
         std::vector<cv::Mat>       pyramid     = { };
 
         camera() = default;

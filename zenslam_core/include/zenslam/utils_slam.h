@@ -25,6 +25,19 @@ inline auto operator+=
     return keypoints_map;
 }
 
+inline auto operator+=
+(
+    std::map<size_t, zenslam::keyline> & keylines_map,
+    const std::vector<zenslam::keyline> &keylines
+) -> std::map<size_t, zenslam::keyline> &
+{
+    for (const auto &keyline: keylines)
+    {
+        keylines_map[keyline.index] = keyline;
+    }
+    return keylines_map;
+}
+
 inline auto operator*=
 (
     std::map<size_t, zenslam::keypoint> &keypoints_map,
