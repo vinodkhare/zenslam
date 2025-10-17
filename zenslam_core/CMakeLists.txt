@@ -58,6 +58,7 @@ add_library(${PROJECT_NAME}
         source/utils_slam.cpp
         source/utils_std.cpp
         source/verb.cpp
+        source/keyline.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include/zenslam ${RAPIDCSV_INCLUDE_DIRS} PUBLIC include)
@@ -66,6 +67,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         opencv_core
         opencv_features2d
         opencv_imgproc
+        opencv_line_descriptor
         opencv_video
         opencv_xfeatures2d
         Boost::program_options

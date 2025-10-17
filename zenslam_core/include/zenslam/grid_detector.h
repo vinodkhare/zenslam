@@ -4,7 +4,9 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/line_descriptor/descriptor.hpp>
 
+#include "keyline.h"
 #include "keypoint.h"
 #include "options.h"
 
@@ -29,20 +31,29 @@ namespace zenslam
         static auto create(const class options::slam &options) -> grid_detector;
 
         /**
-         * @brief Create a grid detector with the specified cell size and underlying detector
+         * @brief Detect keypoints in the image using grid-based detection
          *
-         * @param detector The feature detector to use within each grid cell
-         * @param describer The feature describer to compute descriptors for detected keypoints
-         * @param cell_size The size of each grid cell in pixels
+         * @param image The input image in which to detect keypoints
+         * @param keypoints_map A map to store detected keypoints with their indices
+         * @return A vector of detected keypoints
          */
-        grid_detector(const cv::Ptr<cv::Feature2D> &detector, const cv::Ptr<cv::Feature2D> &describer, cv::Size cell_size);
-
         std::vector<keypoint> detect(const cv::Mat &image, const std::map<size_t, keypoint> &keypoints_map) const;
-        void                  detect_par(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const;
+
+        /**
+         * @brief Detect keylines in the image using grid-based detection
+         *
+         * @param image The input image in which to detect keylines
+         * @param keylines_map A map to store detected keylines with their indices
+         * @return A vector of detected keylines
+         */
+        std::vector<keyline> detect(const cv::Mat &image, const std::map<size_t, keyline> &keylines_map) const;
+
+        void detect_par(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const;
 
     private:
-        cv::Ptr<cv::Feature2D> _detector; // Underlying detector
-        cv::Ptr<cv::Feature2D> _describer;
-        cv::Size               _cell_size; // Size of each grid cell
+        cv::Ptr<cv::Feature2D>                    _detector      = { }; // Underlying detector
+        cv::Ptr<cv::Feature2D>                    _describer     = { };
+        cv::Ptr<cv::line_descriptor::LSDDetector> _detector_line = { }; // Line feature detector
+        cv::Size                                  _cell_size     = { }; // Size of each grid cell
     };
 } // namespace zenslam

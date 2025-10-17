@@ -197,7 +197,7 @@ auto zenslam::utils::project(const std::vector<cv::Point3d> &points, const cv::M
     std::vector<cv::Point2d> points2d { };
     cv::Mat                  points3d_mat(4, gsl::narrow<int>(points.size()), CV_64F);
 
-    for (int i = 0; i < points.size(); i++)
+    for (auto i = 0; i < points.size(); i++)
     {
         points3d_mat.at<double>(0, i) = points[i].x;
         points3d_mat.at<double>(1, i) = points[i].y;
@@ -221,9 +221,9 @@ auto zenslam::utils::project(const std::vector<cv::Point3d> &points, const cv::M
                    }
                ) | std::ranges::to<std::vector>();
 
-    for (int i = 0; i < points.size(); i++)
+    for (auto i = 0; i < points.size(); i++)
     {
-        double w = points2d_mat.at<double>(2, i);
+        auto w = points2d_mat.at<double>(2, i);
         if (std::abs(w) > 1E-9)
         {
             points2d.emplace_back

@@ -57,9 +57,9 @@ int main()
         auto imu_calib = zenslam::imu_calibration::parse("imu_config.yaml");
         
         // Example: Computing noise covariance matrix diagonal
-        double accel_variance = imu_calib.accelerometer_noise_density * 
+        auto accel_variance = imu_calib.accelerometer_noise_density * 
                                imu_calib.accelerometer_noise_density;
-        double gyro_variance = imu_calib.gyroscope_noise_density * 
+        auto gyro_variance = imu_calib.gyroscope_noise_density * 
                               imu_calib.gyroscope_noise_density;
         
         std::cout << "Noise variances:\n";
@@ -68,9 +68,9 @@ int main()
         std::cout << "\n";
         
         // Example: Computing bias drift over time
-        double time_interval = 10.0; // seconds
-        double accel_drift = imu_calib.accelerometer_random_walk * std::sqrt(time_interval);
-        double gyro_drift = imu_calib.gyroscope_random_walk * std::sqrt(time_interval);
+        auto time_interval = 10.0; // seconds
+        auto accel_drift = imu_calib.accelerometer_random_walk * std::sqrt(time_interval);
+        auto gyro_drift = imu_calib.gyroscope_random_walk * std::sqrt(time_interval);
         
         std::cout << "Expected bias drift over " << time_interval << " seconds:\n";
         std::cout << "  Accelerometer: " << accel_drift << " m/s^2\n";
