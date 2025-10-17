@@ -48,7 +48,7 @@ void zenslam::slam_thread::loop()
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto motion      = zenslam::motion();
-    auto writer      = zenslam::frame::writer(_options.folder.output / "frame_data.csv");
+    auto writer      = frame::writer(_options.folder.output / "frame_data.csv");
 
     calibration.print();
 
@@ -86,6 +86,22 @@ void zenslam::slam_thread::loop()
                 const auto &tracked_keypoints = utils::track(slam.frames, _options.slam);
                 slam.frames[1].cameras[0].keypoints += tracked_keypoints[0];
                 slam.frames[1].cameras[1].keypoints += tracked_keypoints[1];
+
+                slam.frames[1].cameras[0].keylines += utils::track_keylines
+                (
+                    slam.frames[0].cameras[0].pyramid,
+                    slam.frames[1].cameras[0].pyramid,
+                    slam.frames[0].cameras[0].keylines,
+                    _options.slam
+                );
+
+                slam.frames[1].cameras[1].keylines += utils::track_keylines
+                (
+                    slam.frames[0].cameras[1].pyramid,
+                    slam.frames[1].cameras[1].pyramid,
+                    slam.frames[0].cameras[1].keylines,
+                    _options.slam
+                );
             }
 
             slam.counts.keypoints_l_tracked = slam.frames[1].cameras[0].keypoints.size();
@@ -102,10 +118,10 @@ void zenslam::slam_thread::loop()
                         (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keypoints);
 
                 slam.frames[1].cameras[0].keylines += detector.detect
-                        (slam.frames[1].cameras[0].undistorted, slam.frames[1].cameras[0].keylines);
+                        (slam.frames[1].cameras[0].undistorted);
 
                 slam.frames[1].cameras[1].keylines += detector.detect
-                        (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keylines);
+                        (slam.frames[1].cameras[1].undistorted);
             }
 
             // MATCH & TRIANGULATE
