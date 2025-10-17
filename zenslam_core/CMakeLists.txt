@@ -48,7 +48,7 @@ add_library(${PROJECT_NAME}
         source/mono_folder_reader.cpp
         source/motion.cpp
         source/options.cpp
-        source/point.cpp
+        source/point3d.cpp
         source/pose.cpp
         source/slam_thread.cpp
         source/stereo_folder_reader.cpp

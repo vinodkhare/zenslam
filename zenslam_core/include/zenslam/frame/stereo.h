@@ -5,7 +5,7 @@
 
 #include <opencv2/core/affine.hpp>
 
-#include "zenslam/point.h"
+#include "zenslam/point3d.h"
 #include "zenslam/frame/camera.h"
 
 namespace zenslam::frame
@@ -14,7 +14,7 @@ namespace zenslam::frame
     {
     public:
         std::array<camera, 2>   cameras = { };
-        std::map<size_t, point> points  = { };
+        std::map<size_t, point3d> points  = { };
         cv::Affine3d            pose    = { };
         cv::Affine3d            pose_gt = { }; // groundtruth pose
 

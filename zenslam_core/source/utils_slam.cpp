@@ -28,7 +28,7 @@
 
 void zenslam::utils::correspondences_3d2d
 (
-    const std::map<size_t, point> &   points,
+    const std::map<size_t, point3d> &   points,
     const std::map<size_t, keypoint> &keypoints,
     std::vector<cv::Point3d> &        points3d,
     std::vector<cv::Point2d> &        points2d,
@@ -48,8 +48,8 @@ void zenslam::utils::correspondences_3d2d
 
 void zenslam::utils::correspondences_3d3d
 (
-    const std::map<size_t, point> &points_map_0,
-    const std::map<size_t, point> &points_map_1,
+    const std::map<size_t, point3d> &points_map_0,
+    const std::map<size_t, point3d> &points_map_1,
     std::vector<cv::Point3d> &     points3d_0,
     std::vector<cv::Point3d> &     points3d_1,
     std::vector<size_t> &          indexes
@@ -68,7 +68,7 @@ void zenslam::utils::correspondences_3d3d
 
 auto zenslam::utils::estimate_pose_3d2d
 (
-    const std::map<size_t, point> &   map_points_0,
+    const std::map<size_t, point3d> &   map_points_0,
     const std::map<size_t, keypoint> &map_keypoints_1,
     const cv::Matx33d &               camera_matrix,
     const double &                    threshold
@@ -131,8 +131,8 @@ auto zenslam::utils::estimate_pose_3d2d
 
 auto zenslam::utils::estimate_pose_3d3d
 (
-    const std::map<size_t, point> &map_points_0,
-    const std::map<size_t, point> &map_points_1,
+    const std::map<size_t, point3d> &map_points_0,
+    const std::map<size_t, point3d> &map_points_1,
     const double &                 threshold
 ) -> pose_data
 {
@@ -945,7 +945,7 @@ auto zenslam::utils::triangulate
     const cv::Matx34d &     projection_l,
     const cv::Matx34d &     projection_r,
     const double            threshold
-) -> std::tuple<std::map<size_t, point>, std::vector<double>>
+) -> std::tuple<std::map<size_t, point3d>, std::vector<double>>
 {
     auto indices = frame.cameras[0].keypoints | std::views::keys |
                    std::ranges::views::filter
@@ -999,7 +999,7 @@ auto zenslam::utils::triangulate
                   (
                       [&indices, &points3d](const size_t &i)
                       {
-                          return std::make_pair(indices[i], point { points3d[i], indices[i] });
+                          return std::make_pair(indices[i], point3d { points3d[i], indices[i] });
                       }
                   ) |
                   std::ranges::to<std::map>();

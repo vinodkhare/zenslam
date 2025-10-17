@@ -7,7 +7,7 @@
 #include "camera_calibration.h"
 #include "keypoint.h"
 #include "options.h"
-#include "point.h"
+#include "point3d.h"
 #include "pose_data.h"
 #include "frame/stereo.h"
 
@@ -87,7 +87,7 @@ namespace zenslam::utils
 {
     auto correspondences_3d2d
     (
-        const std::map<size_t, point> &   points,
+        const std::map<size_t, point3d> &   points,
         const std::map<size_t, keypoint> &keypoints,
         std::vector<cv::Point3d> &        points3d,
         std::vector<cv::Point2d> &        points2d,
@@ -97,8 +97,8 @@ namespace zenslam::utils
 
     void correspondences_3d3d
     (
-        const std::map<size_t, point> &points_map_0,
-        const std::map<size_t, point> &points_map_1,
+        const std::map<size_t, point3d> &points_map_0,
+        const std::map<size_t, point3d> &points_map_1,
         std::vector<cv::Point3d> &     points3d_0,
         std::vector<cv::Point3d> &     points3d_1,
         std::vector<size_t> &          indexes
@@ -106,7 +106,7 @@ namespace zenslam::utils
 
     auto estimate_pose_3d2d
     (
-        const std::map<size_t, point> &   map_points_0,
+        const std::map<size_t, point3d> &   map_points_0,
         const std::map<size_t, keypoint> &map_keypoints_1,
         const cv::Matx33d &               camera_matrix,
         const double &                    threshold
@@ -114,8 +114,8 @@ namespace zenslam::utils
 
     auto estimate_pose_3d3d
     (
-        const std::map<size_t, point> &map_points_0,
-        const std::map<size_t, point> &map_points_1,
+        const std::map<size_t, point3d> &map_points_0,
+        const std::map<size_t, point3d> &map_points_1,
         const double &                 threshold
     ) -> pose_data;
 
@@ -296,7 +296,7 @@ namespace zenslam::utils
         const cv::Matx34d &projection_l,
         const cv::Matx34d &projection_r,
         double             threshold
-    ) -> std::tuple<std::map<size_t, point>, std::vector<double>>;
+    ) -> std::tuple<std::map<size_t, point3d>, std::vector<double>>;
 
     /**
      * Triangulate keylines between stereo frames using their indices.

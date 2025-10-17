@@ -5,7 +5,7 @@
 
 namespace zenslam
 {
-    class point : public cv::Point3d
+    class point3d : public cv::Point3d
     {
     public:
         size_t    index { };

@@ -70,7 +70,7 @@ auto zenslam::utils::draw_keylines(const zenslam::frame::camera &frame) -> cv::M
     return keylines_image;
 }
 
-auto zenslam::utils::draw_matches(const zenslam::frame::stereo &frame, const std::map<size_t, point> &points) -> cv::Mat
+auto zenslam::utils::draw_matches(const zenslam::frame::stereo &frame, const std::map<size_t, point3d> &points) -> cv::Mat
 {
     cv::Mat matches_image { };
 
