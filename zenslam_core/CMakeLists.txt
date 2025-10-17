@@ -31,6 +31,7 @@ message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
 find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
 
 add_library(${PROJECT_NAME}
+        source/calibration.cpp
         source/camera_calibration.cpp
         source/event.cpp
         source/folder_options.cpp

@@ -21,7 +21,6 @@ auto zenslam::utils::to_string(const std::vector<std::string> &strings, const st
 }
 
 
-
 auto zenslam::utils::to_string(const std::vector<double> &values, const std::string &delimiter) -> std::string
 {
     return join_to_string

@@ -7,15 +7,14 @@
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
-#include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/xfeatures2d.hpp>
 #include <opencv2/core/types.hpp>
 
 #include <spdlog/spdlog.h>
 
 #include <vtk-9.3/vtkLogger.h>
 
+#include "calibration.h"
 #include "camera_calibration.h"
 #include "grid_detector.h"
 #include "groundtruth.h"
@@ -49,22 +48,15 @@ void zenslam::slam_thread::loop()
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto motion      = zenslam::motion();
 
-    const auto &calibrations = std::vector {
-        camera_calibration::parse(_options.folder.calibration_file, "cam0"),
-        camera_calibration::parse(_options.folder.calibration_file, "cam1")
-    };
+    const auto &calibration = calibration::parse
+    (
+        _options.folder.calibration_file,
+        _options.folder.imu_calibration_file
+    );
 
-    SPDLOG_INFO("");
-    calibrations[0].print();
-    SPDLOG_INFO("");
-    calibrations[1].print();
+    calibration.print();
 
-    const auto &camera_matrix_L = calibrations[0].camera_matrix();
-    const auto &fundamental     = calibrations[0].fundamental(calibrations[1]);
-    const auto &projection_L    = calibrations[0].projection();
-    const auto &projection_R    = calibrations[1].projection();
-
-    const auto &imu_calibration = zenslam::imu_calibration::parse(_options.folder.imu_calibration_file);
+    const auto &imu_calibration = imu_calibration::parse(_options.folder.imu_calibration_file);
     imu_calibration.print();
 
     slam_frame slam { };
@@ -82,7 +74,7 @@ void zenslam::slam_thread::loop()
             const auto &slerp = groundtruth.slerp(slam.frame[1].l.timestamp);
             const auto &pose_gt_of_imu0_in_world = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
 
-            slam.frame[1].pose_gt = pose_gt_of_imu0_in_world * calibrations[0].pose_in_imu0;
+            slam.frame[1].pose_gt = pose_gt_of_imu0_in_world * calibration.camera[0].pose_in_imu0;
             slam.frame[0].pose    = isnan(slam.frame[0].l.timestamp) ? slam.frame[1].pose_gt : slam.frame[0].pose;
             slam.frame[1].pose    = motion.predict(slam.frame[0].pose, dt);
 
@@ -102,8 +94,8 @@ void zenslam::slam_thread::loop()
                     clahe->apply(slam.frame[1].r.image, slam.frame[1].r.image);
                 }
 
-                slam.frame[1].l.undistorted = utils::undistort(slam.frame[1].l.image, calibrations[0]);
-                slam.frame[1].r.undistorted = utils::undistort(slam.frame[1].r.image, calibrations[1]);
+                slam.frame[1].l.undistorted = utils::undistort(slam.frame[1].l.image, calibration.camera[0]);
+                slam.frame[1].r.undistorted = utils::undistort(slam.frame[1].r.image, calibration.camera[1]);
 
                 slam.frame[1].l.pyramid = utils::pyramid(slam.frame[1].l.undistorted, _options.slam);
                 slam.frame[1].r.pyramid = utils::pyramid(slam.frame[1].r.undistorted, _options.slam);
@@ -145,7 +137,7 @@ void zenslam::slam_thread::loop()
                 (
                     slam.frame[1].l.keypoints,
                     slam.frame[1].r.keypoints,
-                    fundamental,
+                    calibration.fundamental_matrix[0],
                     _options.slam.threshold_epipolar
                 );
 
@@ -163,7 +155,7 @@ void zenslam::slam_thread::loop()
                 }
 
                 std::vector<double> errors { };
-                std::tie(slam.frame[1].points, errors) = utils::triangulate(slam.frame[1], projection_L, projection_R);
+                std::tie(slam.frame[1].points, errors) = utils::triangulate(slam.frame[1], calibration.projection_matrix[0], calibration.projection_matrix[1]);
 
                 SPDLOG_INFO("Triangulated point count: {}", slam.frame[1].points.size());
                 SPDLOG_INFO
@@ -198,7 +190,7 @@ void zenslam::slam_thread::loop()
                     (
                         slam.frame[0].points,
                         slam.frame[1].l.keypoints,
-                        camera_matrix_L,
+                        calibration.camera_matrix[0],
                         _options.slam.threshold_3d2d
                     );
                 }

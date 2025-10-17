@@ -16,7 +16,7 @@ slam:
   cell_size: [ 32, 32 ]
   clahe_enabled: false
   feature:  "FAST"
-  descriptor: "SIFT"
+  descriptor: "ORB"
   fast_threshold: 16
   klt_window_size: [ 31, 31 ]
   klt_max_level: 3
