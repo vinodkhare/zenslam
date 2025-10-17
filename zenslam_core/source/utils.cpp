@@ -104,16 +104,17 @@ auto zenslam::utils::matrix_to_euler(const cv::Matx33d &R) -> cv::Vec3d
     if (std::abs(R(2, 0)) >= 1.0 - 1e-8)
     {
         // Gimbal lock case
-        double yaw   = 0.0;                                   // Set yaw to zero as it's arbitrary in gimbal lock
-        double pitch = -M_PI_2 * std::copysign(1.0, R(2, 0)); // -pi/2 if R(2,0)=1, pi/2 if R(2,0)=-1
-        double roll  = yaw + std::atan2(-std::copysign(1.0, R(2, 0)) * R(0, 1), R(1, 1));
-        return cv::Vec3d(roll, pitch, yaw);
+        constexpr auto yaw   = 0.0;                                   // Set yaw to zero as it's arbitrary in gimbal lock
+        const auto     pitch = -M_PI_2 * std::copysign(1.0, R(2, 0)); // -pi/2 if R(2,0)=1, pi/2 if R(2,0)=-1
+        const auto     roll  = yaw + std::atan2(-std::copysign(1.0, R(2, 0)) * R(0, 1), R(1, 1));
+
+        return { roll, pitch, yaw };
     }
 
     // Normal case
-    double roll  = std::atan2(R(2, 1), R(2, 2));
-    double pitch = -std::asin(R(2, 0));
-    double yaw   = std::atan2(R(1, 0), R(0, 0));
+    const auto roll  = std::atan2(R(2, 1), R(2, 2));
+    const auto pitch = -std::asin(R(2, 0));
+    const auto yaw   = std::atan2(R(1, 0), R(0, 0));
 
-    return cv::Vec3d(roll, pitch, yaw);
+    return { roll, pitch, yaw };
 }

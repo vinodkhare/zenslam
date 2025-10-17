@@ -36,6 +36,7 @@ add_library(${PROJECT_NAME}
         source/event.cpp
         source/folder_options.cpp
         source/frame_durations.cpp
+        source/frame_writer.cpp
         source/grid_detector.cpp
         source/groundtruth.cpp
         source/imu_calibration.cpp

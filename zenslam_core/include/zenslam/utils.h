@@ -6,6 +6,7 @@
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
 
+#include "frame_durations.h"
 #include "options.h"
 #include "stereo_frame.h"
 #include "utils_std.h"

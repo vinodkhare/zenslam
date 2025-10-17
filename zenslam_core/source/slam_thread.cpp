@@ -15,11 +15,10 @@
 #include <vtk-9.3/vtkLogger.h>
 
 #include "calibration.h"
-#include "camera_calibration.h"
 #include "frame_durations.h"
+#include "frame_writer.h"
 #include "grid_detector.h"
 #include "groundtruth.h"
-#include "imu_calibration.h"
 #include "motion.h"
 #include "slam_frame.h"
 #include "time_this.h"
@@ -49,6 +48,7 @@ void zenslam::slam_thread::loop()
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto motion      = zenslam::motion();
+    auto writer      = frame_writer(_options.folder.statistics_file);
 
     calibration.print();
 
@@ -56,12 +56,11 @@ void zenslam::slam_thread::loop()
 
     for (auto f: stereo_reader)
     {
-        frame_durations durations = { };
         {
-            time_this t { durations.total };
-
             slam.frame[0] = std::move(slam.frame[1]);
             slam.frame[1] = std::move(f);
+
+            time_this t { slam.durations.total };
 
             const auto &dt = isnan(slam.frame[0].l.timestamp) ? 0.0 : slam.frame[1].l.timestamp - slam.frame[0].l.timestamp;
             const auto &slerp = groundtruth.slerp(slam.frame[1].l.timestamp);
@@ -76,7 +75,7 @@ void zenslam::slam_thread::loop()
 
             // PREPROCESS
             {
-                time_this time_this { durations.preprocessing };
+                time_this time_this { slam.durations.preprocessing };
 
                 cv::cvtColor(slam.frame[1].l.image, slam.frame[1].l.image, cv::COLOR_BGR2GRAY);
                 cv::cvtColor(slam.frame[1].r.image, slam.frame[1].r.image, cv::COLOR_BGR2GRAY);
@@ -96,7 +95,7 @@ void zenslam::slam_thread::loop()
 
             // TRACK
             {
-                time_this time_this { durations.tracking };
+                time_this time_this { slam.durations.tracking };
 
                 utils::track(slam.frame[0].l, slam.frame[1].l, _options.slam);
                 utils::track(slam.frame[0].r, slam.frame[1].r, _options.slam);
@@ -107,7 +106,7 @@ void zenslam::slam_thread::loop()
 
             // DETECT
             {
-                time_this time_this { durations.detection };
+                time_this time_this { slam.durations.detection };
 
                 detector.detect(slam.frame[1].l.undistorted, slam.frame[1].l.keypoints);
                 detector.detect(slam.frame[1].r.undistorted, slam.frame[1].r.keypoints);
@@ -118,7 +117,7 @@ void zenslam::slam_thread::loop()
 
             // MATCH & TRIANGULATE
             {
-                time_this time_this { durations.matching };
+                time_this time_this { slam.durations.matching };
 
                 const auto &matches = utils::match
                 (
@@ -164,7 +163,7 @@ void zenslam::slam_thread::loop()
 
             // ESTIMATE
             {
-                time_this time_this { durations.estimation };
+                time_this time_this { slam.durations.estimation };
 
                 try
                 {
@@ -233,6 +232,9 @@ void zenslam::slam_thread::loop()
 
             motion.update(slam.frame[0].pose, slam.frame[1].pose, dt);
 
+            slam.durations.print();
+            writer.write(slam);
+
             on_frame(slam);
 
             if (_stop_token.stop_requested())
@@ -240,7 +242,5 @@ void zenslam::slam_thread::loop()
                 break;
             }
         }
-
-        durations.print();
     }
 }
