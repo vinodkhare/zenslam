@@ -1,13 +1,16 @@
 #include "options.h"
 
-#include <boost/program_options.hpp>
 #include <print>
-#include <yaml-cpp/yaml.h>
+
+#include <boost/program_options.hpp>
 
 #include <magic_enum/magic_enum.hpp>
-#include "utils.h"
 
 #include <spdlog/spdlog.h>
+
+#include <yaml-cpp/yaml.h>
+
+#include "utils.h"
 
 boost::program_options::options_description zenslam::options::description()
 {
@@ -101,6 +104,7 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     if (options_map.contains("folder-root")) options.folder.root = map["folder-root"].as<std::string>();
     if (options_map.contains("folder-left")) options.folder.left = map["folder-left"].as<std::string>();
     if (options_map.contains("folder-right")) options.folder.right = map["folder-right"].as<std::string>();
+    if (options_map.contains("folder-output")) options.folder.output = map["folder-output"].as<std::string>();
     if (options_map.contains("folder-timescale")) options.folder.timescale = map["folder-timescale"].as<double>();
     if (options_map.contains("calibration-file")) options.folder.calibration_file = map["calibration-file"].as<std::string>();
     if (options_map.contains("grouthtruth-file")) options.folder.groundtruth_file = map["grouthtruth-file"].as<std::string>();
@@ -151,6 +155,11 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             options.folder.timescale        = folder["timescale"].as<double>();
             options.folder.calibration_file = folder["calibration_file"].as<std::string>();
             options.folder.groundtruth_file = folder["groundtruth_file"].as<std::string>();
+
+            if (folder["output"])
+            {
+                options.folder.output = folder["output"].as<std::string>();
+            }
 
             if (folder["imu_calibration_file"])
             {
@@ -266,6 +275,11 @@ boost::program_options::options_description zenslam::options::folder::descriptio
         "imu-calibration-file",
         boost::program_options::value<std::string>()->default_value(folder.imu_calibration_file),
         "IMU calibration file path"
+    )
+    (
+        "folder-output",
+        boost::program_options::value<std::string>()->default_value(folder.output),
+        "Output folder for results"
     );
 
     return description;
@@ -276,6 +290,7 @@ void zenslam::options::folder::print() const
     SPDLOG_INFO("folder root: {}", root.string());
     SPDLOG_INFO("folder left: {}", left.string());
     SPDLOG_INFO("folder right: {}", right.string());
+    SPDLOG_INFO("folder output: {}", output.string());
     SPDLOG_INFO("folder timescale: {}", timescale);
     SPDLOG_INFO("calibration file: {}", calibration_file.string());
     SPDLOG_INFO("groundtruth file: {}", groundtruth_file.string());

@@ -1,8 +1,16 @@
 #include "frame_writer.h"
 
-zenslam::frame_writer::frame_writer(const std::filesystem::path &path) :
-    _file { path }
+zenslam::frame_writer::frame_writer(const std::filesystem::path &path)
 {
+    auto path_canonical = std::filesystem::absolute(path);
+
+    if (!std::filesystem::exists(path.parent_path()))
+    {
+        std::filesystem::create_directories(path.parent_path());
+    }
+
+    _file = std::ofstream(path_canonical, std::ios::out | std::ios::trunc);
+
     _file <<
             "timestamp, t_preprocessing, t_tracking, t_detection, t_matching, t_estimation, t_total, n_keypoints_l, n_keypoints_r, n_tracked_l, n_tracked_r, n_matches, n_triangulated, n_3d3d, n_3d2d, n_3d3d_inliers, n_3d2d_inliers\n";
 }

@@ -11,6 +11,7 @@ folder:
   calibration_file:     /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/camchain.yaml
   groundtruth_file:     /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/gt_imu.csv
   imu_calibration_file: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
+  output:               /Volumes/DATA00/results/tumvi/dataset-corridor1_1024_16
 
 slam:
   cell_size: [ 64, 64 ]

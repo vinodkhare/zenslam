@@ -87,6 +87,14 @@ namespace zenslam::utils
         double                            epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
+    auto match_temporal
+    (
+        const std::map<size_t, keypoint> &keypoints_map_0,
+        const std::map<size_t, keypoint> &keypoints_map_1,
+        const cv::Matx33d &               camera_matrix,
+        double                            threshold
+    ) -> std::vector<cv::DMatch>;
+
     auto solve_pnp
     (
         const cv::Matx33d &             camera_matrix,
@@ -97,9 +105,10 @@ namespace zenslam::utils
 
     auto track
     (
-        const mono_frame &         frame_0,
-        mono_frame &               frame_1,
-        const class options::slam &options
+        const mono_frame &              frame_0,
+        mono_frame &                    frame_1,
+        const class options::slam &     options,
+        const std::vector<cv::Point2f> &points_1_predicted = { }
     ) -> void;
 
     auto triangulate

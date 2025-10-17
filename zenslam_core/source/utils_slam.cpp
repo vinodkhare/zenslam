@@ -421,6 +421,109 @@ auto zenslam::utils::match
     return matches_new;
 }
 
+auto zenslam::utils::match_temporal
+(
+    const std::map<size_t, keypoint> &keypoints_map_0,
+    const std::map<size_t, keypoint> &keypoints_map_1,
+    const cv::Matx33d &               camera_matrix,
+    double                            threshold
+) -> std::vector<cv::DMatch>
+{
+    cv::Mat                 descriptors_0 { };
+    cv::Mat                 descriptors_1 { };
+    std::vector<keypoint>   unmatched_0 { };
+    std::vector<keypoint>   unmatched_1 { };
+    std::vector<cv::DMatch> matches_new { };
+
+    for (const auto &keypoint_0: keypoints_map_0 | std::views::values)
+    {
+        if (keypoints_map_1.contains(keypoint_0.index)) continue;
+
+        unmatched_0.emplace_back(keypoint_0);
+
+        if (descriptors_0.empty())
+        {
+            descriptors_0 = keypoint_0.descriptor;
+        }
+        else
+        {
+            cv::vconcat(descriptors_0, keypoint_0.descriptor, descriptors_0);
+        }
+    }
+
+    for (const auto &keypoint_1: keypoints_map_1 | std::views::values)
+    {
+        if (keypoints_map_0.contains(keypoint_1.index)) continue;
+
+        unmatched_1.emplace_back(keypoint_1);
+
+        if (descriptors_1.empty())
+        {
+            descriptors_1 = keypoint_1.descriptor;
+        }
+        else
+        {
+            cv::vconcat(descriptors_1, keypoint_1.descriptor, descriptors_1);
+        }
+    }
+
+    if (unmatched_0.size() < 5 || unmatched_1.size() < 5)
+    {
+        return matches_new;
+    }
+
+    const cv::BFMatcher     matcher { descriptors_0.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2, true };
+    std::vector<cv::DMatch> matches;
+    matcher.match(descriptors_0, descriptors_1, matches);
+
+    // Filter matches based on reprojection error
+    auto points_0 = matches | std::views::transform
+                    (
+                        [&unmatched_0](const auto &match)
+                        {
+                            return unmatched_0[match.queryIdx].pt;
+                        }
+                    ) | std::ranges::to<std::vector>();
+
+    auto points_1 = matches | std::views::transform
+                    (
+                        [&unmatched_1](const auto &match)
+                        {
+                            return unmatched_1[match.trainIdx].pt;
+                        }
+                    ) | std::ranges::to<std::vector>();
+
+    auto mask = std::vector<uchar> { };
+
+    auto e = cv::findEssentialMat(points_0, points_1, camera_matrix, cv::RANSAC, 0.99, threshold, mask);
+
+    auto E = cv::Matx33d(e.at<float>(0, 0), e.at<float>(0, 1), e.at<float>(0, 2),
+                         e.at<float>(1, 0), e.at<float>(1, 1), e.at<float>(1, 2),
+                         e.at<float>(2, 0), e.at<float>(2, 1), e.at<float>(2, 2));
+
+    for (const auto &[match, msk]: std::ranges::views::zip(matches, mask))
+    {
+        if (msk)
+        {
+            const auto &keypoint_l = unmatched_0[match.queryIdx];
+            const auto &keypoint_r = unmatched_1[match.trainIdx];
+
+            const auto& pt_l = cv::Vec3d { keypoint_l.pt.x, keypoint_l.pt.y, 1.0f };
+            const auto& pt_r = cv::Vec3d { keypoint_r.pt.x, keypoint_r.pt.y, 1.0f };
+            const auto& error = pt_r.t() * camera_matrix.inv().t() * E * camera_matrix.inv() * pt_l;
+
+            if (error[0] > threshold || match.distance > 5)
+            {
+                continue;
+            }
+
+            matches_new.emplace_back(keypoint_l.index, keypoint_r.index, match.distance);
+        }
+    }
+
+    return matches_new;
+}
+
 auto zenslam::utils::solve_pnp
 (
     const cv::Matx33d &             camera_matrix,
@@ -447,13 +550,19 @@ auto zenslam::utils::solve_pnp
     }
 }
 
-void zenslam::utils::track(const mono_frame &frame_0, mono_frame &frame_1, const class options::slam &options)
+void zenslam::utils::track
+(
+    const mono_frame &              frame_0,
+    mono_frame &                    frame_1,
+    const class options::slam &     options,
+    const std::vector<cv::Point2f> &points_1_predicted
+)
 {
     // track points from the previous frame to this frame using the KLT tracker
     // KLT tracking of keypoints from previous frame to current frame (left image)
-    std::vector<cv::Point2f> points_1 { };
-    std::vector<uchar>       status { };
-    std::vector<float>       err { };
+    auto               points_1 = points_1_predicted;
+    std::vector<uchar> status { };
+    std::vector<float> err { };
 
     // Convert previous keypoints to Point
     const auto &keypoints_0 = values(frame_0.keypoints);
