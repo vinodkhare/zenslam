@@ -195,6 +195,42 @@ namespace zenslam
         return keylines;
     }
 
+    auto grid_detector::detect(const cv::Mat &image, const std::map<size_t, keyline> &keylines_map, int mask_margin) const -> std::vector<keyline>
+    {
+        // Create a mask to block detection in areas where keylines already exist
+        cv::Mat mask = cv::Mat::ones(image.size(), CV_8U) * 255;
+
+        // For each existing keyline, mask out a thick line along the line segment
+        for (const auto &existing_keyline : keylines_map | std::views::values)
+        {
+            // Get start and end points of the line segment
+            cv::Point start(
+                static_cast<int>(existing_keyline.startPointX),
+                static_cast<int>(existing_keyline.startPointY)
+            );
+            cv::Point end(
+                static_cast<int>(existing_keyline.endPointX),
+                static_cast<int>(existing_keyline.endPointY)
+            );
+
+            // Draw a thick line on the mask (thickness = 2 * mask_margin)
+            // This masks out a band of width 2*mask_margin centered on the line
+            cv::line(mask, start, end, cv::Scalar(0), 2 * mask_margin, cv::LINE_8);
+        }
+
+        // Detect keylines with the mask
+        std::vector<cv::line_descriptor::KeyLine> keylines_cv { };
+        _line_detector->detect(image, keylines_cv, 2.0f, 1, mask);
+
+        std::vector<keyline> keylines { };
+        for (const auto &kl: keylines_cv)
+        {
+            keylines.emplace_back(kl, keyline::index_next++);
+        }
+
+        return keylines;
+    }
+
     void grid_detector::detect_par(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const
     {
         const auto  image     = image_array.getMat();

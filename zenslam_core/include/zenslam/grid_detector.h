@@ -47,6 +47,20 @@ namespace zenslam
          */
         std::vector<keyline> detect(const cv::Mat &image) const;
 
+        /**
+         * @brief Detect keylines in the image, avoiding areas where keylines already exist
+         *
+         * This overload creates a mask to prevent detection in regions occupied by existing
+         * keylines (e.g., those tracked from the previous frame). A rectangular region around
+         * each existing keyline is masked out to avoid redundant detections.
+         *
+         * @param image The input image in which to detect keylines
+         * @param keylines_map A map of existing keylines (e.g., tracked from previous frame)
+         * @param mask_margin The margin (in pixels) around each existing keyline to mask out
+         * @return A vector of newly detected keylines
+         */
+        std::vector<keyline> detect(const cv::Mat &image, const std::map<size_t, keyline> &keylines_map, int mask_margin = 10) const;
+
         void detect_par(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const;
 
     private:

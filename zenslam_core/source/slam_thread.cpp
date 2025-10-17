@@ -118,10 +118,10 @@ void zenslam::slam_thread::loop()
                         (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keypoints);
 
                 slam.frames[1].cameras[0].keylines += detector.detect
-                        (slam.frames[1].cameras[0].undistorted);
+                        (slam.frames[1].cameras[0].undistorted, slam.frames[1].cameras[0].keylines);
 
                 slam.frames[1].cameras[1].keylines += detector.detect
-                        (slam.frames[1].cameras[1].undistorted);
+                        (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keylines);
             }
 
             // MATCH & TRIANGULATE
