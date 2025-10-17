@@ -1,4 +1,7 @@
+// --- TRIANGULATE KEYLINES IMPLEMENTATION ---
 
+
+// Implementation moved to the end of the file
 
 #include "utils_slam.h"
 
@@ -18,6 +21,10 @@
 #include "slam_thread.h"
 #include "utils.h"
 #include "utils_opencv.h"
+
+#include <vector>
+#include <tuple>
+#include <map>
 
 void zenslam::utils::correspondences_3d2d
 (
@@ -1023,6 +1030,51 @@ auto zenslam::utils::triangulate
     }
 
     return { points, errors };
+}
+
+
+auto zenslam::utils::triangulate_keylines
+(
+    const std::map<size_t, zenslam::keyline> &keylines_l,
+    const std::map<size_t, zenslam::keyline> &keylines_r,
+    const cv::Matx34d &                       P_l,
+    const cv::Matx34d &                       P_r
+) -> std::map<size_t, std::tuple<cv::Point3d, cv::Point3d, cv::Point3d>>
+{
+    std::map<size_t, std::tuple<cv::Point3d, cv::Point3d, cv::Point3d>> result;
+    for (const auto &[idx, kl_l]: keylines_l)
+    {
+        auto it_r = keylines_r.find(idx);
+        if (it_r == keylines_r.end()) continue;
+        const auto &kl_r = it_r->second;
+
+        // Triangulate endpoints and midpoint
+        std::vector<cv::Point2f> pts_l = {
+            cv::Point2f(kl_l.startPointX, kl_l.startPointY),
+            cv::Point2f(kl_l.endPointX, kl_l.endPointY),
+            cv::Point2f(kl_l.pt.x, kl_l.pt.y)
+        };
+        std::vector<cv::Point2f> pts_r = {
+            cv::Point2f(kl_r.startPointX, kl_r.startPointY),
+            cv::Point2f(kl_r.endPointX, kl_r.endPointY),
+            cv::Point2f(kl_r.pt.x, kl_r.pt.y)
+        };
+
+        cv::Mat points4d;
+        cv::triangulatePoints(P_l, P_r, pts_l, pts_r, points4d);
+
+        // Convert homogeneous to 3D
+        std::vector<cv::Point3d> points3d;
+        for (int i = 0; i < points4d.cols; ++i)
+        {
+            cv::Vec4d X = points4d.col(i);
+            if (std::abs(X[3]) > 1E-9) points3d.emplace_back(X[0] / X[3], X[1] / X[3], X[2] / X[3]);
+            else points3d.emplace_back(0, 0, 0);
+        }
+        // Store as (start, end, midpoint)
+        result[idx] = std::make_tuple(points3d[0], points3d[1], points3d[2]);
+    }
+    return result;
 }
 
 void zenslam::utils::umeyama

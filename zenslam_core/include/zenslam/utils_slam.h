@@ -63,7 +63,7 @@ inline auto operator*=
 inline auto operator*=
 (
     std::map<size_t, zenslam::keyline> &keylines_map,
-    const std::vector<cv::DMatch> &      matches
+    const std::vector<cv::DMatch> &     matches
 ) -> std::map<size_t, zenslam::keyline> &
 {
     for (const auto &match: matches)
@@ -198,11 +198,11 @@ namespace zenslam::utils
      */
     auto pre_process
     (
-        const zenslam::frame::camera &frame,
-        const camera_calibration &    calibration,
-        const class options::slam &   options,
-        const cv::Ptr<cv::CLAHE> &    clahe
-    ) -> zenslam::frame::camera;
+        const frame::camera &      frame,
+        const camera_calibration & calibration,
+        const class options::slam &options,
+        const cv::Ptr<cv::CLAHE> & clahe
+    ) -> frame::camera;
 
     /** Pre-process a camera frame by converting to grayscale, applying CLAHE, and building an image pyramid.
      *
@@ -213,11 +213,11 @@ namespace zenslam::utils
      */
     auto pre_process
     (
-        const zenslam::frame::stereo &           frame,
+        const frame::stereo &                    frame,
         const std::array<camera_calibration, 2> &calibration,
         const class options::slam &              options,
         const cv::Ptr<cv::CLAHE> &               clahe
-    ) -> zenslam::frame::stereo;
+    ) -> frame::stereo;
 
     auto solve_pnp
     (
@@ -253,8 +253,8 @@ namespace zenslam::utils
      */
     auto track
     (
-        const std::array<zenslam::frame::stereo, 2> &frames,
-        const class options::slam &                  options
+        const std::array<frame::stereo, 2> &frames,
+        const class options::slam &         options
     ) -> std::array<std::vector<keypoint>, 2>;
 
     /** Track keylines from frame_0 to frame_1 using KLT optical flow on endpoints.
@@ -278,13 +278,43 @@ namespace zenslam::utils
         const class options::slam &      options
     ) -> std::vector<keyline>;
 
+    /** Triangulate 3D points from stereo frame keypoints.
+     *
+     * This function triangulates 3D points from matched keypoints in a stereo frame.
+     * It uses the provided projection matrices for the left and right cameras to perform
+     * triangulation. Points with reprojection error below the specified threshold are returned.
+     *
+     * @param frame The stereo frame containing matched keypoints.
+     * @param projection_l The 3x4 projection matrix for the left camera.
+     * @param projection_r The 3x4 projection matrix for the right camera.
+     * @param threshold The maximum allowable reprojection error for triangulated points.
+     * @return A tuple containing a map of triangulated 3D points and a vector of reprojection errors.
+     */
     auto triangulate
     (
-        zenslam::frame::stereo &frame,
-        const cv::Matx34d &     projection_l,
-        const cv::Matx34d &     projection_r,
-        double                  threshold
+        frame::stereo &    frame,
+        const cv::Matx34d &projection_l,
+        const cv::Matx34d &projection_r,
+        double             threshold
     ) -> std::tuple<std::map<size_t, point>, std::vector<double>>;
+
+    /**
+     * Triangulate keylines between stereo frames using their indices.
+     * For each keyline index present in both maps, triangulate endpoints and midpoint.
+     *
+     * @param keylines_l Map of keylines in left image
+     * @param keylines_r Map of keylines in right image
+     * @param P_l 3x4 projection matrix for left camera
+     * @param P_r 3x4 projection matrix for right camera
+     * @return Map from keyline index to tuple of 3D endpoints and midpoint
+     */
+    auto triangulate_keylines
+    (
+        const std::map<size_t, keyline> &keylines_l,
+        const std::map<size_t, keyline> &keylines_r,
+        const cv::Matx34d &              P_l,
+        const cv::Matx34d &              P_r
+    ) -> std::map<size_t, std::tuple<cv::Point3d, cv::Point3d, cv::Point3d>>;
 
     auto umeyama
     (
