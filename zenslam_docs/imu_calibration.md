@@ -110,8 +110,6 @@ IMU noise parameters are typically obtained through:
 
 2. **Manufacturer Specifications**: Some IMU manufacturers provide noise specifications in datasheets.
 
-3. **Kalibr Calibration**: The [Kalibr](https://github.com/ethz-asl/kalibr) toolbox can estimate IMU noise parameters from static recordings.
-
 ## Example: TUM-VI Dataset
 
 For the TUM-VI dataset, a typical IMU configuration file looks like:
