@@ -26,6 +26,8 @@ double gyro_noise = imu_calib.gyroscope_noise_density;
 double accel_noise = imu_calib.accelerometer_noise_density;
 ```
 
+For a complete working example, see [examples/imu_calibration_example.cpp](examples/imu_calibration_example.cpp).
+
 ## Configuration File Format
 
 The IMU configuration file is a YAML file with the following structure:
