@@ -497,9 +497,18 @@ auto zenslam::utils::match_temporal
 
     auto e = cv::findEssentialMat(points_0, points_1, camera_matrix, cv::RANSAC, 0.99, threshold, mask);
 
-    auto E = cv::Matx33d(e.at<float>(0, 0), e.at<float>(0, 1), e.at<float>(0, 2),
-                         e.at<float>(1, 0), e.at<float>(1, 1), e.at<float>(1, 2),
-                         e.at<float>(2, 0), e.at<float>(2, 1), e.at<float>(2, 2));
+    auto E = cv::Matx33d
+    (
+        e.at<float>(0, 0),
+        e.at<float>(0, 1),
+        e.at<float>(0, 2),
+        e.at<float>(1, 0),
+        e.at<float>(1, 1),
+        e.at<float>(1, 2),
+        e.at<float>(2, 0),
+        e.at<float>(2, 1),
+        e.at<float>(2, 2)
+    );
 
     for (const auto &[match, msk]: std::ranges::views::zip(matches, mask))
     {
@@ -508,9 +517,9 @@ auto zenslam::utils::match_temporal
             const auto &keypoint_l = unmatched_0[match.queryIdx];
             const auto &keypoint_r = unmatched_1[match.trainIdx];
 
-            const auto& pt_l = cv::Vec3d { keypoint_l.pt.x, keypoint_l.pt.y, 1.0f };
-            const auto& pt_r = cv::Vec3d { keypoint_r.pt.x, keypoint_r.pt.y, 1.0f };
-            const auto& error = pt_r.t() * camera_matrix.inv().t() * E * camera_matrix.inv() * pt_l;
+            const auto &pt_l  = cv::Vec3d { keypoint_l.pt.x, keypoint_l.pt.y, 1.0f };
+            const auto &pt_r  = cv::Vec3d { keypoint_r.pt.x, keypoint_r.pt.y, 1.0f };
+            const auto &error = pt_r.t() * camera_matrix.inv().t() * E * camera_matrix.inv() * pt_l;
 
             if (error[0] > threshold || match.distance > 5)
             {
@@ -552,8 +561,8 @@ auto zenslam::utils::solve_pnp
 
 void zenslam::utils::track
 (
-    const camera_frame &              frame_0,
-    camera_frame &                    frame_1,
+    const camera_frame &            frame_0,
+    camera_frame &                  frame_1,
     const class options::slam &     options,
     const std::vector<cv::Point2f> &points_1_predicted
 )
@@ -606,7 +615,7 @@ void zenslam::utils::track
     // Verify KLT tracking results have consistent sizes
     assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == err.size());
 
-    // Update frame.l.keypoints with tracked points
+    // Update frame.cameras[0].keypoints with tracked points
     for (size_t i = 0; i < points_1.size(); ++i)
     {
         if (status[i] && status_back[i] && cv::norm(points_0_back[i] - points_0[i]) < options.klt_threshold)
@@ -626,12 +635,12 @@ auto zenslam::utils::triangulate
 
 ) -> std::tuple<std::map<size_t, point>, std::vector<double>>
 {
-    auto indices = frame.l.keypoints | std::views::keys |
+    auto indices = frame.cameras[0].keypoints | std::views::keys |
                    std::ranges::views::filter
                    (
                        [&frame](const auto &index)
                        {
-                           return frame.r.keypoints.contains(index);
+                           return frame.cameras[1].keypoints.contains(index);
                        }
                    ) |
                    std::ranges::to<std::vector>();
@@ -641,7 +650,7 @@ auto zenslam::utils::triangulate
                            (
                                [&frame](const auto &index)
                                {
-                                   return frame.l.keypoints.at(index).pt;
+                                   return frame.cameras[0].keypoints.at(index).pt;
                                }
                            ) |
                            std::ranges::to<std::vector>();
@@ -651,7 +660,7 @@ auto zenslam::utils::triangulate
                            (
                                [&frame](const auto &index)
                                {
-                                   return frame.r.keypoints.at(index).pt;
+                                   return frame.cameras[1].keypoints.at(index).pt;
                                }
                            ) |
                            std::ranges::to<std::vector>();

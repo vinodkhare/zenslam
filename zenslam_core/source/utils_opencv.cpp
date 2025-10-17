@@ -31,15 +31,15 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame, const std::map<size
 {
     cv::Mat matches_image { };
 
-    const auto &keypoints_l = values(frame.l.keypoints);
-    const auto &keypoints_r = values(frame.r.keypoints);
+    const auto &keypoints_l = values(frame.cameras[0].keypoints);
+    const auto &keypoints_r = values(frame.cameras[1].keypoints);
 
     const auto &keypoints_l_matched = std::views::filter
                                       (
                                           keypoints_l,
                                           [&frame](const auto &kp)
                                           {
-                                              return frame.r.keypoints.contains(kp.index);
+                                              return frame.cameras[1].keypoints.contains(kp.index);
                                           }
                                       ) | std::ranges::to<std::vector>();
     const auto &keypoints_r_matched = std::views::filter
@@ -47,7 +47,7 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame, const std::map<size
                                           keypoints_r,
                                           [&frame](const auto &kp)
                                           {
-                                              return frame.l.keypoints.contains(kp.index);
+                                              return frame.cameras[0].keypoints.contains(kp.index);
                                           }
                                       ) | std::ranges::to<std::vector>();
 
@@ -68,8 +68,8 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame, const std::map<size
                                                }
                                            ) | std::ranges::to<std::vector>();
 
-    auto undistorted_l = frame.l.undistorted.clone();
-    auto undistorted_r = frame.r.undistorted.clone();
+    auto undistorted_l = frame.cameras[0].undistorted.clone();
+    auto undistorted_r = frame.cameras[1].undistorted.clone();
 
     const auto &matches = std::views::iota(0, gsl::narrow<int>(keypoints_l_matched.size())) | std::views::transform
                           (

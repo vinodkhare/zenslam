@@ -33,7 +33,7 @@ void zenslam::application::render()
     }
 
     // display matches spatial
-    if (slam.frame[1].l.keypoints.empty() || slam.frame[0].l.undistorted.empty() || slam.frame[1].l.undistorted.empty()) return;
+    if (slam.frame[1].cameras[0].keypoints.empty() || slam.frame[0].cameras[0].undistorted.empty() || slam.frame[1].cameras[0].undistorted.empty()) return;
 
     {
         const auto &matches_image = utils::draw_matches(slam.frame[1], slam.points);
@@ -45,7 +45,7 @@ void zenslam::application::render()
 
     // display matches temporal
     {
-        const auto &matches_image = utils::draw_matches(slam.frame[0].l, slam.frame[1].l);
+        const auto &matches_image = utils::draw_matches(slam.frame[0].cameras[0], slam.frame[1].cameras[0]);
 
         cv::namedWindow("matches_temporal");
         cv::imshow("matches_temporal", matches_image);
@@ -72,7 +72,7 @@ void zenslam::application::render()
             cv::viz::WCameraPosition camera_position
             (
                 cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 },
-                slam.frame[1].l.undistorted
+                slam.frame[1].cameras[0].undistorted
             );
 
             camera_position.setColor(cv::viz::Color::red());
@@ -82,7 +82,7 @@ void zenslam::application::render()
             cv::viz::WCameraPosition camera_gt
             (
                 cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 },
-                slam.frame[1].l.undistorted
+                slam.frame[1].cameras[0].undistorted
             );
 
             camera_gt.setColor(cv::viz::Color::bluberry());
