@@ -50,7 +50,7 @@ TEST_CASE("IMU Calibration Parsing", "[imu_calibration]")
         auto imu_calib = zenslam::imu_calibration::parse(temp_file);
         
         // Verify values
-        REQUIRE(imu_calib.rostopic == "");
+        REQUIRE(imu_calib.rostopic.empty());
         REQUIRE(imu_calib.update_rate == Catch::Approx(100.0));
         REQUIRE(imu_calib.accelerometer_noise_density == Catch::Approx(0.001));
         
