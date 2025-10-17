@@ -43,17 +43,16 @@ namespace zenslam
          * @brief Detect keylines in the image using grid-based detection
          *
          * @param image The input image in which to detect keylines
-         * @param keylines_map A map to store detected keylines with their indices
          * @return A vector of detected keylines
          */
-        std::vector<keyline> detect(const cv::Mat &image, const std::map<size_t, keyline> &keylines_map) const;
+        std::vector<keyline> detect(const cv::Mat &image) const;
 
         void detect_par(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const;
 
     private:
         cv::Ptr<cv::Feature2D>                    _detector      = { }; // Underlying detector
         cv::Ptr<cv::Feature2D>                    _describer     = { };
-        cv::Ptr<cv::line_descriptor::LSDDetector> _detector_line = { }; // Line feature detector
+        cv::Ptr<cv::line_descriptor::LSDDetector> _line_detector = { }; // Line feature detector
         cv::Size                                  _cell_size     = { }; // Size of each grid cell
     };
 } // namespace zenslam

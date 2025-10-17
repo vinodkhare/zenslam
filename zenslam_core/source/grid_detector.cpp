@@ -41,11 +41,12 @@ namespace zenslam
                 break;
         }
 
-        zenslam::grid_detector detector { };
+        grid_detector detector { };
+
         detector._detector      = feature_detector;
         detector._describer     = feature_describer;
         detector._cell_size     = options.cell_size;
-        detector._detector_line = cv::line_descriptor::LSDDetector::createLSDDetector();
+        detector._line_detector = cv::line_descriptor::LSDDetector::createLSDDetector();
 
         return detector;
     }
@@ -180,74 +181,15 @@ namespace zenslam
         return keypoints;
     }
 
-    auto grid_detector::detect
-    (const cv::Mat &image, const std::map<size_t, keyline> &keylines_map) const -> std::vector<keyline>
+    auto grid_detector::detect(const cv::Mat &image) const -> std::vector<keyline>
     {
-        const auto grid_size = cv::Size(image.cols, image.rows) / _cell_size;
+        std::vector<cv::line_descriptor::KeyLine> keylines_cv { };
+        _line_detector->detect(image, keylines_cv, 2.0f, 1);
 
-        // Occupancy grid
-        std::vector occupied(grid_size.width, std::vector(grid_size.height, false));
-
-        // Mark occupied cells using line midpoints
-        for (const auto &kl: keylines_map | std::views::values)
+        std::vector<keyline> keylines { };
+        for (const auto &kl: keylines_cv)
         {
-            const auto grid_x = static_cast<int>(kl.pt.x) / _cell_size.width;
-            const auto grid_y = static_cast<int>(kl.pt.y) / _cell_size.height;
-
-            if (grid_x >= 0 && grid_x < grid_size.width &&
-                grid_y >= 0 && grid_y < grid_size.height)
-            {
-                occupied[grid_x][grid_y] = true;
-            }
-        }
-
-        std::vector<keyline> keylines;
-
-        for (auto y = 0; y < grid_size.height; ++y)
-        {
-            for (auto x = 0; x < grid_size.width; ++x)
-            {
-                if (occupied[x][y]) continue;
-
-                cv::Rect cell_rect
-                (
-                    x * _cell_size.width,
-                    y * _cell_size.height,
-                    std::min(_cell_size.width, image.cols - x * _cell_size.width),
-                    std::min(_cell_size.height, image.rows - y * _cell_size.height)
-                );
-
-                const auto cell_image = image(cell_rect);
-
-                std::vector<cv::line_descriptor::KeyLine> cell_keylines;
-                _detector_line->detect(cell_image, cell_keylines, 1, 1);
-
-                if (cell_keylines.empty()) continue;
-
-                const auto idx = std::distance
-                (
-                    cell_keylines.begin(),
-                    std::ranges::max_element
-                    (
-                        cell_keylines,
-                        [](const auto &a, const auto &b)
-                        {
-                            return a.lineLength < b.lineLength;
-                        }
-                    )
-                );
-
-                auto best = cell_keylines[idx];
-
-                best.startPointX += gsl::narrow<float, int>(cell_rect.x);
-                best.startPointY += gsl::narrow<float, int>(cell_rect.y);
-                best.endPointX += gsl::narrow<float, int>(cell_rect.x);
-                best.endPointY += gsl::narrow<float, int>(cell_rect.y);
-                best.pt.x += gsl::narrow<float, int>(cell_rect.x);
-                best.pt.y += gsl::narrow<float, int>(cell_rect.y);
-
-                keylines.emplace_back(best, keyline::index_next++);
-            }
+            keylines.emplace_back(kl, keyline::index_next++);
         }
 
         return keylines;

@@ -29,6 +29,7 @@ namespace zenslam::utils
     auto convert_color(const cv::Mat &image, int code) -> cv::Mat;
 
     auto draw_keypoints(const zenslam::frame::camera &frame) -> cv::Mat;
+    auto draw_keylines(const zenslam::frame::camera &frame) -> cv::Mat;
     auto draw_matches(const zenslam::frame::stereo &frame, const std::map<size_t, point> &points) -> cv::Mat;
     auto draw_matches(const zenslam::frame::camera &frame_0, const zenslam::frame::camera &frame_1) -> cv::Mat;
     auto project(const std::vector<cv::Point3d> &points, const cv::Matx34d &projection) -> std::vector<cv::Point2d>;

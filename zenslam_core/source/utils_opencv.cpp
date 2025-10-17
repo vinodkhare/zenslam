@@ -2,6 +2,7 @@
 
 #include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/line_descriptor.hpp>
 #include <opencv2/video/tracking.hpp>
 
 #include "utils_std.h"
@@ -39,6 +40,34 @@ auto zenslam::utils::draw_keypoints(const zenslam::frame::camera &frame) -> cv::
     );
 
     return keypoints_image;
+}
+
+auto zenslam::utils::draw_keylines(const zenslam::frame::camera &frame) -> cv::Mat
+{
+    cv::Mat keylines_image;
+    
+    if (frame.undistorted.channels() == 1)
+    {
+        cv::cvtColor(frame.undistorted, keylines_image, cv::COLOR_GRAY2BGR);
+    }
+    else
+    {
+        keylines_image = frame.undistorted.clone();
+    }
+
+    // Convert keylines map to vector for drawing
+    std::vector<cv::line_descriptor::KeyLine> keylines_vec;
+    keylines_vec.reserve(frame.keylines.size());
+    
+    for (const auto &[index, kl] : frame.keylines)
+    {
+        keylines_vec.push_back(kl);
+    }
+
+    // Draw the line segments
+    cv::line_descriptor::drawKeylines(keylines_image, keylines_vec, keylines_image, cv::Scalar(0, 255, 0));
+
+    return keylines_image;
 }
 
 auto zenslam::utils::draw_matches(const zenslam::frame::stereo &frame, const std::map<size_t, point> &points) -> cv::Mat
@@ -104,6 +133,29 @@ auto zenslam::utils::draw_matches(const zenslam::frame::stereo &frame, const std
     cv::cvtColor(undistorted_l, undistorted_l, cv::COLOR_GRAY2BGR);
     cv::cvtColor(undistorted_r, undistorted_r, cv::COLOR_GRAY2BGR);
 
+    // Draw keylines first
+    if (!frame.cameras[0].keylines.empty())
+    {
+        std::vector<cv::line_descriptor::KeyLine> keylines_l_vec;
+        keylines_l_vec.reserve(frame.cameras[0].keylines.size());
+        for (const auto &[index, kl] : frame.cameras[0].keylines)
+        {
+            keylines_l_vec.push_back(kl);
+        }
+        cv::line_descriptor::drawKeylines(undistorted_l, keylines_l_vec, undistorted_l, cv::Scalar(255, 255, 0));
+    }
+    
+    if (!frame.cameras[1].keylines.empty())
+    {
+        std::vector<cv::line_descriptor::KeyLine> keylines_r_vec;
+        keylines_r_vec.reserve(frame.cameras[1].keylines.size());
+        for (const auto &[index, kl] : frame.cameras[1].keylines)
+        {
+            keylines_r_vec.push_back(kl);
+        }
+        cv::line_descriptor::drawKeylines(undistorted_r, keylines_r_vec, undistorted_r, cv::Scalar(255, 255, 0));
+    }
+
     cv::drawKeypoints
     (
         undistorted_l,
@@ -161,6 +213,39 @@ auto zenslam::utils::draw_matches(const zenslam::frame::camera &frame_0, const z
 
     const auto &keypoints_0 = values(frame_0.keypoints);
     const auto &keypoints_1 = values(frame_1.keypoints);
+    
+    // Prepare images with keylines
+    cv::Mat img_0 = frame_0.undistorted.clone();
+    cv::Mat img_1 = frame_1.undistorted.clone();
+    
+    if (img_0.channels() == 1)
+    {
+        cv::cvtColor(img_0, img_0, cv::COLOR_GRAY2BGR);
+        cv::cvtColor(img_1, img_1, cv::COLOR_GRAY2BGR);
+    }
+    
+    // Draw keylines
+    if (!frame_0.keylines.empty())
+    {
+        std::vector<cv::line_descriptor::KeyLine> keylines_vec;
+        keylines_vec.reserve(frame_0.keylines.size());
+        for (const auto &[index, kl] : frame_0.keylines)
+        {
+            keylines_vec.push_back(kl);
+        }
+        cv::line_descriptor::drawKeylines(img_0, keylines_vec, img_0, cv::Scalar(255, 255, 0));
+    }
+    
+    if (!frame_1.keylines.empty())
+    {
+        std::vector<cv::line_descriptor::KeyLine> keylines_vec;
+        keylines_vec.reserve(frame_1.keylines.size());
+        for (const auto &[index, kl] : frame_1.keylines)
+        {
+            keylines_vec.push_back(kl);
+        }
+        cv::line_descriptor::drawKeylines(img_1, keylines_vec, img_1, cv::Scalar(255, 255, 0));
+    }
 
     std::vector<cv::DMatch> matches { };
 
@@ -177,9 +262,9 @@ auto zenslam::utils::draw_matches(const zenslam::frame::camera &frame_0, const z
 
     cv::drawMatches
     (
-        frame_0.undistorted,
+        img_0,
         utils::cast<cv::KeyPoint>(keypoints_0),
-        frame_1.undistorted,
+        img_1,
         utils::cast<cv::KeyPoint>(keypoints_1),
         matches,
         matches_image,
