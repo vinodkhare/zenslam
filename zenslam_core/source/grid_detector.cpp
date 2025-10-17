@@ -64,10 +64,8 @@ namespace zenslam
         return { lhs.width / rhs.width, lhs.height / rhs.height };
     }
 
-    void grid_detector::detect(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const
+    auto grid_detector::detect(const cv::Mat &image, const std::map<size_t, keypoint> &keypoints_map) const -> std::vector<keypoint>
     {
-        const auto image = image_array.getMat();
-
         // Calculate grid dimensions
         const auto &grid_size = cv::Size(image.cols, image.rows) / _cell_size;
 
@@ -178,13 +176,16 @@ namespace zenslam
         cv::Mat descriptors;
         _describer->compute(image, keypoints_cv, descriptors);
 
+        std::vector<keypoint> keypoints = { };
+
         for (auto i = 0; i < descriptors.rows; ++i)
         {
-            keypoints_map[keypoint::index_next]            = keypoint { keypoints_cv[i], keypoint::index_next };
-            keypoints_map[keypoint::index_next].descriptor = descriptors.row(i);
+            keypoints.emplace_back(keypoints_cv[i], keypoint::index_next, descriptors.row(i));
 
             keypoint::index_next++;
         }
+
+        return keypoints;
     }
 
     void grid_detector::detect_par(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const

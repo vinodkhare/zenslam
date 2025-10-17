@@ -25,6 +25,28 @@ inline auto operator+=
     return keypoints_map;
 }
 
+inline auto operator*=
+(
+    std::map<size_t, zenslam::keypoint> &keypoints_map,
+    const std::vector<cv::DMatch> &      matches
+) -> std::map<size_t, zenslam::keypoint> &
+{
+    for (const auto &match: matches)
+    {
+        const auto index_new = match.queryIdx;
+        const auto index_old = match.trainIdx;
+
+        auto keypoint_r  = keypoints_map.at(index_old);
+        keypoint_r.index = index_new;
+
+        keypoints_map.erase(index_old);
+
+        keypoints_map[index_new] = keypoint_r;
+    }
+
+    return keypoints_map;
+}
+
 
 namespace zenslam::utils
 {
@@ -166,7 +188,7 @@ namespace zenslam::utils
         const std::vector<cv::Mat> &      pyramid_1,
         const std::map<size_t, keypoint> &keypoints_map_0,
         const class options::slam &       options,
-        const std::vector<cv::Point2f> &  points_1_predicted = {}
+        const std::vector<cv::Point2f> &  points_1_predicted = { }
     ) -> std::vector<keypoint>;
 
     /** Track keypoints between two stereo frames.

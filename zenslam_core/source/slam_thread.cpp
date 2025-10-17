@@ -83,7 +83,7 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.tracking };
 
-                const auto& tracked_keypoints = utils::track(slam.frames, _options.slam);
+                const auto &tracked_keypoints = utils::track(slam.frames, _options.slam);
                 slam.frames[1].cameras[0].keypoints += tracked_keypoints[0];
                 slam.frames[1].cameras[1].keypoints += tracked_keypoints[1];
             }
@@ -95,8 +95,11 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.detection };
 
-                detector.detect(slam.frames[1].cameras[0].undistorted, slam.frames[1].cameras[0].keypoints);
-                detector.detect(slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keypoints);
+                slam.frames[1].cameras[0].keypoints += detector.detect
+                        (slam.frames[1].cameras[0].undistorted, slam.frames[1].cameras[0].keypoints);
+
+                slam.frames[1].cameras[1].keypoints += detector.detect
+                        (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keypoints);
             }
 
             slam.counts.keypoints_l = slam.frames[1].cameras[0].keypoints.size();
@@ -106,62 +109,13 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.matching };
 
-                auto matches_temporal = utils::match_temporal
-                (
-                    slam.frames[0].cameras[0].keypoints,
-                    slam.frames[1].cameras[0].keypoints,
-                    calibration.camera_matrix[0],
-                    0.1
-                );
-
-                for (const auto &match: matches_temporal)
-                {
-                    const auto keypoint_0 = slam.frames[0].cameras[0].keypoints.at(match.queryIdx);
-                    const auto keypoint_1 = slam.frames[1].cameras[0].keypoints.at(match.trainIdx);
-
-                    slam.frames[1].cameras[0].keypoints.erase(keypoint_1.index);
-
-                    slam.frames[1].cameras[0].keypoints[keypoint_0.index]       = keypoint_1;
-                    slam.frames[1].cameras[0].keypoints[keypoint_0.index].index = keypoint_0.index;
-                }
-
-                matches_temporal = utils::match_temporal
-                (
-                    slam.frames[0].cameras[1].keypoints,
-                    slam.frames[1].cameras[1].keypoints,
-                    calibration.camera_matrix[1],
-                    0.1
-                );
-
-                for (const auto &match: matches_temporal)
-                {
-                    const auto keypoint_0 = slam.frames[0].cameras[1].keypoints.at(match.queryIdx);
-                    const auto keypoint_1 = slam.frames[1].cameras[1].keypoints.at(match.trainIdx);
-
-                    slam.frames[1].cameras[1].keypoints.erase(keypoint_1.index);
-
-                    slam.frames[1].cameras[1].keypoints[keypoint_0.index]       = keypoint_1;
-                    slam.frames[1].cameras[1].keypoints[keypoint_0.index].index = keypoint_0.index;
-                }
-
-                const auto &matches_spatial = utils::match
+                slam.frames[1].cameras[1].keypoints *= utils::match
                 (
                     slam.frames[1].cameras[0].keypoints,
                     slam.frames[1].cameras[1].keypoints,
                     calibration.fundamental_matrix[0],
                     _options.slam.threshold_epipolar
                 );
-
-                for (const auto &match: matches_spatial)
-                {
-                    const auto keypoint_l = slam.frames[1].cameras[0].keypoints.at(match.queryIdx);
-                    const auto keypoint_r = slam.frames[1].cameras[1].keypoints.at(match.trainIdx);
-
-                    slam.frames[1].cameras[1].keypoints.erase(keypoint_r.index);
-
-                    slam.frames[1].cameras[1].keypoints[keypoint_l.index]       = keypoint_r;
-                    slam.frames[1].cameras[1].keypoints[keypoint_l.index].index = keypoint_l.index;
-                }
 
                 std::vector<double> errors { };
                 std::tie(slam.frames[1].points, errors) = utils::triangulate
