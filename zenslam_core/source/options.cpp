@@ -103,6 +103,7 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     if (options_map.contains("folder-timescale")) options.folder.timescale = map["folder-timescale"].as<double>();
     if (options_map.contains("calibration-file")) options.folder.calibration_file = map["calibration-file"].as<std::string>();
     if (options_map.contains("grouthtruth-file")) options.folder.groundtruth_file = map["grouthtruth-file"].as<std::string>();
+    if (options_map.contains("imu-calibration-file")) options.folder.imu_calibration_file = map["imu-calibration-file"].as<std::string>();
 
     if (options_map.contains("options-file")) options.file = map["options-file"].as<std::string>();
     if (options_map.contains
@@ -146,6 +147,11 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             options.folder.timescale        = folder["timescale"].as<double>();
             options.folder.calibration_file = folder["calibration_file"].as<std::string>();
             options.folder.groundtruth_file = folder["groundtruth_file"].as<std::string>();
+            
+            if (folder["imu_calibration_file"])
+            {
+                options.folder.imu_calibration_file = folder["imu_calibration_file"].as<std::string>();
+            }
         }
 
         if (const auto &slam = config["slam"])
@@ -251,6 +257,11 @@ boost::program_options::options_description zenslam::options::folder::descriptio
         "grouthtruth-file",
         boost::program_options::value<std::string>()->default_value(folder.groundtruth_file),
         "groundtruth file path"
+    )
+    (
+        "imu-calibration-file",
+        boost::program_options::value<std::string>()->default_value(folder.imu_calibration_file),
+        "IMU calibration file path"
     );
 
     return description;
@@ -264,6 +275,7 @@ void zenslam::options::folder::print() const
     SPDLOG_INFO("folder timescale: {}", timescale);
     SPDLOG_INFO("calibration file: {}", calibration_file.string());
     SPDLOG_INFO("groundtruth file: {}", groundtruth_file.string());
+    SPDLOG_INFO("IMU calibration file: {}", imu_calibration_file.string());
 }
 
 void zenslam::options::slam::print() const

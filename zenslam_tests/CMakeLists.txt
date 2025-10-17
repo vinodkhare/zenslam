@@ -18,3 +18,7 @@ add_test(NAME hello_test COMMAND hello_test)
 add_executable(umeyama_test source/umeyama_test.cpp)
 target_link_libraries(umeyama_test PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_imgproc)
 add_test(NAME umeyama_test COMMAND umeyama_test)
+
+add_executable(imu_calibration_test source/imu_calibration_test.cpp)
+target_link_libraries(imu_calibration_test PRIVATE zenslam_core Catch2::Catch2WithMain)
+add_test(NAME imu_calibration_test COMMAND imu_calibration_test)
