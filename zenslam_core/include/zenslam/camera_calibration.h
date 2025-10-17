@@ -7,7 +7,7 @@
 
 namespace zenslam
 {
-    class calibration
+    class camera_calibration
     {
     public:
         enum class distortion_model
@@ -16,7 +16,7 @@ namespace zenslam
             radial_tangential
         };
 
-        static calibration parse(const std::filesystem::path &path, const std::string &camera_name);
+        static camera_calibration parse(const std::filesystem::path &path, const std::string &camera_name);
 
         std::string         camera_name = { };
         cv::Size            resolution = { };
@@ -30,7 +30,7 @@ namespace zenslam
         cv::Mat             map_y = { };
 
         [[nodiscard]] auto camera_matrix() const -> cv::Matx33d;
-        [[nodiscard]] auto fundamental(const calibration &other) const -> cv::Matx33d;
+        [[nodiscard]] auto fundamental(const camera_calibration &other) const -> cv::Matx33d;
         [[nodiscard]] auto projection() const -> cv::Matx34d;
         [[nodiscard]] auto projection(const cv::Affine3d &pose_of_cam0_in_world) const -> cv::Matx34d;
 

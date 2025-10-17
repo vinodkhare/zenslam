@@ -660,7 +660,7 @@ void zenslam::utils::umeyama
     t                 = mean_dst - mean_src_rot;
 }
 
-auto zenslam::utils::undistort(const cv::Mat &image, const calibration &calibration) -> cv::Mat
+auto zenslam::utils::undistort(const cv::Mat &image, const camera_calibration &calibration) -> cv::Mat
 {
     cv::Mat undistorted { };
     cv::remap(image, undistorted, calibration.map_x, calibration.map_y, cv::INTER_CUBIC);

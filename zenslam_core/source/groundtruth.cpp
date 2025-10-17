@@ -50,4 +50,3 @@ auto zenslam::groundtruth::slerp(const double timestamp) -> pose
 
     return pose;
 }
-

@@ -16,7 +16,7 @@
 
 #include <vtk-9.3/vtkLogger.h>
 
-#include "calibration.h"
+#include "camera_calibration.h"
 #include "grid_detector.h"
 #include "groundtruth.h"
 #include "imu_calibration.h"
@@ -50,8 +50,8 @@ void zenslam::slam_thread::loop()
     auto motion      = zenslam::motion();
 
     const auto &calibrations = std::vector {
-        calibration::parse(_options.folder.calibration_file, "cam0"),
-        calibration::parse(_options.folder.calibration_file, "cam1")
+        camera_calibration::parse(_options.folder.calibration_file, "cam0"),
+        camera_calibration::parse(_options.folder.calibration_file, "cam1")
     };
 
     SPDLOG_INFO("");
@@ -64,7 +64,7 @@ void zenslam::slam_thread::loop()
     const auto &projection_L    = calibrations[0].projection();
     const auto &projection_R    = calibrations[1].projection();
 
-    const auto& imu_calibration = zenslam::imu_calibration::parse(_options.folder.imu_calibration_file);
+    const auto &imu_calibration = zenslam::imu_calibration::parse(_options.folder.imu_calibration_file);
     imu_calibration.print();
 
     slam_frame slam { };

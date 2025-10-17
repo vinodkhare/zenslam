@@ -41,20 +41,20 @@ namespace zenslam
         static imu_calibration parse(const std::filesystem::path &path);
 
         /// IMU topic name (e.g., "/imu0")
-        std::string rostopic = {};
-        
+        std::string rostopic = { };
+
         /// IMU update rate in Hz
         double update_rate = 200.0;
-        
+
         /// Accelerometer white noise density (m/s^1.5)
         double accelerometer_noise_density = 0.0;
-        
+
         /// Accelerometer bias random walk (m/s^2.5)
         double accelerometer_random_walk = 0.0;
-        
+
         /// Gyroscope white noise density (rad/s^0.5)
         double gyroscope_noise_density = 0.0;
-        
+
         /// Gyroscope bias random walk (rad/s^1.5)
         double gyroscope_random_walk = 0.0;
 

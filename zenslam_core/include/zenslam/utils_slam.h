@@ -2,7 +2,7 @@
 
 #include <map>
 
-#include "calibration.h"
+#include "camera_calibration.h"
 #include "keypoint.h"
 #include "options.h"
 #include "point.h"
@@ -117,5 +117,5 @@ namespace zenslam::utils
         cv::Point3d &                   t
     ) -> void;
 
-    auto undistort(const cv::Mat &image, const calibration &calibration) -> cv::Mat;
+    auto undistort(const cv::Mat &image, const camera_calibration &calibration) -> cv::Mat;
 }

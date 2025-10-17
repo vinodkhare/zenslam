@@ -1,4 +1,4 @@
-#include "calibration.h"
+#include "camera_calibration.h"
 
 
 #include <magic_enum/magic_enum.hpp>
@@ -13,7 +13,7 @@
 #include "utils.h"
 
 // read camera calibration from a kalibr yaml file
-auto zenslam::calibration::parse(const std::filesystem::path &path, const std::string &camera_name) -> calibration
+auto zenslam::camera_calibration::parse(const std::filesystem::path &path, const std::string &camera_name) -> camera_calibration
 {
     if (!std::filesystem::exists(path))
     {
@@ -30,7 +30,7 @@ auto zenslam::calibration::parse(const std::filesystem::path &path, const std::s
 
     auto cam = config[camera_name];
 
-    calibration calib;
+    camera_calibration calib;
 
     calib.camera_name = camera_name;
 
@@ -133,7 +133,7 @@ auto zenslam::calibration::parse(const std::filesystem::path &path, const std::s
     return calib;
 }
 
-auto zenslam::calibration::camera_matrix() const -> cv::Matx33d
+auto zenslam::camera_calibration::camera_matrix() const -> cv::Matx33d
 {
     return cv::Matx33d
     (
@@ -149,7 +149,7 @@ auto zenslam::calibration::camera_matrix() const -> cv::Matx33d
     );
 }
 
-auto zenslam::calibration::print() const -> void
+auto zenslam::camera_calibration::print() const -> void
 {
     SPDLOG_INFO("Camera name: {}", camera_name);
     SPDLOG_INFO("  Resolution: {}x{}", resolution.width, resolution.height);
@@ -160,7 +160,7 @@ auto zenslam::calibration::print() const -> void
     SPDLOG_INFO("  Pose in cam0: {}", pose_in_cam0);
 }
 
-auto zenslam::calibration::fundamental(const calibration &other) const -> cv::Matx33d
+auto zenslam::camera_calibration::fundamental(const camera_calibration &other) const -> cv::Matx33d
 {
     // Get camera matrices
     const auto K1 = this->camera_matrix();
@@ -176,7 +176,7 @@ auto zenslam::calibration::fundamental(const calibration &other) const -> cv::Ma
     return K2.inv().t() * E * K1.inv();
 }
 
-auto zenslam::calibration::projection() const -> cv::Matx34d
+auto zenslam::camera_calibration::projection() const -> cv::Matx34d
 {
     // Projection matrix P = K * [R | t]
     const auto K = camera_matrix();
@@ -188,7 +188,7 @@ auto zenslam::calibration::projection() const -> cv::Matx34d
     return K * Rt; // Matx (3x3) * (3x4) => (3x4)
 }
 
-auto zenslam::calibration::projection(const cv::Affine3d &pose_of_cam0_in_world) const -> cv::Matx34d
+auto zenslam::camera_calibration::projection(const cv::Affine3d &pose_of_cam0_in_world) const -> cv::Matx34d
 {
     // Projection matrix P = K * [R | t]
     const auto K = camera_matrix();

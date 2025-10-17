@@ -43,7 +43,8 @@ boost::program_options::options_description zenslam::options::description()
     )
     (
         "descriptor",
-        boost::program_options::value<std::string>()->default_value(std::string(magic_enum::enum_name(options.slam.descriptor))),
+        boost::program_options::value<std::string>()->default_value
+        (std::string(magic_enum::enum_name(options.slam.descriptor))),
         ("descriptor type - pick one of: " + utils::to_string(magic_enum::enum_names<descriptor_type>())).c_str()
     )
     (
@@ -103,7 +104,8 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     if (options_map.contains("folder-timescale")) options.folder.timescale = map["folder-timescale"].as<double>();
     if (options_map.contains("calibration-file")) options.folder.calibration_file = map["calibration-file"].as<std::string>();
     if (options_map.contains("grouthtruth-file")) options.folder.groundtruth_file = map["grouthtruth-file"].as<std::string>();
-    if (options_map.contains("imu-calibration-file")) options.folder.imu_calibration_file = map["imu-calibration-file"].as<std::string>();
+    if (options_map.contains
+        ("imu-calibration-file")) options.folder.imu_calibration_file = map["imu-calibration-file"].as<std::string>();
 
     if (options_map.contains("options-file")) options.file = map["options-file"].as<std::string>();
     if (options_map.contains
@@ -112,10 +114,12 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     if (options_map.contains("log-pattern")) options.log_pattern = map["log-pattern"].as<std::string>();
     if (options_map.contains("clahe-enabled")) options.slam.clahe_enabled = map["clahe-enabled"].as<bool>();
     if (options_map.contains("epipolar-threshold")) options.slam.threshold_epipolar = map["epipolar-threshold"].as<double>();
-    if (options_map.contains("feature")) options.slam.feature = magic_enum::enum_cast<feature_type>
-                                         (map["feature"].as<std::string>()).value_or(options.slam.feature);
-    if (options_map.contains("descriptor")) options.slam.descriptor = magic_enum::enum_cast<descriptor_type>
-                                            (map["descriptor"].as<std::string>()).value_or(options.slam.descriptor);
+    if (options_map.contains("feature"))
+        options.slam.feature = magic_enum::enum_cast<feature_type>
+                (map["feature"].as<std::string>()).value_or(options.slam.feature);
+    if (options_map.contains("descriptor"))
+        options.slam.descriptor = magic_enum::enum_cast<descriptor_type>
+                (map["descriptor"].as<std::string>()).value_or(options.slam.descriptor);
     if (options_map.contains("fast-threshold")) options.slam.fast_threshold = map["fast-threshold"].as<int>();
     if (options_map.contains("threshold-3d3d")) options.slam.threshold_3d3d = map["threshold-3d3d"].as<double>();
     if (options_map.contains("threshold-3d2d")) options.slam.threshold_3d2d = map["threshold-3d2d"].as<double>();
@@ -147,7 +151,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             options.folder.timescale        = folder["timescale"].as<double>();
             options.folder.calibration_file = folder["calibration_file"].as<std::string>();
             options.folder.groundtruth_file = folder["groundtruth_file"].as<std::string>();
-            
+
             if (folder["imu_calibration_file"])
             {
                 options.folder.imu_calibration_file = folder["imu_calibration_file"].as<std::string>();
