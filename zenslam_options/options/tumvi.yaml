@@ -13,10 +13,10 @@ folder:
   imu_calibration_file: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
 
 slam:
-  cell_size: [ 32, 32 ]
+  cell_size: [ 64, 64 ]
   clahe_enabled: false
   feature:    "FAST"
-  descriptor: "SIFT"
+  descriptor: "ORB"
   fast_threshold: 8
   klt_window_size: [ 31, 31 ]
   klt_max_level: 3

@@ -16,6 +16,7 @@
 
 #include "calibration.h"
 #include "camera_calibration.h"
+#include "frame_durations.h"
 #include "grid_detector.h"
 #include "groundtruth.h"
 #include "imu_calibration.h"
@@ -41,7 +42,7 @@ zenslam::slam_thread::~slam_thread()
 
 void zenslam::slam_thread::loop()
 {
-    const auto &calibration = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file);
+    const auto &calibration   = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file);
     const auto &stereo_reader = stereo_folder_reader(_options.folder);
     const auto &clahe         = cv::createCLAHE();
     const auto &detector      = grid_detector::create(_options.slam);
@@ -55,9 +56,9 @@ void zenslam::slam_thread::loop()
 
     for (auto f: stereo_reader)
     {
-        std::chrono::system_clock::duration frame_duration { };
+        frame_durations durations = { };
         {
-            time_this t { frame_duration };
+            time_this t { durations.total };
 
             slam.frame[0] = std::move(slam.frame[1]);
             slam.frame[1] = std::move(f);
@@ -73,9 +74,9 @@ void zenslam::slam_thread::loop()
             SPDLOG_INFO("");
             SPDLOG_INFO("Predicted pose: {}", slam.frame[1].pose);
 
-            std::chrono::system_clock::duration preprocessing_duration { };
+            // PREPROCESS
             {
-                time_this time_this { preprocessing_duration };
+                time_this time_this { durations.preprocessing };
 
                 cv::cvtColor(slam.frame[1].l.image, slam.frame[1].l.image, cv::COLOR_BGR2GRAY);
                 cv::cvtColor(slam.frame[1].r.image, slam.frame[1].r.image, cv::COLOR_BGR2GRAY);
@@ -92,38 +93,32 @@ void zenslam::slam_thread::loop()
                 slam.frame[1].l.pyramid = utils::pyramid(slam.frame[1].l.undistorted, _options.slam);
                 slam.frame[1].r.pyramid = utils::pyramid(slam.frame[1].r.undistorted, _options.slam);
             }
-            SPDLOG_INFO("Preprocessing duration: {} s", std::chrono::duration<double>(preprocessing_duration).count());
 
-            // track keypoints temporallyly
-            std::chrono::system_clock::duration tracking_duration { };
+            // TRACK
             {
-                time_this time_this { tracking_duration };
+                time_this time_this { durations.tracking };
 
                 utils::track(slam.frame[0].l, slam.frame[1].l, _options.slam);
                 utils::track(slam.frame[0].r, slam.frame[1].r, _options.slam);
             }
-            SPDLOG_INFO("Tracking duration: {} s", std::chrono::duration<double>(tracking_duration).count());
 
             SPDLOG_INFO("KLT tracked {} keypoints from previous frame in L", slam.frame[1].l.keypoints.size());
             SPDLOG_INFO("KLT tracked {} keypoints from previous frame in R", slam.frame[1].r.keypoints.size());
 
-            // detect keypoints additional
-            std::chrono::system_clock::duration detection_duration { };
+            // DETECT
             {
-                time_this time_this { detection_duration };
+                time_this time_this { durations.detection };
 
                 detector.detect(slam.frame[1].l.undistorted, slam.frame[1].l.keypoints);
                 detector.detect(slam.frame[1].r.undistorted, slam.frame[1].r.keypoints);
             }
-            SPDLOG_INFO("Detection duration: {} s", std::chrono::duration<double>(detection_duration).count());
 
             SPDLOG_INFO("Detected points L: {}", slam.frame[1].l.keypoints.size());
             SPDLOG_INFO("Detected points R: {}", slam.frame[1].r.keypoints.size());
 
-            // match keypoints spatial
-            std::chrono::system_clock::duration matching_duration { };
+            // MATCH & TRIANGULATE
             {
-                time_this time_this { matching_duration };
+                time_this time_this { durations.matching };
 
                 const auto &matches = utils::match
                 (
@@ -154,18 +149,22 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO
                 (
                     "Triangulation mean error: {} pixels",
-                    utils::mean(errors | std::views::filter([this](const auto &e) { return e <= _options.slam.
-                        threshold_triangulate; }) | std::ranges::to<std::vector>())
+                    utils::mean
+                    (
+                        errors | std::views::filter
+                        (
+                            [this](const auto &e) { return e <= _options.slam.threshold_triangulate; }
+                        ) | std::ranges::to<std::vector>()
+                    )
                 );
             }
-            SPDLOG_INFO("Matching & triangulation duration: {} s", std::chrono::duration<double>(matching_duration).count());
 
             auto pose_data_3d3d = pose_data { };
             auto pose_data_3d2d = pose_data { };
 
-            std::chrono::system_clock::duration pose_estimation_duration { };
+            // ESTIMATE
             {
-                time_this time_this { pose_estimation_duration };
+                time_this time_this { durations.estimation };
 
                 try
                 {
@@ -192,7 +191,6 @@ void zenslam::slam_thread::loop()
                     SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
                 }
             }
-            SPDLOG_INFO("Pose estimation duration: {} s", std::chrono::duration<double>(pose_estimation_duration).count());
 
             SPDLOG_INFO("");
             SPDLOG_INFO("3D-3D correspondences: {}", pose_data_3d3d.indices.size());
@@ -242,6 +240,7 @@ void zenslam::slam_thread::loop()
                 break;
             }
         }
-        SPDLOG_INFO("Frame duration: {} s", std::chrono::duration<double>(frame_duration).count());
+
+        durations.print();
     }
 }
