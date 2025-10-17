@@ -36,6 +36,7 @@ add_library(${PROJECT_NAME}
         source/folder_options.cpp
         source/grid_detector.cpp
         source/groundtruth.cpp
+        source/imu_calibration.cpp
         source/keypoint.cpp
         source/match_data.cpp
         source/mono_folder_reader.cpp

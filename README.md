@@ -130,6 +130,7 @@ ctest --test-dir build -j --output-on-failure
 ## Core Features (Implemented So Far)
 
 * YAML stereo calibration parsing (Kalibr-style) with fundamental & projection matrix helpers.
+* IMU calibration parsing with support for noise and bias parameters (accelerometer/gyroscope).
 * Feature detection via grid-based wrapper (uniform spatial distribution) over FAST/SIFT/ORB.
 * Descriptor extraction + brute force matching.
 * Epipolar filtering using a fundamental matrix + distance threshold.
@@ -186,6 +187,7 @@ Extended docs live in `zenslam_docs/`:
 |----------------------------------------------------------|------------------------------------------------------------|
 | [Overview](zenslam_docs/overview.md)                     | High-level architecture & data flow                        |
 | [Calibration](zenslam_docs/calibration.md)               | Parsing Kalibr YAML, intrinsics, projection, F computation |
+| [IMU Calibration](zenslam_docs/imu_calibration.md)       | IMU noise parameters & integration with options system     |
 | [Feature Pipeline](zenslam_docs/feature_pipeline.md)     | Grid-based detection + descriptor backends                 |
 | [Stereo Matching](zenslam_docs/stereo_matching.md)       | Descriptor matching strategy & future improvements         |
 | [Epipolar Filtering](zenslam_docs/epipolar_filtering.md) | Geometric pruning via fundamental matrix distances         |
