@@ -699,8 +699,8 @@ auto zenslam::utils::triangulate
 (
     stereo_frame &     frame,
     const cv::Matx34d &projection_l,
-    const cv::Matx34d &projection_r
-
+    const cv::Matx34d &projection_r,
+    const double threshold
 ) -> std::tuple<std::map<size_t, point>, std::vector<double>>
 {
     auto indices = frame.cameras[0].keypoints | std::views::keys |
@@ -761,8 +761,8 @@ auto zenslam::utils::triangulate
                   std::ranges::to<std::map>();
 
     // Reproject points to compute reprojection error
-    const auto &points_l_back = utils::project(points3d, projection_l);
-    const auto &points_r_back = utils::project(points3d, projection_r);
+    const auto &points_l_back = project(points3d, projection_l);
+    const auto &points_r_back = project(points3d, projection_r);
 
     const auto &errors = std::views::zip(points_l_back, points_r_back, points_l, points_r) |
                          std::views::transform
@@ -779,7 +779,7 @@ auto zenslam::utils::triangulate
 
     for (auto i = 0; i < points3d.size(); ++i)
     {
-        if (points3d[i].z <= 0 || errors[i] > 1.0) // 4 pixel reprojection error threshold
+        if (points3d[i].z <= 0 || errors[i] > threshold) // 4 pixel reprojection error threshold
         {
             points.erase(indices[i]);
         }

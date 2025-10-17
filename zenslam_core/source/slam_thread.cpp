@@ -122,7 +122,8 @@ void zenslam::slam_thread::loop()
                 (
                     slam.frames[1],
                     calibration.projection_matrix[0],
-                    calibration.projection_matrix[1]
+                    calibration.projection_matrix[1],
+                    _options.slam.threshold_triangulate
                 );
 
                 slam.counts.maches_triangulated = slam.frames[1].points.size();

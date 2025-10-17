@@ -207,7 +207,8 @@ namespace zenslam::utils
     (
         stereo_frame &     frame,
         const cv::Matx34d &projection_l,
-        const cv::Matx34d &projection_r
+        const cv::Matx34d &projection_r,
+        double             threshold
     ) -> std::tuple<std::map<size_t, point>, std::vector<double>>;
 
     auto umeyama
