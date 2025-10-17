@@ -5,6 +5,7 @@
 
 #include <opencv2/core/affine.hpp>
 
+#include "zenslam/line3d.h"
 #include "zenslam/point3d.h"
 #include "zenslam/frame/camera.h"
 
@@ -13,10 +14,11 @@ namespace zenslam::frame
     class stereo
     {
     public:
-        std::array<camera, 2>   cameras = { };
-        std::map<size_t, point3d> points  = { };
-        cv::Affine3d            pose    = { };
-        cv::Affine3d            pose_gt = { }; // groundtruth pose
+        std::array<camera, 2>     cameras     = { };
+        std::map<size_t, point3d> points      = { };
+        std::map<size_t, line3d>  lines3d_map = { };
+        cv::Affine3d              pose        = { };
+        cv::Affine3d              pose_gt     = { }; // groundtruth pose
 
         stereo(camera l, camera r) :
             cameras { std::move(l), std::move(r) } {}

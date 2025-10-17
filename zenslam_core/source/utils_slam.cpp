@@ -28,7 +28,7 @@
 
 void zenslam::utils::correspondences_3d2d
 (
-    const std::map<size_t, point3d> &   points,
+    const std::map<size_t, point3d> & points,
     const std::map<size_t, keypoint> &keypoints,
     std::vector<cv::Point3d> &        points3d,
     std::vector<cv::Point2d> &        points2d,
@@ -50,9 +50,9 @@ void zenslam::utils::correspondences_3d3d
 (
     const std::map<size_t, point3d> &points_map_0,
     const std::map<size_t, point3d> &points_map_1,
-    std::vector<cv::Point3d> &     points3d_0,
-    std::vector<cv::Point3d> &     points3d_1,
-    std::vector<size_t> &          indexes
+    std::vector<cv::Point3d> &       points3d_0,
+    std::vector<cv::Point3d> &       points3d_1,
+    std::vector<size_t> &            indexes
 )
 {
     for (const auto &index: points_map_1 | std::views::keys)
@@ -68,7 +68,7 @@ void zenslam::utils::correspondences_3d3d
 
 auto zenslam::utils::estimate_pose_3d2d
 (
-    const std::map<size_t, point3d> &   map_points_0,
+    const std::map<size_t, point3d> & map_points_0,
     const std::map<size_t, keypoint> &map_keypoints_1,
     const cv::Matx33d &               camera_matrix,
     const double &                    threshold
@@ -133,7 +133,7 @@ auto zenslam::utils::estimate_pose_3d3d
 (
     const std::map<size_t, point3d> &map_points_0,
     const std::map<size_t, point3d> &map_points_1,
-    const double &                 threshold
+    const double &                   threshold
 ) -> pose_data
 {
     // Gather points from slam.frame[0] and slam.frame[1] for 3D-3D pose computation
@@ -1035,29 +1035,32 @@ auto zenslam::utils::triangulate
 
 auto zenslam::utils::triangulate_keylines
 (
-    const std::map<size_t, zenslam::keyline> &keylines_l,
-    const std::map<size_t, zenslam::keyline> &keylines_r,
-    const cv::Matx34d &                       P_l,
-    const cv::Matx34d &                       P_r
-) -> std::map<size_t, std::tuple<cv::Point3d, cv::Point3d, cv::Point3d>>
+    const std::map<size_t, keyline> &keylines_l,
+    const std::map<size_t, keyline> &keylines_r,
+    const cv::Matx34d &              P_l,
+    const cv::Matx34d &              P_r
+) -> std::vector<line3d>
 {
-    std::map<size_t, std::tuple<cv::Point3d, cv::Point3d, cv::Point3d>> result;
-    for (const auto &[idx, kl_l]: keylines_l)
+    std::vector<line3d> lines3d { };
+
+    for (const auto &kl_l: keylines_l | std::views::values)
     {
-        auto it_r = keylines_r.find(idx);
-        if (it_r == keylines_r.end()) continue;
-        const auto &kl_r = it_r->second;
+        if (!keylines_r.contains(kl_l.index))
+        {
+            continue;
+        }
+
+        const auto &kl_r = keylines_r.at(kl_l.index);
 
         // Triangulate endpoints and midpoint
-        std::vector<cv::Point2f> pts_l = {
+        std::vector pts_l = {
             cv::Point2f(kl_l.startPointX, kl_l.startPointY),
-            cv::Point2f(kl_l.endPointX, kl_l.endPointY),
-            cv::Point2f(kl_l.pt.x, kl_l.pt.y)
+            cv::Point2f(kl_l.endPointX, kl_l.endPointY)
         };
-        std::vector<cv::Point2f> pts_r = {
+
+        std::vector pts_r = {
             cv::Point2f(kl_r.startPointX, kl_r.startPointY),
-            cv::Point2f(kl_r.endPointX, kl_r.endPointY),
-            cv::Point2f(kl_r.pt.x, kl_r.pt.y)
+            cv::Point2f(kl_r.endPointX, kl_r.endPointY)
         };
 
         cv::Mat points4d;
@@ -1065,16 +1068,19 @@ auto zenslam::utils::triangulate_keylines
 
         // Convert homogeneous to 3D
         std::vector<cv::Point3d> points3d;
-        for (int i = 0; i < points4d.cols; ++i)
+        for (auto i = 0; i < points4d.cols; ++i)
         {
             cv::Vec4d X = points4d.col(i);
             if (std::abs(X[3]) > 1E-9) points3d.emplace_back(X[0] / X[3], X[1] / X[3], X[2] / X[3]);
             else points3d.emplace_back(0, 0, 0);
         }
-        // Store as (start, end, midpoint)
-        result[idx] = std::make_tuple(points3d[0], points3d[1], points3d[2]);
+
+        lines3d.emplace_back(line3d::index_next, std::array { points3d[0], points3d[1] });
+
+        line3d::index_next++;
     }
-    return result;
+
+    return lines3d;
 }
 
 void zenslam::utils::umeyama

@@ -6,6 +6,7 @@
 
 #include "camera_calibration.h"
 #include "keypoint.h"
+#include "line3d.h"
 #include "options.h"
 #include "point3d.h"
 #include "pose_data.h"
@@ -36,6 +37,19 @@ inline auto operator+=
         keylines_map[keyline.index] = keyline;
     }
     return keylines_map;
+}
+
+inline auto operator+=
+(
+    std::map<size_t, zenslam::line3d> & lines3d_map,
+    const std::vector<zenslam::line3d> &lines3d
+) -> std::map<size_t, zenslam::line3d> &
+{
+    for (const auto &line3d: lines3d)
+    {
+        lines3d_map[line3d.index] = line3d;
+    }
+    return lines3d_map;
 }
 
 inline auto operator*=
@@ -87,7 +101,7 @@ namespace zenslam::utils
 {
     auto correspondences_3d2d
     (
-        const std::map<size_t, point3d> &   points,
+        const std::map<size_t, point3d> & points,
         const std::map<size_t, keypoint> &keypoints,
         std::vector<cv::Point3d> &        points3d,
         std::vector<cv::Point2d> &        points2d,
@@ -99,14 +113,14 @@ namespace zenslam::utils
     (
         const std::map<size_t, point3d> &points_map_0,
         const std::map<size_t, point3d> &points_map_1,
-        std::vector<cv::Point3d> &     points3d_0,
-        std::vector<cv::Point3d> &     points3d_1,
-        std::vector<size_t> &          indexes
+        std::vector<cv::Point3d> &       points3d_0,
+        std::vector<cv::Point3d> &       points3d_1,
+        std::vector<size_t> &            indexes
     );
 
     auto estimate_pose_3d2d
     (
-        const std::map<size_t, point3d> &   map_points_0,
+        const std::map<size_t, point3d> & map_points_0,
         const std::map<size_t, keypoint> &map_keypoints_1,
         const cv::Matx33d &               camera_matrix,
         const double &                    threshold
@@ -116,7 +130,7 @@ namespace zenslam::utils
     (
         const std::map<size_t, point3d> &map_points_0,
         const std::map<size_t, point3d> &map_points_1,
-        const double &                 threshold
+        const double &                   threshold
     ) -> pose_data;
 
     // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
@@ -314,7 +328,7 @@ namespace zenslam::utils
         const std::map<size_t, keyline> &keylines_r,
         const cv::Matx34d &              P_l,
         const cv::Matx34d &              P_r
-    ) -> std::map<size_t, std::tuple<cv::Point3d, cv::Point3d, cv::Point3d>>;
+    ) -> std::vector<line3d>;
 
     auto umeyama
     (

@@ -36,7 +36,7 @@ void zenslam::application::render()
     if (slam.frames[1].cameras[0].keypoints.empty() || slam.frames[0].cameras[0].undistorted.empty() || slam.frames[1].cameras[0].undistorted.empty()) return;
 
     {
-        const auto &matches_image = utils::draw_matches(slam.frames[1], slam.points);
+        const auto &matches_image = utils::draw_matches(slam.frames[1], slam.points3d_map);
 
         cv::imshow("matches_spatial", matches_image);
         cv::setWindowTitle("matches_spatial", "matches spatial");
@@ -63,7 +63,7 @@ void zenslam::application::render()
             _viewer->setWindowPosition(cv::Point(700, 100));
             _viewer->setWindowSize(cv::Size(1024, 1024));
         }
-        else if (!slam.points.empty())
+        else if (!slam.points3d_map.empty())
         {
             _viewer->removeAllWidgets();
 
@@ -89,7 +89,7 @@ void zenslam::application::render()
             _viewer->showWidget("camera_gt", camera_gt);
             _viewer->setWidgetPose("camera_gt", slam.frames[1].pose_gt);
 
-            const auto &points = slam.points | std::views::values | std::views::transform
+            const auto &points = slam.points3d_map | std::views::values | std::views::transform
                                  (
                                      [](const auto &p)
                                      {
@@ -97,7 +97,7 @@ void zenslam::application::render()
                                      }
                                  ) | std::ranges::to<std::vector>();
 
-            const auto &colors = slam.points | std::views::values | std::views::transform
+            const auto &colors = slam.points3d_map | std::views::values | std::views::transform
                                  (
                                      [](const auto &p)
                                      {

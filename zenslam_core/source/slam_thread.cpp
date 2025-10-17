@@ -175,6 +175,14 @@ void zenslam::slam_thread::loop()
                         ) | std::ranges::to<std::vector>()
                     )
                 );
+
+                slam.frames[1].lines3d_map += utils::triangulate_keylines
+                (
+                    slam.frames[1].cameras[0].keylines,
+                    slam.frames[1].cameras[1].keylines,
+                    calibration.projection_matrix[0],
+                    calibration.projection_matrix[1]
+                );
             }
 
             auto pose_data_3d3d = pose_data { };
@@ -238,12 +246,12 @@ void zenslam::slam_thread::loop()
                 point3d.color = slam.frames[1].cameras[0].undistorted.at<cv::Vec3b>
                         (slam.frames[1].cameras[0].keypoints.at(point.index).pt);
 
-                slam.points[index] = point3d;
+                slam.points3d_map[index] = point3d;
             }
 
-            slam.counts.points = slam.points.size();
+            slam.counts.points = slam.points3d_map.size();
 
-            slam.colors = slam.points | std::views::values | std::views::transform
+            slam.colors = slam.points3d_map | std::views::values | std::views::transform
                           (
                               [](const auto &p)
                               {

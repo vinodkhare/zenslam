@@ -16,10 +16,10 @@ namespace zenslam::frame
     class slam
     {
     public:
-        std::array<stereo, 2>   frames    = { };
-        std::map<size_t, point3d> points    = { };
-        std::vector<cv::Vec3b>  colors    = { };
-        durations               durations = { };
-        counts                  counts    = { };
+        std::array<stereo, 2>     frames       = { };
+        std::map<size_t, point3d> points3d_map = { };
+        std::vector<cv::Vec3b>    colors       = { };
+        durations                 durations    = { };
+        counts                    counts       = { };
     };
 }

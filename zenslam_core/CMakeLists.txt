@@ -45,6 +45,7 @@ add_library(${PROJECT_NAME}
         source/groundtruth.cpp
         source/imu_calibration.cpp
         source/keypoint.cpp
+        source/line3d.cpp
         source/mono_folder_reader.cpp
         source/motion.cpp
         source/options.cpp
