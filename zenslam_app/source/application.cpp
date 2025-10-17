@@ -33,10 +33,10 @@ void zenslam::application::render()
     }
 
     // display matches spatial
-    if (slam.frame[1].cameras[0].keypoints.empty() || slam.frame[0].cameras[0].undistorted.empty() || slam.frame[1].cameras[0].undistorted.empty()) return;
+    if (slam.frames[1].cameras[0].keypoints.empty() || slam.frames[0].cameras[0].undistorted.empty() || slam.frames[1].cameras[0].undistorted.empty()) return;
 
     {
-        const auto &matches_image = utils::draw_matches(slam.frame[1], slam.points);
+        const auto &matches_image = utils::draw_matches(slam.frames[1], slam.points);
 
         cv::imshow("matches_spatial", matches_image);
         cv::setWindowTitle("matches_spatial", "matches spatial");
@@ -45,7 +45,7 @@ void zenslam::application::render()
 
     // display matches temporal
     {
-        const auto &matches_image = utils::draw_matches(slam.frame[0].cameras[0], slam.frame[1].cameras[0]);
+        const auto &matches_image = utils::draw_matches(slam.frames[0].cameras[0], slam.frames[1].cameras[0]);
 
         cv::namedWindow("matches_temporal");
         cv::imshow("matches_temporal", matches_image);
@@ -72,22 +72,22 @@ void zenslam::application::render()
             cv::viz::WCameraPosition camera_position
             (
                 cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 },
-                slam.frame[1].cameras[0].undistorted
+                slam.frames[1].cameras[0].undistorted
             );
 
             camera_position.setColor(cv::viz::Color::red());
             _viewer->showWidget("camera", camera_position);
-            _viewer->setWidgetPose("camera", slam.frame[1].pose);
+            _viewer->setWidgetPose("camera", slam.frames[1].pose);
 
             cv::viz::WCameraPosition camera_gt
             (
                 cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 },
-                slam.frame[1].cameras[0].undistorted
+                slam.frames[1].cameras[0].undistorted
             );
 
             camera_gt.setColor(cv::viz::Color::bluberry());
             _viewer->showWidget("camera_gt", camera_gt);
-            _viewer->setWidgetPose("camera_gt", slam.frame[1].pose_gt);
+            _viewer->setWidgetPose("camera_gt", slam.frames[1].pose_gt);
 
             const auto &points = slam.points | std::views::values | std::views::transform
                                  (

@@ -8,6 +8,20 @@
 
 #include <gsl/narrow>
 
+auto zenslam::utils::apply_clahe(const cv::Mat &image, const cv::Ptr<cv::CLAHE> &clahe) -> cv::Mat
+{
+    cv::Mat converted_image { };
+    clahe->apply(image, converted_image);
+    return converted_image;
+}
+
+auto zenslam::utils::convert_color(const cv::Mat &image, int code) -> cv::Mat
+{
+    cv::Mat converted_image { };
+    cv::cvtColor(image, converted_image, code);
+    return converted_image;
+}
+
 auto zenslam::utils::draw_keypoints(const camera_frame &frame) -> cv::Mat
 {
     const auto &keypoints = utils::cast<cv::KeyPoint>(values(frame.keypoints));

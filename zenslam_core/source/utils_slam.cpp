@@ -533,6 +533,45 @@ auto zenslam::utils::match_temporal
     return matches_new;
 }
 
+auto zenslam::utils::pre_process
+(
+    const camera_frame &       frame,
+    const camera_calibration & calibration,
+    const class options::slam &options,
+    const cv::Ptr<cv::CLAHE> & clahe
+) -> camera_frame
+{
+    auto result = frame;
+
+    result.image = convert_color(result.image, cv::COLOR_BGR2GRAY);
+
+    if (options.clahe_enabled)
+    {
+        result.image = apply_clahe(result.image, clahe);
+    }
+
+    result.undistorted = utils::undistort(result.image, calibration);
+    result.pyramid     = pyramid(result.undistorted, options);
+
+    return result;
+}
+
+auto zenslam::utils::pre_process
+(
+    const stereo_frame &                     frame,
+    const std::array<camera_calibration, 2> &calibration,
+    const class options::slam &              options,
+    const cv::Ptr<cv::CLAHE> &               clahe
+) -> stereo_frame
+{
+    auto result = frame;
+
+    result.cameras[0] = pre_process(result.cameras[0], calibration[0], options, clahe);
+    result.cameras[1] = pre_process(result.cameras[1], calibration[1], options, clahe);
+
+    return result;
+}
+
 auto zenslam::utils::solve_pnp
 (
     const cv::Matx33d &             camera_matrix,
@@ -559,13 +598,14 @@ auto zenslam::utils::solve_pnp
     }
 }
 
-void zenslam::utils::track
+auto zenslam::utils::track
 (
-    const camera_frame &            frame_0,
-    camera_frame &                  frame_1,
-    const class options::slam &     options,
-    const std::vector<cv::Point2f> &points_1_predicted
-)
+    const std::vector<cv::Mat> &      pyramid_0,
+    const std::vector<cv::Mat> &      pyramid_1,
+    const std::map<size_t, keypoint> &keypoints_map_0,
+    const class options::slam &       options,
+    const std::vector<cv::Point2f> &  points_1_predicted
+) -> std::vector<keypoint>
 {
     // track points from the previous frame to this frame using the KLT tracker
     // KLT tracking of keypoints from previous frame to current frame (left image)
@@ -574,18 +614,18 @@ void zenslam::utils::track
     std::vector<float> err { };
 
     // Convert previous keypoints to Point
-    const auto &keypoints_0 = values(frame_0.keypoints);
-    const auto &points_0    = to_points(frame_0.keypoints);
+    const auto &keypoints_0 = values(keypoints_map_0);
+    const auto &points_0    = to_points(keypoints_map_0);
 
     if (keypoints_0.empty())
     {
-        return;
+        return { };
     }
 
     cv::calcOpticalFlowPyrLK
     (
-        frame_0.pyramid,
-        frame_1.pyramid,
+        pyramid_0,
+        pyramid_1,
         points_0,
         points_1,
         status,
@@ -600,8 +640,8 @@ void zenslam::utils::track
     std::vector<uchar>       status_back { };
     cv::calcOpticalFlowPyrLK
     (
-        frame_1.pyramid,
-        frame_0.pyramid,
+        pyramid_1,
+        pyramid_0,
         points_1,
         points_0_back,
         status_back,
@@ -615,15 +655,43 @@ void zenslam::utils::track
     // Verify KLT tracking results have consistent sizes
     assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == err.size());
 
-    // Update frame.cameras[0].keypoints with tracked points
+    std::vector<keypoint> tracked_keypoints { };
     for (size_t i = 0; i < points_1.size(); ++i)
     {
         if (status[i] && status_back[i] && cv::norm(points_0_back[i] - points_0[i]) < options.klt_threshold)
         {
-            frame_1.keypoints[keypoints_0[i].index]    = keypoints_0[i];
-            frame_1.keypoints[keypoints_0[i].index].pt = points_1[i];
+            tracked_keypoints.emplace_back(keypoints_0[i]);
+            tracked_keypoints.back().pt = points_1[i];
         }
     }
+
+    return tracked_keypoints;
+}
+
+auto zenslam::utils::track
+(
+    const std::array<stereo_frame, 2> &frames,
+    const class options::slam &        options
+) -> std::array<std::vector<keypoint>, 2>
+{
+    return
+    {
+        track
+        (
+            frames[0].cameras[0].pyramid,
+            frames[1].cameras[0].pyramid,
+            frames[0].cameras[0].keypoints,
+            options
+        ),
+
+        track
+        (
+            frames[0].cameras[1].pyramid,
+            frames[1].cameras[1].pyramid,
+            frames[0].cameras[1].keypoints,
+            options
+        )
+    };
 }
 
 

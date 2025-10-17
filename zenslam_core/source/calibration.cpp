@@ -10,14 +10,14 @@ auto zenslam::calibration::parse
 {
     calibration calib { };
 
-    calib.camera[0]             = camera_calibration::parse(camera_calib_path, "cam0");
-    calib.camera[1]             = camera_calibration::parse(camera_calib_path, "cam1");
-    calib.camera_matrix[0]      = calib.camera[0].camera_matrix();
-    calib.camera_matrix[1]      = calib.camera[1].camera_matrix();
-    calib.fundamental_matrix[0] = calib.camera[0].fundamental(calib.camera[1]);
-    calib.fundamental_matrix[1] = calib.camera[1].fundamental(calib.camera[0]);
-    calib.projection_matrix[0]  = calib.camera[0].projection();
-    calib.projection_matrix[1]  = calib.camera[1].projection();
+    calib.cameras[0]             = camera_calibration::parse(camera_calib_path, "cam0");
+    calib.cameras[1]             = camera_calibration::parse(camera_calib_path, "cam1");
+    calib.camera_matrix[0]      = calib.cameras[0].camera_matrix();
+    calib.camera_matrix[1]      = calib.cameras[1].camera_matrix();
+    calib.fundamental_matrix[0] = calib.cameras[0].fundamental(calib.cameras[1]);
+    calib.fundamental_matrix[1] = calib.cameras[1].fundamental(calib.cameras[0]);
+    calib.projection_matrix[0]  = calib.cameras[0].projection();
+    calib.projection_matrix[1]  = calib.cameras[1].projection();
     calib.imu                   = imu_calibration::parse(imu_calib_path);
 
     return calib;
@@ -26,7 +26,7 @@ auto zenslam::calibration::parse
 void zenslam::calibration::print() const
 {
     SPDLOG_INFO("");
-    camera[0].print();
+    cameras[0].print();
     SPDLOG_INFO("");
-    camera[1].print();
+    cameras[1].print();
 }

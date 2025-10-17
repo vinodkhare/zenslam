@@ -7,7 +7,7 @@ namespace zenslam
 {
     struct calibration
     {
-        std::array<camera_calibration, 2> camera             = { };
+        std::array<camera_calibration, 2> cameras             = { };
         std::array<cv::Matx33d, 2>        camera_matrix      = { };
         std::array<cv::Matx33d, 2>        fundamental_matrix = { };
         std::array<cv::Matx34d, 2>        projection_matrix  = { };

@@ -21,7 +21,7 @@ auto zenslam::frame_writer::write(slam_frame &frame) -> void
             << std::format
             (
                 "{:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}",
-                frame.frame[1].cameras[0].timestamp,
+                frame.frames[1].cameras[0].timestamp,
                 std::chrono::duration<double>(frame.durations.preprocessing).count(),
                 std::chrono::duration<double>(frame.durations.tracking).count(),
                 std::chrono::duration<double>(frame.durations.detection).count(),
