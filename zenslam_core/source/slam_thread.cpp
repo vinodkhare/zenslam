@@ -41,6 +41,7 @@ zenslam::slam_thread::~slam_thread()
 
 void zenslam::slam_thread::loop()
 {
+    const auto &calibration = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file);
     const auto &stereo_reader = stereo_folder_reader(_options.folder);
     const auto &clahe         = cv::createCLAHE();
     const auto &detector      = grid_detector::create(_options.slam);
@@ -48,16 +49,7 @@ void zenslam::slam_thread::loop()
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto motion      = zenslam::motion();
 
-    const auto &calibration = calibration::parse
-    (
-        _options.folder.calibration_file,
-        _options.folder.imu_calibration_file
-    );
-
     calibration.print();
-
-    const auto &imu_calibration = imu_calibration::parse(_options.folder.imu_calibration_file);
-    imu_calibration.print();
 
     slam_frame slam { };
 
@@ -155,7 +147,8 @@ void zenslam::slam_thread::loop()
                 }
 
                 std::vector<double> errors { };
-                std::tie(slam.frame[1].points, errors) = utils::triangulate(slam.frame[1], calibration.projection_matrix[0], calibration.projection_matrix[1]);
+                std::tie(slam.frame[1].points, errors) = utils::triangulate
+                        (slam.frame[1], calibration.projection_matrix[0], calibration.projection_matrix[1]);
 
                 SPDLOG_INFO("Triangulated point count: {}", slam.frame[1].points.size());
                 SPDLOG_INFO

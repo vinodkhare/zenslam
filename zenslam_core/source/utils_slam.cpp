@@ -396,7 +396,7 @@ auto zenslam::utils::match
         }
     }
 
-    const cv::BFMatcher     matcher { cv::NORM_HAMMING, true };
+    const cv::BFMatcher     matcher { descriptors_l.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2, true };
     std::vector<cv::DMatch> matches;
     matcher.match(descriptors_l, descriptors_r, matches);
 
