@@ -43,7 +43,7 @@ add_library(${PROJECT_NAME}
         source/imu_calibration.cpp
         source/keypoint.cpp
         source/mono_folder_reader.cpp
-        source/mono_frame.cpp
+        source/camera_frame.cpp
         source/motion.cpp
         source/options.cpp
         source/point.cpp

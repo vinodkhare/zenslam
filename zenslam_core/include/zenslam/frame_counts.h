@@ -16,6 +16,7 @@ namespace zenslam
         size_t correspondences_3d2d         = { };
         size_t correspondences_3d3d_inliers = { };
         size_t correspondences_3d2d_inliers = { };
+        size_t points                       = { };
 
         auto print() const -> void;
     };

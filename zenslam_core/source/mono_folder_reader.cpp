@@ -80,7 +80,7 @@ namespace zenslam { namespace
         _timescale = timescale;
     }
 
-    mono_frame mono_folder_reader::operator[](const std::size_t index) const
+    camera_frame mono_folder_reader::operator[](const std::size_t index) const
     {
         if (index >= _files.size())
         {

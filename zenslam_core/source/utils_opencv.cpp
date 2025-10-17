@@ -8,7 +8,7 @@
 
 #include <gsl/narrow>
 
-auto zenslam::utils::draw_keypoints(const mono_frame &frame) -> cv::Mat
+auto zenslam::utils::draw_keypoints(const camera_frame &frame) -> cv::Mat
 {
     const auto &keypoints = utils::cast<cv::KeyPoint>(values(frame.keypoints));
 
@@ -141,7 +141,7 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame, const std::map<size
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches(const mono_frame &frame_0, const mono_frame &frame_1) -> cv::Mat
+auto zenslam::utils::draw_matches(const camera_frame &frame_0, const camera_frame &frame_1) -> cv::Mat
 {
     cv::Mat matches_image { };
 

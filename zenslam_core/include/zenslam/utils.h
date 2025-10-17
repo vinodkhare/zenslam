@@ -1,46 +1,18 @@
 #pragma once
 
+
 #include <map>
+#include <numbers>
+
+#include <opencv2/core/affine.hpp>
 #include <string>
 
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
 
-#include "frame_durations.h"
-#include "options.h"
-#include "stereo_frame.h"
+#include "keypoint.h"
 #include "utils_std.h"
 
-// Pretty formatter for cv::Affine3d for spdlog/fmt
-template <>
-struct fmt::formatter<cv::Affine3d> : formatter<std::string>
-{
-    template <typename FormatContext>
-    auto format(const cv::Affine3d &value, FormatContext &context) const
-    {
-        const auto &R = value.rotation();
-        const auto &t = value.translation();
-
-        auto s = fmt::format
-        (
-            "[\n  R = \n  [\n    {:+.4f} {:+.4f} {:+.4f}\n    {:+.4f} {:+.4f} {:+.4f}\n    {:+.4f} {:+.4f} {:+.4f}\n  ]\n  t = [{:+.4f} {:+.4f} {:+.4f}]\n]",
-            R(0, 0),
-            R(0, 1),
-            R(0, 2),
-            R(1, 0),
-            R(1, 1),
-            R(1, 2),
-            R(2, 0),
-            R(2, 1),
-            R(2, 2),
-            t[0],
-            t[1],
-            t[2]
-        );
-
-        return formatter<std::string>::format(s, context);
-    }
-};
 
 namespace zenslam::utils
 {
@@ -83,3 +55,31 @@ namespace zenslam::utils
      */
     auto matrix_to_euler(const cv::Matx33d &R) -> cv::Vec3d;
 }
+
+// Pretty formatter for cv::Affine3d for spdlog/fmt
+template <>
+struct fmt::formatter<cv::Affine3d> : formatter<std::string>
+{
+    template <typename FormatContext>
+    auto format(const cv::Affine3d &value, FormatContext &context) const
+    {
+        const auto &R      = value.rotation();
+        const auto &t      = value.translation();
+        const auto &angles = zenslam::utils::matrix_to_euler(R) * (180.0 / std::numbers::pi);
+
+        return formatter<std::string>::format
+        (
+            fmt::format
+            (
+                "{{ x: {{ {:+.4f}, {:+.4f}, {:+.4f} }}, 𝜭: {{ {:+.4f}, {:+.4f}, {:+.4f} }} }}",
+                t[0],
+                t[1],
+                t[2],
+                angles[0],
+                angles[1],
+                angles[2]
+            ),
+            context
+        );
+    }
+};

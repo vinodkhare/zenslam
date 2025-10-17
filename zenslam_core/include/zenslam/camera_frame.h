@@ -8,7 +8,7 @@
 
 namespace zenslam
 {
-    class mono_frame
+    class camera_frame
     {
     public:
         double                     timestamp   = { std::nan("nan") };
@@ -18,9 +18,9 @@ namespace zenslam
         std::map<size_t, keypoint> keypoints   = { };
         std::vector<cv::Mat>       pyramid     = { };
 
-        mono_frame() = default;
+        camera_frame() = default;
 
-        mono_frame(const double timestamp, cv::Mat image) :
+        camera_frame(const double timestamp, cv::Mat image) :
             timestamp(timestamp),
             image(std::move(image)) {}
     };

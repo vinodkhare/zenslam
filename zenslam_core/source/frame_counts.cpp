@@ -16,4 +16,5 @@ auto zenslam::frame_counts::print() const -> void
     SPDLOG_INFO("  3D-2D Correspondences: {:4}", correspondences_3d2d);
     SPDLOG_INFO("  3D-3D Inliers:         {:4}", correspondences_3d3d_inliers);
     SPDLOG_INFO("  3D-2D Inliers:         {:4}", correspondences_3d2d_inliers);
+    SPDLOG_INFO("  Map Points:            {:4}", points);
 }

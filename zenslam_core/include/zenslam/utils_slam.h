@@ -105,8 +105,8 @@ namespace zenslam::utils
 
     auto track
     (
-        const mono_frame &              frame_0,
-        mono_frame &                    frame_1,
+        const camera_frame &              frame_0,
+        camera_frame &                    frame_1,
         const class options::slam &     options,
         const std::vector<cv::Point2f> &points_1_predicted = { }
     ) -> void;

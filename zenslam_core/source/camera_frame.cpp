@@ -1,4 +1,4 @@
-#include "mono_frame.h"
+#include "camera_frame.h"
 
 namespace zenslam
 {

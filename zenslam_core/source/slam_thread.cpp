@@ -70,9 +70,6 @@ void zenslam::slam_thread::loop()
             slam.frame[0].pose    = isnan(slam.frame[0].l.timestamp) ? slam.frame[1].pose_gt : slam.frame[0].pose;
             slam.frame[1].pose    = motion.predict(slam.frame[0].pose, dt);
 
-            SPDLOG_INFO("");
-            SPDLOG_INFO("Predicted pose: {}", slam.frame[1].pose);
-
             // PREPROCESS
             {
                 time_this time_this { slam.durations.preprocessing };
@@ -228,9 +225,10 @@ void zenslam::slam_thread::loop()
                     }
                 );
 
+                SPDLOG_INFO("");
                 SPDLOG_INFO
                 (
-                    "Triangulation mean error: {} pixels",
+                    "Tri mean error:   {:.4f} px",
                     utils::mean
                     (
                         errors | std::views::filter
@@ -279,20 +277,20 @@ void zenslam::slam_thread::loop()
             slam.counts.correspondences_3d2d_inliers = pose_data_3d2d.inliers.size();
             slam.counts.correspondences_3d3d_inliers = pose_data_3d3d.inliers.size();
 
-            SPDLOG_INFO("");
-            SPDLOG_INFO("3D-3D correspondences: {}", pose_data_3d3d.indices.size());
-            SPDLOG_INFO("3D-3D inliers: {}", pose_data_3d3d.inliers.size());
-            SPDLOG_INFO("3D-3D mean error: {} m", utils::mean(pose_data_3d3d.errors));
-
-            SPDLOG_INFO("");
-            SPDLOG_INFO("3D-2D correspondeces: {}", pose_data_3d2d.indices.size());
-            SPDLOG_INFO("3D-2D inliers: {}", pose_data_3d2d.inliers.size());
-            SPDLOG_INFO("3D-2D mean error: {} pixels", utils::mean(pose_data_3d2d.errors));
+            SPDLOG_INFO("3D-3D mean error: {:.4f} m", utils::mean(pose_data_3d3d.errors));
+            SPDLOG_INFO("3D-2D mean error: {:.4f} px", utils::mean(pose_data_3d2d.errors));
 
             const auto &pose =
                     pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;
 
+
+            SPDLOG_INFO("");
+            SPDLOG_INFO("Predicted pose:   {}", slam.frame[1].pose);
+
             slam.frame[1].pose = slam.frame[0].pose * pose.inv();
+
+            SPDLOG_INFO("Estimated pose:   {}", slam.frame[1].pose);
+            SPDLOG_INFO("Groundtruth pose: {}", slam.frame[1].pose_gt);
 
             for (const auto &[index, point]: slam.frame[1].points)
             {
@@ -304,10 +302,7 @@ void zenslam::slam_thread::loop()
                 slam.points[index] = point3d;
             }
 
-            SPDLOG_INFO("");
-            SPDLOG_INFO("Groundtruth pose: {}", slam.frame[1].pose_gt);
-            SPDLOG_INFO("Estimated pose: {}", slam.frame[1].pose);
-            SPDLOG_INFO("Map points count: {}", slam.points.size());
+            slam.counts.points = slam.points.size();
 
             slam.colors = slam.points | std::views::values | std::views::transform
                           (
