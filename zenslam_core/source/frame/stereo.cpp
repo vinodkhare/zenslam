@@ -1,6 +1,6 @@
-#include "stereo_frame.h"
+#include "frame/stereo.h"
 
-namespace zenslam
+namespace zenslam::frame
 {
     // No implementation needed for simple struct-like class
 }

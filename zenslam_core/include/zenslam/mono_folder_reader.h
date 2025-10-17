@@ -4,8 +4,8 @@
 #include <vector>
 #include <opencv2/core.hpp>
 
-#include "camera_frame.h"
 #include "random_access_iterator.h"
+#include "frame/camera.h"
 
 namespace zenslam
 {
@@ -34,9 +34,9 @@ namespace zenslam
         }
 
         // Load mono_frame at index (lazy). Returns mono_frame with empty image if load fails.
-        camera_frame operator[](std::size_t index) const;
+    zenslam::frame::camera operator[](std::size_t index) const;
 
-        using iterator = random_access_iterator<mono_folder_reader, camera_frame>;
+    using iterator = random_access_iterator<mono_folder_reader, zenslam::frame::camera>;
 
         [[nodiscard]] iterator begin() const
         {

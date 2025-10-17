@@ -2,9 +2,9 @@
 
 #include <cstddef>
 
-namespace zenslam
+namespace zenslam::frame
 {
-    struct frame_counts
+    struct counts
     {
         size_t keypoints_l                  = { };
         size_t keypoints_r                  = { };

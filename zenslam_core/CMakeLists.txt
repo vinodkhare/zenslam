@@ -31,27 +31,27 @@ message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
 find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
 
 add_library(${PROJECT_NAME}
+        source/frame/camera.cpp
+        source/frame/counts.cpp
+        source/frame/durations.cpp
+        source/frame/slam.cpp
+        source/frame/stereo.cpp
+        source/frame/writer.cpp
         source/calibration.cpp
         source/camera_calibration.cpp
         source/event.cpp
         source/folder_options.cpp
-        source/frame_counts.cpp
-        source/frame_durations.cpp
-        source/frame_writer.cpp
         source/grid_detector.cpp
         source/groundtruth.cpp
         source/imu_calibration.cpp
         source/keypoint.cpp
         source/mono_folder_reader.cpp
-        source/camera_frame.cpp
         source/motion.cpp
         source/options.cpp
         source/point.cpp
         source/pose.cpp
-        source/slam_frame.cpp
         source/slam_thread.cpp
         source/stereo_folder_reader.cpp
-        source/stereo_frame.cpp
         source/time_this.cpp
         source/utils.cpp
         source/utils_opencv.cpp

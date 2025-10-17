@@ -2,9 +2,9 @@
 
 #include <chrono>
 
-namespace zenslam
+namespace zenslam::frame
 {
-    struct frame_durations
+    struct durations
     {
         std::chrono::system_clock::duration preprocessing = { };
         std::chrono::system_clock::duration tracking      = { };
@@ -15,5 +15,4 @@ namespace zenslam
 
         auto print() const -> void;
     };
-
 }

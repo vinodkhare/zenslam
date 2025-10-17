@@ -4,6 +4,8 @@
 #include <random>
 
 #include <gsl/narrow>
+#include "pose_data.h"
+#include "frame/stereo.h"
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
@@ -535,11 +537,11 @@ auto zenslam::utils::match_temporal
 
 auto zenslam::utils::pre_process
 (
-    const camera_frame &       frame,
-    const camera_calibration & calibration,
-    const class options::slam &options,
-    const cv::Ptr<cv::CLAHE> & clahe
-) -> camera_frame
+    const zenslam::frame::camera &frame,
+    const camera_calibration &    calibration,
+    const class options::slam &   options,
+    const cv::Ptr<cv::CLAHE> &    clahe
+) -> zenslam::frame::camera
 {
     auto result = frame;
 
@@ -558,11 +560,11 @@ auto zenslam::utils::pre_process
 
 auto zenslam::utils::pre_process
 (
-    const stereo_frame &                     frame,
+    const zenslam::frame::stereo &           frame,
     const std::array<camera_calibration, 2> &calibration,
     const class options::slam &              options,
     const cv::Ptr<cv::CLAHE> &               clahe
-) -> stereo_frame
+) -> zenslam::frame::stereo
 {
     auto result = frame;
 
@@ -670,8 +672,8 @@ auto zenslam::utils::track
 
 auto zenslam::utils::track
 (
-    const std::array<stereo_frame, 2> &frames,
-    const class options::slam &        options
+    const std::array<zenslam::frame::stereo, 2> &frames,
+    const class options::slam &                  options
 ) -> std::array<std::vector<keypoint>, 2>
 {
     return
@@ -697,10 +699,10 @@ auto zenslam::utils::track
 
 auto zenslam::utils::triangulate
 (
-    stereo_frame &     frame,
-    const cv::Matx34d &projection_l,
-    const cv::Matx34d &projection_r,
-    const double threshold
+    zenslam::frame::stereo &frame,
+    const cv::Matx34d &     projection_l,
+    const cv::Matx34d &     projection_r,
+    const double            threshold
 ) -> std::tuple<std::map<size_t, point>, std::vector<double>>
 {
     auto indices = frame.cameras[0].keypoints | std::views::keys |

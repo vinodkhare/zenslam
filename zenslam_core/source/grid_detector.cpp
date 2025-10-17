@@ -64,7 +64,8 @@ namespace zenslam
         return { lhs.width / rhs.width, lhs.height / rhs.height };
     }
 
-    auto grid_detector::detect(const cv::Mat &image, const std::map<size_t, keypoint> &keypoints_map) const -> std::vector<keypoint>
+    auto grid_detector::detect
+    (const cv::Mat &image, const std::map<size_t, keypoint> &keypoints_map) const -> std::vector<keypoint>
     {
         // Calculate grid dimensions
         const auto &grid_size = cv::Size(image.cols, image.rows) / _cell_size;

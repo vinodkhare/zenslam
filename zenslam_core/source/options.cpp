@@ -109,7 +109,8 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     if (options_map.contains("calibration-file")) options.folder.calibration_file = map["calibration-file"].as<std::string>();
     if (options_map.contains("grouthtruth-file")) options.folder.groundtruth_file = map["grouthtruth-file"].as<std::string>();
     if (options_map.contains
-        ("imu-calibration-file")) options.folder.imu_calibration_file = map["imu-calibration-file"].as<std::string>();
+        ("imu-calibration-file"))
+        options.folder.imu_calibration_file = map["imu-calibration-file"].as<std::string>();
 
     if (options_map.contains("options-file")) options.file = map["options-file"].as<std::string>();
     if (options_map.contains

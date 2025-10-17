@@ -73,7 +73,10 @@ auto zenslam::camera_calibration::parse(const std::filesystem::path &path, const
     // Parse distortion model
     if (cam["distortion_model"])
     {
-        const auto &optional   = magic_enum::enum_cast<enum distortion_model>(cam["distortion_model"].as<std::string>());
+        const auto &optional = magic_enum::enum_cast <
+        enum distortion_model
+        >
+        (cam["distortion_model"].as<std::string>());
         calib.distortion_model = optional.has_value() ? optional.value() : distortion_model::radial_tangential;
     }
 
@@ -182,7 +185,8 @@ auto zenslam::camera_calibration::projection() const -> cv::Matx34d
     const auto K = camera_matrix();
 
     // Take a 3x4 minor (top 3 rows, 4 cols) from the 4x4 affine matrix => [R|t]
-    const auto Rt = pose_in_cam0.inv().matrix.get_minor<3, 4>(0, 0);
+    const auto Rt = pose_in_cam0.inv().matrix.get_minor < 3, 
+    4 > (0, 0);
 
     // P = K * [R|t] =>
     return K * Rt; // Matx (3x3) * (3x4) => (3x4)
@@ -196,7 +200,8 @@ auto zenslam::camera_calibration::projection(const cv::Affine3d &pose_of_cam0_in
     const auto &pose_of_this_in_world = pose_of_cam0_in_world * pose_in_cam0;
 
     // Take a 3x4 minor (top 3 rows, 4 cols) from the 4x4 affine matrix => [R|t]
-    const auto Rt = pose_of_this_in_world.inv().matrix.get_minor<3, 4>(0, 0);
+    const auto Rt = pose_of_this_in_world.inv().matrix.get_minor < 3, 
+    4 > (0, 0);
 
     // P = K * [R|t] =>
     return K * Rt; // Matx (3x3) * (3x4) => (3x4)

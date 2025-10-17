@@ -36,7 +36,7 @@ Dataset Folder -> Stereo Frame Loader -> Undistort -> Grid Feature Detection
 | Structure       | Purpose                                |
 |-----------------|----------------------------------------|
 | `mono_frame`    | Single camera image + keypoints        |
-| `stereo_frame`  | Paired left/right frames + matches, 3D |
+| `frame::stereo`  | Paired left/right frames + matches, 3D |
 | `calibration`   | Intrinsics, distortion, pose           |
 | `grid_detector` | Wraps detector ensuring spatial spread |
 | `slam_thread`   | Drives the ingest + processing loop    |

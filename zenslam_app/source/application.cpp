@@ -16,7 +16,7 @@
 zenslam::application::application(options options) :
     _options { std::move(options) }
 {
-    _slam_thread.on_frame += [this](const slam_frame &slam)
+    _slam_thread.on_frame += [this](const zenslam::frame::slam &slam)
     {
         std::lock_guard lock { _mutex };
 
@@ -26,7 +26,7 @@ zenslam::application::application(options options) :
 
 void zenslam::application::render()
 {
-    slam_frame slam { };
+    zenslam::frame::slam slam { };
     {
         std::lock_guard lock { _mutex };
         slam = _slam;

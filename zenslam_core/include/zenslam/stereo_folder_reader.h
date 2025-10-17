@@ -5,14 +5,14 @@
 #include "mono_folder_reader.h"
 #include "options.h"
 #include "random_access_iterator.h"
-#include "stereo_frame.h"
+#include "frame/stereo.h"
 
 namespace zenslam
 {
     class stereo_folder_reader
     {
     public:
-        using iterator  = random_access_iterator<stereo_folder_reader, stereo_frame>;
+        using iterator  = random_access_iterator<stereo_folder_reader, zenslam::frame::stereo>;
         using path_type = std::filesystem::path;
 
         stereo_folder_reader
@@ -34,9 +34,9 @@ namespace zenslam
             return size() == 0;
         }
 
-        stereo_frame operator[](const std::size_t idx) const
+        zenslam::frame::stereo operator[](const std::size_t idx) const
         {
-            return stereo_frame { _left[idx], _right[idx] };
+            return zenslam::frame::stereo { _left[idx], _right[idx] };
         }
 
         [[nodiscard]] iterator begin() const

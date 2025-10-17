@@ -9,7 +9,7 @@
 #include "options.h"
 #include "point.h"
 #include "pose_data.h"
-#include "stereo_frame.h"
+#include "frame/stereo.h"
 
 
 inline auto operator+=
@@ -144,11 +144,11 @@ namespace zenslam::utils
      */
     auto pre_process
     (
-        const camera_frame &       frame,
-        const camera_calibration & calibration,
-        const class options::slam &options,
-        const cv::Ptr<cv::CLAHE> & clahe
-    ) -> camera_frame;
+        const zenslam::frame::camera &frame,
+        const camera_calibration &    calibration,
+        const class options::slam &   options,
+        const cv::Ptr<cv::CLAHE> &    clahe
+    ) -> zenslam::frame::camera;
 
     /** Pre-process a camera frame by converting to grayscale, applying CLAHE, and building an image pyramid.
      *
@@ -159,11 +159,11 @@ namespace zenslam::utils
      */
     auto pre_process
     (
-        const stereo_frame &                     frame,
+        const zenslam::frame::stereo &           frame,
         const std::array<camera_calibration, 2> &calibration,
         const class options::slam &              options,
         const cv::Ptr<cv::CLAHE> &               clahe
-    ) -> stereo_frame;
+    ) -> zenslam::frame::stereo;
 
     auto solve_pnp
     (
@@ -199,16 +199,16 @@ namespace zenslam::utils
      */
     auto track
     (
-        const std::array<stereo_frame, 2> &frames,
-        const class options::slam &        options
+        const std::array<zenslam::frame::stereo, 2> &frames,
+        const class options::slam &                  options
     ) -> std::array<std::vector<keypoint>, 2>;
 
     auto triangulate
     (
-        stereo_frame &     frame,
-        const cv::Matx34d &projection_l,
-        const cv::Matx34d &projection_r,
-        double             threshold
+        zenslam::frame::stereo &frame,
+        const cv::Matx34d &     projection_l,
+        const cv::Matx34d &     projection_r,
+        double                  threshold
     ) -> std::tuple<std::map<size_t, point>, std::vector<double>>;
 
     auto umeyama

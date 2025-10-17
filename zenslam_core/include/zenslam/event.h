@@ -1,9 +1,9 @@
 #pragma once
 
 #include <functional>
-#include <vector>
-#include <shared_mutex>
 #include <memory>
+#include <shared_mutex>
+#include <vector>
 
 namespace zenslam
 {

@@ -17,9 +17,9 @@
  *   Add to zenslam_app or create a separate executable target
  */
 
-#include <zenslam/imu_calibration.h>
-#include <iostream>
 #include <cmath>
+#include <iostream>
+#include <zenslam/imu_calibration.h>
 
 int main()
 {

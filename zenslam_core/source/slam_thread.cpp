@@ -15,16 +15,16 @@
 #include <vtk-9.3/vtkLogger.h>
 
 #include "calibration.h"
-#include "frame_durations.h"
-#include "frame_writer.h"
 #include "grid_detector.h"
 #include "groundtruth.h"
 #include "motion.h"
-#include "slam_frame.h"
 #include "time_this.h"
 #include "utils.h"
 #include "utils_opencv.h"
 #include "utils_slam.h"
+#include "frame/durations.h"
+#include "frame/slam.h"
+#include "frame/writer.h"
 
 zenslam::slam_thread::slam_thread(options options) :
     _options { std::move(options) }
@@ -48,11 +48,11 @@ void zenslam::slam_thread::loop()
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto motion      = zenslam::motion();
-    auto writer      = frame_writer(_options.folder.output / "frame_data.csv");
+    auto writer      = zenslam::frame::writer(_options.folder.output / "frame_data.csv");
 
     calibration.print();
 
-    slam_frame slam { };
+    zenslam::frame::slam slam { };
 
     for (auto f: stereo_reader)
     {
@@ -194,7 +194,6 @@ void zenslam::slam_thread::loop()
 
             const auto &pose =
                     pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;
-
 
             SPDLOG_INFO("");
             SPDLOG_INFO("Predicted pose:   {}", slam.frames[1].pose);

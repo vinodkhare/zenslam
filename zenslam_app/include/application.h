@@ -16,7 +16,7 @@ namespace zenslam
 
     private:
         std::mutex _mutex { };
-        slam_frame _slam { };
+    zenslam::frame::slam _slam { };
 
         options                         _options { };
         slam_thread                     _slam_thread { _options };

@@ -1,6 +1,6 @@
-#include "camera_frame.h"
+#include "frame/camera.h"
 
-namespace zenslam
+namespace zenslam::frame
 {
     // No implementation needed for simple struct-like class
 }

@@ -25,7 +25,7 @@ d_r = |l_r^T x_r| / sqrt(a_r^2 + b_r^2)
 
 3. Accept if both below threshold (configurable `epipolar_threshold`).
 
-Filtered results stored in `stereo_frame.filtered`.
+Filtered results stored in `frame::stereo.filtered`.
 
 ## Notes
 

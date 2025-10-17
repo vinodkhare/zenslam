@@ -4,7 +4,7 @@ After detecting and describing features independently in left and right images:
 
 1. Descriptors are matched with a brute-force matcher (Hamming for ORB, L2 for SIFT).
 2. Current configuration uses cross-check = true to retain mutually closest matches.
-3. Matches are stored in `stereo_frame.matches`.
+3. Matches are stored in `frame::stereo.matches`.
 
 ## Potential Issues
 

@@ -4,8 +4,8 @@
 #include <map>
 #include <numbers>
 
-#include <opencv2/core/affine.hpp>
 #include <string>
+#include <opencv2/core/affine.hpp>
 
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>

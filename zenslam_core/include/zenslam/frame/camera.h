@@ -2,13 +2,14 @@
 
 #include <map>
 #include <utility>
+
 #include <opencv2/core.hpp>
 
-#include "keypoint.h"
+#include "zenslam/keypoint.h"
 
-namespace zenslam
+namespace zenslam::frame
 {
-    class camera_frame
+    class camera
     {
     public:
         double                     timestamp   = { std::nan("nan") };
@@ -18,10 +19,10 @@ namespace zenslam
         std::map<size_t, keypoint> keypoints   = { };
         std::vector<cv::Mat>       pyramid     = { };
 
-        camera_frame() = default;
+        camera() = default;
 
-        camera_frame(const double timestamp, cv::Mat image) :
+        camera(const double timestamp, cv::Mat image) :
             timestamp(timestamp),
             image(std::move(image)) {}
     };
-} // namespace zenslam
+} // namespace zenslam::frame

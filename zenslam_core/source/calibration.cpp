@@ -10,8 +10,8 @@ auto zenslam::calibration::parse
 {
     calibration calib { };
 
-    calib.cameras[0]             = camera_calibration::parse(camera_calib_path, "cam0");
-    calib.cameras[1]             = camera_calibration::parse(camera_calib_path, "cam1");
+    calib.cameras[0]            = camera_calibration::parse(camera_calib_path, "cam0");
+    calib.cameras[1]            = camera_calibration::parse(camera_calib_path, "cam1");
     calib.camera_matrix[0]      = calib.cameras[0].camera_matrix();
     calib.camera_matrix[1]      = calib.cameras[1].camera_matrix();
     calib.fundamental_matrix[0] = calib.cameras[0].fundamental(calib.cameras[1]);

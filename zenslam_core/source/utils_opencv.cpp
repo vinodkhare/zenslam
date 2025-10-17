@@ -22,7 +22,7 @@ auto zenslam::utils::convert_color(const cv::Mat &image, int code) -> cv::Mat
     return converted_image;
 }
 
-auto zenslam::utils::draw_keypoints(const camera_frame &frame) -> cv::Mat
+auto zenslam::utils::draw_keypoints(const zenslam::frame::camera &frame) -> cv::Mat
 {
     const auto &keypoints = utils::cast<cv::KeyPoint>(values(frame.keypoints));
 
@@ -41,7 +41,7 @@ auto zenslam::utils::draw_keypoints(const camera_frame &frame) -> cv::Mat
     return keypoints_image;
 }
 
-auto zenslam::utils::draw_matches(const stereo_frame &frame, const std::map<size_t, point> &points) -> cv::Mat
+auto zenslam::utils::draw_matches(const zenslam::frame::stereo &frame, const std::map<size_t, point> &points) -> cv::Mat
 {
     cv::Mat matches_image { };
 
@@ -155,7 +155,7 @@ auto zenslam::utils::draw_matches(const stereo_frame &frame, const std::map<size
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches(const camera_frame &frame_0, const camera_frame &frame_1) -> cv::Mat
+auto zenslam::utils::draw_matches(const zenslam::frame::camera &frame_0, const zenslam::frame::camera &frame_1) -> cv::Mat
 {
     cv::Mat matches_image { };
 
