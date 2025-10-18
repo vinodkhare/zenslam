@@ -57,7 +57,10 @@ namespace zenslam
     }
 
     auto grid_detector::detect
-    (const cv::Mat &image, const std::map<size_t, keypoint> &keypoints_map) const -> std::vector<keypoint>
+    (
+        const cv::Mat &      image,
+        const map<keypoint> &keypoints_map
+    ) const -> std::vector<keypoint>
     {
         // Calculate grid dimensions
         const auto &grid_size = cv::Size(image.cols, image.rows) / _cell_size;
@@ -187,7 +190,7 @@ namespace zenslam
         _line_detector->detect(image, keylines_cv, 2.0f, 1);
 
         // Compute descriptors for detected keylines
-        auto bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
+        auto    bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
         cv::Mat descriptors;
         if (!keylines_cv.empty())
         {
@@ -198,28 +201,29 @@ namespace zenslam
         for (size_t i = 0; i < keylines_cv.size(); ++i)
         {
             keylines.emplace_back(keylines_cv[i], keyline::index_next);
-            if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows))
-                keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
+            if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows)) keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
             keyline::index_next++;
         }
 
         return keylines;
     }
 
-    auto grid_detector::detect(const cv::Mat &image, const std::map<size_t, keyline> &keylines_map, int mask_margin) const -> std::vector<keyline>
+    auto grid_detector::detect(const cv::Mat &image, const map<keyline> &keylines_map, const int mask_margin) const -> std::vector<keyline>
     {
         // Create a mask to block detection in areas where keylines already exist
         cv::Mat mask = cv::Mat::ones(image.size(), CV_8U) * 255;
 
         // For each existing keyline, mask out a thick line along the line segment
-        for (const auto &existing_keyline : keylines_map | std::views::values)
+        for (const auto &existing_keyline: keylines_map | std::views::values)
         {
             // Get start and end points of the line segment
-            cv::Point start(
+            cv::Point start
+            (
                 static_cast<int>(existing_keyline.startPointX),
                 static_cast<int>(existing_keyline.startPointY)
             );
-            cv::Point end(
+            cv::Point end
+            (
                 static_cast<int>(existing_keyline.endPointX),
                 static_cast<int>(existing_keyline.endPointY)
             );
@@ -234,7 +238,7 @@ namespace zenslam
         _line_detector->detect(image, keylines_cv, 2.0f, 1, mask);
 
         // Compute descriptors for detected keylines
-        auto bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
+        auto    bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
         cv::Mat descriptors;
         if (!keylines_cv.empty())
         {
@@ -245,8 +249,7 @@ namespace zenslam
         for (size_t i = 0; i < keylines_cv.size(); ++i)
         {
             keylines.emplace_back(keylines_cv[i], keyline::index_next);
-            if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows))
-                keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
+            if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows)) keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
             keyline::index_next++;
         }
 

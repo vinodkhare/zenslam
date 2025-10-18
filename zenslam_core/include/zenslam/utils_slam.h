@@ -13,120 +13,18 @@
 #include "pose_data.h"
 #include "frame/stereo.h"
 
-
-inline auto operator+=
-(
-    std::map<size_t, zenslam::keypoint> & keypoints_map,
-    const std::vector<zenslam::keypoint> &keypoints
-) -> std::map<size_t, zenslam::keypoint> &
+inline auto operator-(const std::vector<cv::Point2d> &lhs, const std::vector<cv::Point2f> &rhs) -> std::vector<cv::Point2d>
 {
-    for (const auto &keypoint: keypoints)
+    std::vector<cv::Point2d> difference;
+    difference.reserve(lhs.size());
+
+    for (auto i = 0; i < lhs.size(); ++i)
     {
-        keypoints_map[keypoint.index] = keypoint;
-    }
-    return keypoints_map;
-}
-
-inline auto operator+=
-(
-    std::map<size_t, zenslam::keyline> & keylines_map,
-    const std::vector<zenslam::keyline> &keylines
-) -> std::map<size_t, zenslam::keyline> &
-{
-    for (const auto &keyline: keylines)
-    {
-        keylines_map[keyline.index] = keyline;
-    }
-    return keylines_map;
-}
-
-inline auto operator+=
-(
-    std::map<size_t, zenslam::line3d> & lines3d_map,
-    const std::vector<zenslam::line3d> &lines3d
-) -> std::map<size_t, zenslam::line3d> &
-{
-    for (const auto &line3d: lines3d)
-    {
-        lines3d_map[line3d.index] = line3d;
-    }
-    return lines3d_map;
-}
-
-inline auto operator+=
-(
-    std::map<size_t, zenslam::line3d> & lines3d_map,
-    const std::map<size_t, zenslam::line3d> &lines3d
-) -> std::map<size_t, zenslam::line3d> &
-{
-    for (const auto &[index, line3d]: lines3d)
-    {
-        lines3d_map[index] = line3d;
-    }
-    return lines3d_map;
-}
-
-inline auto operator*=
-(
-    std::map<size_t, zenslam::keypoint> &keypoints_map,
-    const std::vector<cv::DMatch> &      matches
-) -> std::map<size_t, zenslam::keypoint> &
-{
-    for (const auto &match: matches)
-    {
-        const auto index_new = match.queryIdx;
-        const auto index_old = match.trainIdx;
-
-        auto keypoint_r  = keypoints_map.at(index_old);
-        keypoint_r.index = index_new;
-
-        keypoints_map.erase(index_old);
-
-        keypoints_map[index_new] = keypoint_r;
+        difference.emplace_back(lhs[i] - cv::Point2d(rhs[i].x, rhs[i].y));
     }
 
-    return keypoints_map;
+    return difference;
 }
-
-inline auto operator*=
-(
-    std::map<size_t, zenslam::keyline> &keylines_map,
-    const std::vector<cv::DMatch> &     matches
-) -> std::map<size_t, zenslam::keyline> &
-{
-    for (const auto &match: matches)
-    {
-        const auto index_new = match.queryIdx;
-        const auto index_old = match.trainIdx;
-
-        auto keyline  = keylines_map.at(index_old);
-        keyline.index = index_new;
-
-        keylines_map.erase(index_old);
-
-        keylines_map[index_new] = keyline;
-    }
-
-    return keylines_map;
-}
-
-inline auto operator*
-(
-    const cv::Affine3d &                     pose,
-    const std::map<size_t, zenslam::line3d> &lines
-) -> std::map<size_t, zenslam::line3d>
-{
-    std::map<size_t, zenslam::line3d> result;
-
-    for (const auto &[id, line]: lines)
-    {
-        result[id].points3d[0] = pose * line.points3d[0]; // Assumes operator* is defined for pose * line3d
-        result[id].points3d[1] = pose * line.points3d[1];
-    }
-
-    return result;
-}
-
 
 namespace zenslam::utils
 {
@@ -201,10 +99,10 @@ namespace zenslam::utils
 
     auto match
     (
-        const std::map<size_t, keypoint> &map_keypoints_l,
-        const std::map<size_t, keypoint> &map_keypoints_r,
-        const cv::Matx33d &               fundamental,
-        double                            epipolar_threshold
+        const map<keypoint> &map_keypoints_l,
+        const map<keypoint> &map_keypoints_r,
+        const cv::Matx33d &  fundamental,
+        double               epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
     /**
@@ -219,10 +117,10 @@ namespace zenslam::utils
      */
     auto match_keylines
     (
-        const std::map<size_t, keyline> &keylines_map_0,
-        const std::map<size_t, keyline> &keylines_map_1,
-        const cv::Matx33d &              fundamental,
-        double                           epipolar_threshold
+        const map<keyline> &keylines_map_0,
+        const map<keyline> &keylines_map_1,
+        const cv::Matx33d & fundamental,
+        double              epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
     auto match_temporal
@@ -283,11 +181,11 @@ namespace zenslam::utils
      */
     auto track
     (
-        const std::vector<cv::Mat> &      pyramid_0,
-        const std::vector<cv::Mat> &      pyramid_1,
-        const std::map<size_t, keypoint> &keypoints_map_0,
-        const class options::slam &       options,
-        const std::vector<cv::Point2f> &  points_1_predicted = { }
+        const std::vector<cv::Mat> &    pyramid_0,
+        const std::vector<cv::Mat> &    pyramid_1,
+        const map<keypoint> &           keypoints_map_0,
+        const class options::slam &     options,
+        const std::vector<cv::Point2f> &points_1_predicted = { }
     ) -> std::vector<keypoint>;
 
     /** Track keypoints between two stereo frames.
@@ -317,10 +215,10 @@ namespace zenslam::utils
      */
     auto track_keylines
     (
-        const std::vector<cv::Mat> &     pyramid_0,
-        const std::vector<cv::Mat> &     pyramid_1,
-        const std::map<size_t, keyline> &keylines_map_0,
-        const class options::slam &      options
+        const std::vector<cv::Mat> &pyramid_0,
+        const std::vector<cv::Mat> &pyramid_1,
+        const map<keyline> &        keylines_map_0,
+        const class options::slam & options
     ) -> std::vector<keyline>;
 
     /** Triangulate 3D points from stereo frame keypoints.
@@ -330,18 +228,18 @@ namespace zenslam::utils
      * triangulation. Points with reprojection error below the specified threshold are returned.
      *
      * @param frame The stereo frame containing matched keypoints.
-     * @param projection_l The 3x4 projection matrix for the left camera.
-     * @param projection_r The 3x4 projection matrix for the right camera.
+     * @param projection_0 The 3x4 projection matrix for the left camera.
+     * @param projection_1 The 3x4 projection matrix for the right camera.
      * @param threshold The maximum allowable reprojection error for triangulated points.
      * @return A tuple containing a map of triangulated 3D points and a vector of reprojection errors.
      */
     auto triangulate
     (
-        frame::stereo &    frame,
-        const cv::Matx34d &projection_l,
-        const cv::Matx34d &projection_r,
+        const frame::stereo &    frame,
+        const cv::Matx34d &projection_0,
+        const cv::Matx34d &projection_1,
         double             threshold
-    ) -> std::tuple<std::map<size_t, point3d>, std::vector<double>>;
+    ) -> map<point3d>;
 
     /**
      * Triangulate keylines between stereo frames using their indices.
@@ -366,18 +264,18 @@ namespace zenslam::utils
      * This function triangulates 3D points from corresponding 2D keypoints in left and right images.
      * It uses the provided projection matrices for the left and right cameras to perform triangulation.
      *
-     * @param points3d_0 Vector of 2D keypoints in the left image.
-     * @param points3d_1 Vector of 2D keypoints in the right image.
-     * @param P_l The 3x4 projection matrix for the left camera.
-     * @param P_r The 3x4 projection matrix for the right camera.
+     * @param points2f_0 Vector of 2D keypoints in the left image.
+     * @param points2f_1 Vector of 2D keypoints in the right image.
+     * @param projection_0 The 3x4 projection matrix for the left camera.
+     * @param projection_1 The 3x4 projection matrix for the right camera.
      * @return A vector of triangulated 3D points.
      */
     auto triangulate_points
     (
-        const std::vector<cv::Point2f> &points3d_0,
-        const std::vector<cv::Point2f> &points3d_1,
-        const cv::Matx34d &              P_l,
-        const cv::Matx34d &              P_r
+        const std::vector<cv::Point2f> &points2f_0,
+        const std::vector<cv::Point2f> &points2f_1,
+        const cv::Matx34d &             projection_0,
+        const cv::Matx34d &             projection_1
     ) -> std::vector<cv::Point3d>;
 
     auto umeyama

@@ -23,138 +23,24 @@ auto zenslam::utils::convert_color(const cv::Mat &image, int code) -> cv::Mat
     return converted_image;
 }
 
-auto zenslam::utils::draw_keypoints(const zenslam::frame::camera &frame) -> cv::Mat
-{
-    const auto &keypoints = utils::cast<cv::KeyPoint>(values(frame.keypoints));
-
-    // DRAW_RICH_KEYPOINTS shows size and orientation
-    cv::Mat keypoints_image { };
-
-    cv::drawKeypoints
-    (
-        frame.undistorted,
-        keypoints,
-        keypoints_image,
-        cv::Scalar(0, 255, 0),
-        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
-    );
-
-    return keypoints_image;
-}
-
-auto zenslam::utils::draw_keylines(const zenslam::frame::camera &frame) -> cv::Mat
-{
-    cv::Mat keylines_image;
-    
-    if (frame.undistorted.channels() == 1)
-    {
-        cv::cvtColor(frame.undistorted, keylines_image, cv::COLOR_GRAY2BGR);
-    }
-    else
-    {
-        keylines_image = frame.undistorted.clone();
-    }
-
-    // Convert keylines map to vector for drawing
-    std::vector<cv::line_descriptor::KeyLine> keylines_vec;
-    keylines_vec.reserve(frame.keylines.size());
-    
-    for (const auto &[index, kl] : frame.keylines)
-    {
-        keylines_vec.push_back(kl);
-    }
-
-    // Draw the line segments
-    cv::line_descriptor::drawKeylines(keylines_image, keylines_vec, keylines_image, cv::Scalar(0, 255, 0));
-
-    return keylines_image;
-}
-
-auto zenslam::utils::draw_matches(const zenslam::frame::stereo &frame, const std::map<size_t, point3d> &points) -> cv::Mat
+auto zenslam::utils::draw_matches(const frame::stereo &frame, const map<point3d> &points) -> cv::Mat
 {
     cv::Mat matches_image { };
 
-    const auto &keypoints_l = values(frame.cameras[0].keypoints);
-    const auto &keypoints_r = values(frame.cameras[1].keypoints);
-
-    const auto &keypoints_l_matched = std::views::filter
-                                      (
-                                          keypoints_l,
-                                          [&frame](const auto &kp)
-                                          {
-                                              return frame.cameras[1].keypoints.contains(kp.index);
-                                          }
-                                      ) | std::ranges::to<std::vector>();
-    const auto &keypoints_r_matched = std::views::filter
-                                      (
-                                          keypoints_r,
-                                          [&frame](const auto &kp)
-                                          {
-                                              return frame.cameras[0].keypoints.contains(kp.index);
-                                          }
-                                      ) | std::ranges::to<std::vector>();
-
-    const auto &keypoints_l_triangulated = std::views::filter
-                                           (
-                                               keypoints_l_matched,
-                                               [&points](const auto &kp)
-                                               {
-                                                   return points.contains(kp.index);
-                                               }
-                                           ) | std::ranges::to<std::vector>();
-    const auto &keypoints_r_triangulated = std::views::filter
-                                           (
-                                               keypoints_r_matched,
-                                               [&points](const auto &kp)
-                                               {
-                                                   return points.contains(kp.index);
-                                               }
-                                           ) | std::ranges::to<std::vector>();
+    const auto &keypoints_l              = frame.cameras[0].keypoints.values() | std::ranges::to<std::vector>();
+    const auto &keypoints_r              = frame.cameras[1].keypoints.values() | std::ranges::to<std::vector>();
+    const auto &keypoints_l_matched      = frame.cameras[0].keypoints.values_matched(frame.cameras[1].keypoints) | std::ranges::to<std::vector>();
+    const auto &keypoints_r_matched      = frame.cameras[1].keypoints.values_matched(frame.cameras[0].keypoints) | std::ranges::to<std::vector>();
+    const auto &keypoints_l_triangulated = frame.cameras[0].keypoints.values_matched(points) | std::ranges::to<std::vector>();
+    const auto &keypoints_r_triangulated = frame.cameras[1].keypoints.values_matched(points) | std::ranges::to<std::vector>();
+    const auto &matches                  = utils::matches(keypoints_l_matched.size());
+    const auto &matches_triangulated     = utils::matches(keypoints_l_triangulated.size());
 
     auto undistorted_l = frame.cameras[0].undistorted.clone();
     auto undistorted_r = frame.cameras[1].undistorted.clone();
 
-    const auto &matches = std::views::iota(0, gsl::narrow<int>(keypoints_l_matched.size())) | std::views::transform
-                          (
-                              [](auto i)
-                              {
-                                  return cv::DMatch(i, i, 0.0);
-                              }
-                          ) | std::ranges::to<std::vector>();
-    const auto &matches_triangulated = std::views::iota
-                                       (0, gsl::narrow<int>(keypoints_l_triangulated.size())) | std::views::transform
-                                       (
-                                           [](auto i)
-                                           {
-                                               return cv::DMatch(i, i, 0.0);
-                                           }
-                                       ) | std::ranges::to<std::vector>();
-
     cv::cvtColor(undistorted_l, undistorted_l, cv::COLOR_GRAY2BGR);
     cv::cvtColor(undistorted_r, undistorted_r, cv::COLOR_GRAY2BGR);
-
-    // Draw keylines first
-    if (!frame.cameras[0].keylines.empty())
-    {
-        std::vector<cv::line_descriptor::KeyLine> keylines_l_vec;
-        keylines_l_vec.reserve(frame.cameras[0].keylines.size());
-        for (const auto &[index, kl] : frame.cameras[0].keylines)
-        {
-            keylines_l_vec.push_back(kl);
-        }
-        cv::line_descriptor::drawKeylines(undistorted_l, keylines_l_vec, undistorted_l, cv::Scalar(255, 255, 0));
-    }
-    
-    if (!frame.cameras[1].keylines.empty())
-    {
-        std::vector<cv::line_descriptor::KeyLine> keylines_r_vec;
-        keylines_r_vec.reserve(frame.cameras[1].keylines.size());
-        for (const auto &[index, kl] : frame.cameras[1].keylines)
-        {
-            keylines_r_vec.push_back(kl);
-        }
-        cv::line_descriptor::drawKeylines(undistorted_r, keylines_r_vec, undistorted_r, cv::Scalar(255, 255, 0));
-    }
 
     cv::drawKeypoints
     (
@@ -207,40 +93,40 @@ auto zenslam::utils::draw_matches(const zenslam::frame::stereo &frame, const std
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches(const zenslam::frame::camera &frame_0, const zenslam::frame::camera &frame_1) -> cv::Mat
+auto zenslam::utils::draw_matches(const frame::camera &frame_0, const frame::camera &frame_1) -> cv::Mat
 {
     cv::Mat matches_image { };
 
-    const auto &keypoints_0 = values(frame_0.keypoints);
-    const auto &keypoints_1 = values(frame_1.keypoints);
-    
+    const auto &keypoints_0 = frame_0.keypoints.values() | std::ranges::to<std::vector>();
+    const auto &keypoints_1 = frame_1.keypoints.values() | std::ranges::to<std::vector>();
+
     // Prepare images with keylines
     auto img_0 = frame_0.undistorted.clone();
     auto img_1 = frame_1.undistorted.clone();
-    
+
     if (img_0.channels() == 1)
     {
         cv::cvtColor(img_0, img_0, cv::COLOR_GRAY2BGR);
         cv::cvtColor(img_1, img_1, cv::COLOR_GRAY2BGR);
     }
-    
+
     // Draw keylines
     if (!frame_0.keylines.empty())
     {
         std::vector<cv::line_descriptor::KeyLine> keylines_vec;
         keylines_vec.reserve(frame_0.keylines.size());
-        for (const auto &[index, kl] : frame_0.keylines)
+        for (const auto &kl: frame_0.keylines | std::views::values)
         {
             keylines_vec.push_back(kl);
         }
         cv::line_descriptor::drawKeylines(img_0, keylines_vec, img_0, cv::Scalar(255, 255, 0));
     }
-    
+
     if (!frame_1.keylines.empty())
     {
         std::vector<cv::line_descriptor::KeyLine> keylines_vec;
         keylines_vec.reserve(frame_1.keylines.size());
-        for (const auto &[index, kl] : frame_1.keylines)
+        for (const auto &kl: frame_1.keylines | std::views::values)
         {
             keylines_vec.push_back(kl);
         }
@@ -331,4 +217,15 @@ auto zenslam::utils::pyramid(const cv::Mat &image, const class options::slam &op
     std::vector<cv::Mat> pyramid { };
     cv::buildOpticalFlowPyramid(image, pyramid, options.klt_window_size, options.klt_max_level);
     return pyramid;
+}
+
+auto zenslam::utils::matches(size_t n) -> std::vector<cv::DMatch>
+{
+    return std::views::iota(static_cast<size_t>(0), n) | std::views::transform
+           (
+               [](auto i)
+               {
+                   return cv::DMatch(i, i, 0.0);
+               }
+           ) | std::ranges::to<std::vector>();
 }

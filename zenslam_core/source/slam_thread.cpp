@@ -144,8 +144,7 @@ void zenslam::slam_thread::loop()
                     _options.slam.threshold_epipolar
                 );
 
-                std::vector<double> errors { };
-                std::tie(slam.frames[1].points, errors) = utils::triangulate
+                slam.frames[1].points3d = utils::triangulate
                 (
                     slam.frames[1],
                     calibration.projection_matrix[0],
@@ -153,7 +152,7 @@ void zenslam::slam_thread::loop()
                     _options.slam.threshold_triangulate
                 );
 
-                slam.counts.maches_triangulated = slam.frames[1].points.size();
+                slam.counts.maches_triangulated = slam.frames[1].points3d.size();
                 slam.counts.matches             = std::ranges::count_if
                 (
                     slam.frames[1].cameras[0].keypoints | std::views::keys,
@@ -163,20 +162,7 @@ void zenslam::slam_thread::loop()
                     }
                 );
 
-                SPDLOG_INFO("");
-                SPDLOG_INFO
-                (
-                    "Tri mean error:   {:.4f} px",
-                    utils::mean
-                    (
-                        errors | std::views::filter
-                        (
-                            [this](const auto &e) { return e <= _options.slam.threshold_triangulate; }
-                        ) | std::ranges::to<std::vector>()
-                    )
-                );
-
-                slam.frames[1].lines3d_map += utils::triangulate_keylines
+                slam.frames[1].lines3d += utils::triangulate_keylines
                 (
                     slam.frames[1].cameras[0].keylines,
                     slam.frames[1].cameras[1].keylines,
@@ -194,9 +180,12 @@ void zenslam::slam_thread::loop()
 
                 try
                 {
-                    pose_data_3d3d =
-                            utils::estimate_pose_3d3d
-                            (slam.frames[0].points, slam.frames[1].points, _options.slam.threshold_3d3d);
+                    pose_data_3d3d = utils::estimate_pose_3d3d
+                    (
+                        slam.frames[0].points3d,
+                        slam.frames[1].points3d,
+                        _options.slam.threshold_3d3d
+                    );
                 }
                 catch (const std::runtime_error &error)
                 {
@@ -207,7 +196,7 @@ void zenslam::slam_thread::loop()
                 {
                     pose_data_3d2d = utils::estimate_pose_3d2d
                     (
-                        slam.frames[0].points,
+                        slam.frames[0].points3d,
                         slam.frames[1].cameras[0].keypoints,
                         calibration.camera_matrix[0],
                         _options.slam.threshold_3d2d
@@ -238,7 +227,7 @@ void zenslam::slam_thread::loop()
             SPDLOG_INFO("Estimated pose:   {}", slam.frames[1].pose);
             SPDLOG_INFO("Groundtruth pose: {}", slam.frames[1].pose_gt);
 
-            for (const auto &[index, point]: slam.frames[1].points)
+            for (const auto &[index, point]: slam.frames[1].points3d)
             {
                 auto point3d = slam.frames[1].pose * point;
 
@@ -249,7 +238,7 @@ void zenslam::slam_thread::loop()
                 slam.points3d_map[index] = point3d;
             }
 
-            slam.lines3d_map += slam.frames[1].pose * slam.frames[1].lines3d_map;
+            // slam.lines3d_map += slam.frames[1].pose * slam.frames[1].lines3d;
 
             slam.counts.points = slam.points3d_map.size();
 

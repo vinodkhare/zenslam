@@ -3,6 +3,7 @@
 #include <concepts>
 #include <cstddef>
 #include <map>
+#include <ranges>
 #include <vector>
 
 #include <opencv2/core/types.hpp>
@@ -13,11 +14,11 @@ namespace zenslam
     template <typename T>
     concept indexable = requires(T obj)
     {
-        { obj.index } -> std::same_as<std::size_t>;
+        { obj.index } -> std::same_as<std::size_t &>;
     };
 
     template <indexable T>
-    class map
+    class map : public std::map<size_t, T>
     {
     public:
         // Type aliases for iterators
@@ -26,73 +27,99 @@ namespace zenslam
         using value_type     = T;
         using key_type       = size_t;
 
-        [[nodiscard]] auto size() const -> size_t;
-        [[nodiscard]] auto empty() const -> bool;
-        [[nodiscard]] auto contains(size_t index) const -> bool;
+        static auto create(const std::vector<size_t> &indices, const std::vector<T> &items) -> map;
 
-        auto at(size_t index) const -> const T &;
+        auto keys_matched(const map &other) const -> auto;
+        auto values() const -> auto;
+        auto values_matched(const map &other) const -> auto;
 
-        auto operator[](size_t index) const -> const T &;
-        auto operator()(size_t index) const -> const T &;
+        template <indexable S>
+        auto values_matched(const map<S> &other) const -> auto;
+
+        template <typename S>
+        auto values_cast() const -> auto;
 
         auto operator+=(const T &item) -> void;
         auto operator+=(const std::vector<T> &items) -> void;
         auto operator+=(const std::map<size_t, T> &other) -> void;
         auto operator+=(const map &other) -> void;
         auto operator*=(const std::vector<cv::DMatch> &matches) -> void;
-
-        // Iterator methods for range-based for loops
-        [[nodiscard]] auto begin() -> iterator;
-        [[nodiscard]] auto end() -> iterator;
-        [[nodiscard]] auto begin() const -> const_iterator;
-        [[nodiscard]] auto end() const -> const_iterator;
-        [[nodiscard]] auto cbegin() const -> const_iterator;
-        [[nodiscard]] auto cend() const -> const_iterator;
-
-    private:
-        std::map<size_t, T> _map = { };
     };
 
     template <indexable T>
-    auto map<T>::size() const -> size_t
+    auto map<T>::create(const std::vector<size_t> &indices, const std::vector<T> &items) -> map
     {
-        return _map.size();
+        map result;
+
+        for (size_t i = 0; i < indices.size(); ++i)
+        {
+            result._map[indices[i]] = items[i];
+        }
+
+        return result;
     }
 
     template <indexable T>
-    auto map<T>::empty() const -> bool
+    auto map<T>::keys_matched(const map &other) const -> auto
     {
-        return _map.empty();
+        return *this | std::views::keys | std::views::filter
+               (
+                   [&other](const auto &index)
+                   {
+                       return other.contains(index);
+                   }
+               );
     }
 
     template <indexable T>
-    auto map<T>::contains(const size_t index) const -> bool
+    auto map<T>::values() const -> auto
     {
-        return _map.contains(index);
+        return *this | std::views::values;
     }
 
     template <indexable T>
-    auto map<T>::at(const size_t index) const -> const T &
+    auto map<T>::values_matched(const map &other) const -> auto
     {
-        return _map.at(index);
+        return *this | std::views::values | std::views::filter
+               (
+                   [&other](const auto &item)
+                   {
+                       return other.contains(item.index);
+                   }
+               );
     }
 
     template <indexable T>
-    auto map<T>::operator[](const size_t index) const -> const T &
+    template <indexable S>
+    auto map<T>::values_matched(const map<S> &other) const -> auto
     {
-        return _map[index];
+        return *this | std::views::values | std::views::filter
+               (
+                   [&other](const auto &item)
+                   {
+                       return other.contains(item.index);
+                   }
+               );
     }
 
     template <indexable T>
-    auto map<T>::operator()(size_t index) const -> const T &
+    template <typename S>
+    auto map<T>::values_cast() const -> auto
     {
-        return _map[index];
+        return *this | std::views::values | std::views::transform
+               (
+                   [](const auto &item) -> S
+                   {
+                       return static_cast<S>(item);
+                   }
+               );
     }
+
 
     template <indexable T>
     auto map<T>::operator+=(const T &item) -> void
     {
-        _map[item.index] = item;
+        (*this)[item.index] = item;
     }
 
     template <indexable T>
@@ -100,7 +127,7 @@ namespace zenslam
     {
         for (const auto &item: items)
         {
-            _map[item.index] = item;
+            (*this)[item.index] = item;
         }
     }
 
@@ -109,7 +136,7 @@ namespace zenslam
     {
         for (const auto &[index, item]: other)
         {
-            _map[index] = item;
+            (*this)[index] = item;
         }
     }
 
@@ -118,7 +145,7 @@ namespace zenslam
     {
         for (const auto &[index, item]: other)
         {
-            _map[index] = item;
+            (*this)[index] = item;
         }
     }
 
@@ -127,55 +154,18 @@ namespace zenslam
     {
         for (const auto &match: matches)
         {
-            if (_map.contains(match.trainIdx))
+            if (this->contains(match.trainIdx))
             {
                 auto index_old = match.trainIdx;
                 auto index_new = match.queryIdx;
 
-                auto item  = _map.at(index_old);
+                auto item  = this->at(index_old);
                 item.index = index_new;
 
-                _map.erase(index_old);
+                this->erase(index_old);
 
-                _map[item.index] = item;
+                (*this)[item.index] = item;
             }
         }
-    }
-
-    // Iterator implementations
-    template <indexable T>
-    auto map<T>::begin() -> iterator
-    {
-        return _map.begin();
-    }
-
-    template <indexable T>
-    auto map<T>::end() -> iterator
-    {
-        return _map.end();
-    }
-
-    template <indexable T>
-    auto map<T>::begin() const -> const_iterator
-    {
-        return _map.begin();
-    }
-
-    template <indexable T>
-    auto map<T>::end() const -> const_iterator
-    {
-        return _map.end();
-    }
-
-    template <indexable T>
-    auto map<T>::cbegin() const -> const_iterator
-    {
-        return _map.cbegin();
-    }
-
-    template <indexable T>
-    auto map<T>::cend() const -> const_iterator
-    {
-        return _map.cend();
     }
 }

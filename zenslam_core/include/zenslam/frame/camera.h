@@ -1,25 +1,25 @@
 #pragma once
 
-#include <map>
 #include <utility>
 
 #include <opencv2/core.hpp>
 
 #include "zenslam/keyline.h"
 #include "zenslam/keypoint.h"
+#include "zenslam/map.h"
 
 namespace zenslam::frame
 {
     class camera
     {
     public:
-        double                     timestamp   = { std::nan("nan") };
-        cv::Mat                    image       = { };
-        cv::Mat                    rectified   = { };
-        cv::Mat                    undistorted = { };
-        std::map<size_t, keypoint> keypoints   = { };
-        std::map<size_t, keyline>  keylines    = { };
-        std::vector<cv::Mat>       pyramid     = { };
+        double               timestamp   = { std::nan("nan") };
+        cv::Mat              image       = { };
+        cv::Mat              rectified   = { };
+        cv::Mat              undistorted = { };
+        std::vector<cv::Mat> pyramid     = { };
+        map<keypoint>        keypoints   = { };
+        map<keyline>         keylines    = { };
 
         camera() = default;
 

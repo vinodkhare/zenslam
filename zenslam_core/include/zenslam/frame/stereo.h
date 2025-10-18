@@ -14,11 +14,11 @@ namespace zenslam::frame
     class stereo
     {
     public:
-        std::array<camera, 2>     cameras     = { };
-        std::map<size_t, point3d> points      = { };
-        std::map<size_t, line3d>  lines3d_map = { };
-        cv::Affine3d              pose        = { };
-        cv::Affine3d              pose_gt     = { }; // groundtruth pose
+        std::array<camera, 2> cameras  = { };
+        map<point3d>          points3d = { };
+        map<line3d>           lines3d  = { };
+        cv::Affine3d          pose     = { };
+        cv::Affine3d          pose_gt  = { }; // groundtruth pose
 
         stereo(camera l, camera r) :
             cameras { std::move(l), std::move(r) } {}

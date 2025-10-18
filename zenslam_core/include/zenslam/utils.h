@@ -43,6 +43,7 @@ namespace zenslam::utils
     ) -> std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>>;
 
     auto to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>;
+    auto to_points(const std::vector<keypoint> &keypoints) -> std::vector<cv::Point2f>;
     auto to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>;
 
     /**
@@ -54,6 +55,17 @@ namespace zenslam::utils
      *         yaw   (z): Rotation around Z axis [-pi,   pi]
      */
     auto matrix_to_euler(const cv::Matx33d &R) -> cv::Vec3d;
+
+    template <typename T>
+    auto vecnorm(const std::vector<cv::Point_<T>> &vec) -> std::vector<T>
+    {
+        std::vector<T> vecnorm { };
+        for (const auto &v: vec)
+        {
+            vecnorm.emplace_back(cv::norm(v));
+        }
+        return vecnorm;
+    }
 }
 
 // Pretty formatter for cv::Affine3d for spdlog/fmt

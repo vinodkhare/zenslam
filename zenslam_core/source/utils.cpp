@@ -85,6 +85,17 @@ auto zenslam::utils::to_points(const std::vector<cv::KeyPoint> &keypoints) -> st
     return points;
 }
 
+auto zenslam::utils::to_points(const std::vector<keypoint> &keypoints) -> std::vector<cv::Point2f>
+{
+    return keypoints | std::views::transform
+           (
+               [](const auto &keypoint)
+               {
+                   return keypoint.pt;
+               }
+           ) | std::ranges::to<std::vector>();
+}
+
 auto zenslam::utils::to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>
 {
     std::vector<cv::Point2f> points;
