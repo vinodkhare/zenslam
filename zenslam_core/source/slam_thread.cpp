@@ -124,6 +124,9 @@ void zenslam::slam_thread::loop()
                         (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keylines);
             }
 
+            slam.counts.keypoints_l = slam.frames[1].cameras[0].keypoints.size();
+            slam.counts.keypoints_r = slam.frames[1].cameras[1].keypoints.size();
+
             // MATCH & TRIANGULATE
             {
                 time_this time_this { slam.durations.matching };
