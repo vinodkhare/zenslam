@@ -4,8 +4,6 @@
 #include <map>
 #include <vector>
 
-#include <opencv2/core.hpp>
-
 #include "zenslam/point3d.h"
 #include "zenslam/frame/counts.h"
 #include "zenslam/frame/durations.h"
@@ -18,6 +16,7 @@ namespace zenslam::frame
     public:
         std::array<stereo, 2>     frames       = { };
         std::map<size_t, point3d> points3d_map = { };
+        std::map<size_t, line3d>  lines3d_map  = { };
         std::vector<cv::Vec3b>    colors       = { };
         durations                 durations    = { };
         counts                    counts       = { };

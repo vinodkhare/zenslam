@@ -1,30 +1,23 @@
-// --- TRIANGULATE KEYLINES IMPLEMENTATION ---
+#include "zenslam/utils_slam.h"
 
-
-// Implementation moved to the end of the file
-
-#include "utils_slam.h"
-
+#include <map>
 #include <numeric>
 #include <random>
+#include <tuple>
+#include <vector>
 
 #include <gsl/narrow>
-#include "pose_data.h"
-#include "frame/stereo.h"
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
 
 #include <spdlog/spdlog.h>
 
-#include "pose_data.h"
-#include "slam_thread.h"
-#include "utils.h"
-#include "utils_opencv.h"
-
-#include <vector>
-#include <tuple>
-#include <map>
+#include "zenslam/pose_data.h"
+#include "zenslam/slam_thread.h"
+#include "zenslam/utils.h"
+#include "zenslam/utils_opencv.h"
+#include "zenslam/frame/stereo.h"
 
 void zenslam::utils::correspondences_3d2d
 (
@@ -633,11 +626,11 @@ auto zenslam::utils::match_temporal
 
 auto zenslam::utils::pre_process
 (
-    const zenslam::frame::camera &frame,
-    const camera_calibration &    calibration,
-    const class options::slam &   options,
-    const cv::Ptr<cv::CLAHE> &    clahe
-) -> zenslam::frame::camera
+    const frame::camera &      frame,
+    const camera_calibration & calibration,
+    const class options::slam &options,
+    const cv::Ptr<cv::CLAHE> & clahe
+) -> frame::camera
 {
     auto result = frame;
 
@@ -656,11 +649,11 @@ auto zenslam::utils::pre_process
 
 auto zenslam::utils::pre_process
 (
-    const zenslam::frame::stereo &           frame,
+    const frame::stereo &                    frame,
     const std::array<camera_calibration, 2> &calibration,
     const class options::slam &              options,
     const cv::Ptr<cv::CLAHE> &               clahe
-) -> zenslam::frame::stereo
+) -> frame::stereo
 {
     auto result = frame;
 
@@ -768,8 +761,8 @@ auto zenslam::utils::track
 
 auto zenslam::utils::track
 (
-    const std::array<zenslam::frame::stereo, 2> &frames,
-    const class options::slam &                  options
+    const std::array<frame::stereo, 2> &frames,
+    const class options::slam &         options
 ) -> std::array<std::vector<keypoint>, 2>
 {
     return
@@ -941,10 +934,10 @@ auto zenslam::utils::track_keylines
 
 auto zenslam::utils::triangulate
 (
-    zenslam::frame::stereo &frame,
-    const cv::Matx34d &     projection_l,
-    const cv::Matx34d &     projection_r,
-    const double            threshold
+    frame::stereo &    frame,
+    const cv::Matx34d &projection_l,
+    const cv::Matx34d &projection_r,
+    const double       threshold
 ) -> std::tuple<std::map<size_t, point3d>, std::vector<double>>
 {
     auto indices = frame.cameras[0].keypoints | std::views::keys |
@@ -1043,44 +1036,150 @@ auto zenslam::utils::triangulate_keylines
 {
     std::vector<line3d> lines3d { };
 
-    for (const auto &kl_l: keylines_l | std::views::values)
+    const auto &matched_indices = keylines_l | std::views::keys |
+                                  std::ranges::views::filter
+                                  (
+                                      [&keylines_r](const auto &index)
+                                      {
+                                          return keylines_r.contains(index);
+                                      }
+                                  ) |
+                                  std::ranges::to<std::vector>();
+
+    const auto &matched_keylines_l = matched_indices |
+                                     std::views::transform
+                                     (
+                                         [&keylines_l](const auto &index)
+                                         {
+                                             return keylines_l.at(index);
+                                         }
+                                     ) |
+                                     std::ranges::to<std::vector>();
+
+    const auto &matched_keylines_r = matched_indices |
+                                     std::views::transform
+                                     (
+                                         [&keylines_r](const auto &index)
+                                         {
+                                             return keylines_r.at(index);
+                                         }
+                                     ) |
+                                     std::ranges::to<std::vector>();
+
+    const auto &points_l_0 = matched_keylines_l |
+                             std::views::transform
+                             (
+                                 [](const auto &kl)
+                                 {
+                                     return cv::Point2f(kl.startPointX, kl.startPointY);
+                                 }
+                             ) |
+                             std::ranges::to<std::vector>();
+
+    const auto &points_l_1 = matched_keylines_l |
+                             std::views::transform
+                             (
+                                 [](const auto &kl)
+                                 {
+                                     return cv::Point2f(kl.endPointX, kl.endPointY);
+                                 }
+                             ) |
+                             std::ranges::to<std::vector>();
+
+    const auto &points_r_0 = matched_keylines_r |
+                             std::views::transform
+                             (
+                                 [](const auto &kl)
+                                 {
+                                     return cv::Point2f(kl.startPointX, kl.startPointY);
+                                 }
+                             ) |
+                             std::ranges::to<std::vector>();
+
+    const auto &points_r_1 = matched_keylines_r |
+                             std::views::transform
+                             (
+                                 [](const auto &kl)
+                                 {
+                                     return cv::Point2f(kl.endPointX, kl.endPointY);
+                                 }
+                             ) |
+                             std::ranges::to<std::vector>();
+
+    const auto &points3d_0 = triangulate_points(points_l_0, points_r_0, P_l, P_r);
+    const auto &points3d_1 = triangulate_points(points_l_1, points_r_1, P_l, P_r);
+
+    const auto &points_l_0_back = project(points3d_0, P_l);
+    const auto &points_l_1_back = project(points3d_1, P_l);
+    const auto &points_r_0_back = project(points3d_0, P_r);
+    const auto &points_r_1_back = project(points3d_1, P_r);
+
+    const auto &errors = std::views::zip
+                         (
+                             points_l_0_back,
+                             points_l_1_back,
+                             points_r_0_back,
+                             points_r_1_back,
+                             points_l_0,
+                             points_l_1,
+                             points_r_0,
+                             points_r_1
+                         ) |
+                         std::views::transform
+                         (
+                             [](const auto &t)
+                             {
+                                 const auto &[pl0b, pl1b, pr0b, pr1b, pl0, pl1, pr0, pr1] = t;
+
+                                 const auto err_l0 = cv::norm(pl0b - cv::Point2d(pl0));
+                                 const auto err_l1 = cv::norm(pl1b - cv::Point2d(pl1));
+                                 const auto err_r0 = cv::norm(pr0b - cv::Point2d(pr0));
+                                 const auto err_r1 = cv::norm(pr1b - cv::Point2d(pr1));
+
+                                 return 0.25 * (err_l0 + err_l1 + err_r0 + err_r1);
+                             }
+                         ) |
+                         std::ranges::to<std::vector>();
+
+    for (auto i = 0; i < points3d_0.size(); ++i)
     {
-        if (!keylines_r.contains(kl_l.index))
+        if (points3d_0[i].z > 0 && points3d_1[i].z > 0 && errors[i] < 1.0) // 1 pixel reprojection error threshold
         {
-            continue;
+            lines3d.emplace_back
+            (
+                line3d
+                {
+                    matched_indices[i],
+                    points3d_0[i],
+                    points3d_1[i]
+                }
+            );
         }
-
-        const auto &kl_r = keylines_r.at(kl_l.index);
-
-        // Triangulate endpoints and midpoint
-        std::vector pts_l = {
-            cv::Point2f(kl_l.startPointX, kl_l.startPointY),
-            cv::Point2f(kl_l.endPointX, kl_l.endPointY)
-        };
-
-        std::vector pts_r = {
-            cv::Point2f(kl_r.startPointX, kl_r.startPointY),
-            cv::Point2f(kl_r.endPointX, kl_r.endPointY)
-        };
-
-        cv::Mat points4d;
-        cv::triangulatePoints(P_l, P_r, pts_l, pts_r, points4d);
-
-        // Convert homogeneous to 3D
-        std::vector<cv::Point3d> points3d;
-        for (auto i = 0; i < points4d.cols; ++i)
-        {
-            cv::Vec4d X = points4d.col(i);
-            if (std::abs(X[3]) > 1E-9) points3d.emplace_back(X[0] / X[3], X[1] / X[3], X[2] / X[3]);
-            else points3d.emplace_back(0, 0, 0);
-        }
-
-        lines3d.emplace_back(line3d::index_next, std::array { points3d[0], points3d[1] });
-
-        line3d::index_next++;
     }
 
     return lines3d;
+}
+
+auto zenslam::utils::triangulate_points
+(
+    const std::vector<cv::Point2f> &points3d_0,
+    const std::vector<cv::Point2f> &points3d_1,
+    const cv::Matx34d &             P_l,
+    const cv::Matx34d &             P_r
+) -> std::vector<cv::Point3d>
+{
+    cv::Mat points4d { };
+    cv::triangulatePoints(P_l, P_r, points3d_0, points3d_1, points4d);
+
+    std::vector<cv::Point3d> points3d { };
+    for (auto i = 0; i < points4d.cols; ++i)
+    {
+        cv::Vec4d X = points4d.col(i);
+        if (std::abs(X[3]) > 1E-9) points3d.emplace_back(X[0] / X[3], X[1] / X[3], X[2] / X[3]);
+        else points3d.emplace_back(0, 0, 0);
+    }
+
+    return points3d;
 }
 
 void zenslam::utils::umeyama

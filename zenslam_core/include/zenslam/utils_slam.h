@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <ranges>
 
 #include <opencv2/imgproc.hpp>
 
@@ -52,6 +53,19 @@ inline auto operator+=
     return lines3d_map;
 }
 
+inline auto operator+=
+(
+    std::map<size_t, zenslam::line3d> & lines3d_map,
+    const std::map<size_t, zenslam::line3d> &lines3d
+) -> std::map<size_t, zenslam::line3d> &
+{
+    for (const auto &[index, line3d]: lines3d)
+    {
+        lines3d_map[index] = line3d;
+    }
+    return lines3d_map;
+}
+
 inline auto operator*=
 (
     std::map<size_t, zenslam::keypoint> &keypoints_map,
@@ -94,6 +108,23 @@ inline auto operator*=
     }
 
     return keylines_map;
+}
+
+inline auto operator*
+(
+    const cv::Affine3d &                     pose,
+    const std::map<size_t, zenslam::line3d> &lines
+) -> std::map<size_t, zenslam::line3d>
+{
+    std::map<size_t, zenslam::line3d> result;
+
+    for (const auto &[id, line]: lines)
+    {
+        result[id].points3d[0] = pose * line.points3d[0]; // Assumes operator* is defined for pose * line3d
+        result[id].points3d[1] = pose * line.points3d[1];
+    }
+
+    return result;
 }
 
 
@@ -329,6 +360,25 @@ namespace zenslam::utils
         const cv::Matx34d &              P_l,
         const cv::Matx34d &              P_r
     ) -> std::vector<line3d>;
+
+    /** Triangulate 3D points from matched 2D keypoints in stereo images.
+     *
+     * This function triangulates 3D points from corresponding 2D keypoints in left and right images.
+     * It uses the provided projection matrices for the left and right cameras to perform triangulation.
+     *
+     * @param points3d_0 Vector of 2D keypoints in the left image.
+     * @param points3d_1 Vector of 2D keypoints in the right image.
+     * @param P_l The 3x4 projection matrix for the left camera.
+     * @param P_r The 3x4 projection matrix for the right camera.
+     * @return A vector of triangulated 3D points.
+     */
+    auto triangulate_points
+    (
+        const std::vector<cv::Point2f> &points3d_0,
+        const std::vector<cv::Point2f> &points3d_1,
+        const cv::Matx34d &              P_l,
+        const cv::Matx34d &              P_r
+    ) -> std::vector<cv::Point3d>;
 
     auto umeyama
     (

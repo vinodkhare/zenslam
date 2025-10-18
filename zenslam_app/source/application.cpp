@@ -33,7 +33,9 @@ void zenslam::application::render()
     }
 
     // display matches spatial
-    if (slam.frames[1].cameras[0].keypoints.empty() || slam.frames[0].cameras[0].undistorted.empty() || slam.frames[1].cameras[0].undistorted.empty()) return;
+    if (slam.frames[1].cameras[0].keypoints.empty() || slam.frames[0].cameras[0].undistorted.empty() || slam.frames[1].cameras[
+            0].undistorted.empty())
+        return;
 
     {
         const auto &matches_image = utils::draw_matches(slam.frames[1], slam.points3d_map);
@@ -107,6 +109,15 @@ void zenslam::application::render()
 
             _viewer->showWidget("cloud", cv::viz::WCloud(points, colors));
             _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);
+
+            for (const auto &[index, line]: slam.lines3d_map)
+            {
+                _viewer->showWidget
+                (
+                    "line_" + std::to_string(index),
+                    cv::viz::WLine(line.points3d[0], line.points3d[1], cv::viz::Color::green())
+                );
+            }
 
             _viewer->spinOnce(0, true);
         }

@@ -138,9 +138,9 @@ void zenslam::slam_thread::loop()
 
                 slam.frames[1].cameras[1].keylines *= utils::match_keylines
                 (
-                    slam.frames[0].cameras[1].keylines,
+                    slam.frames[1].cameras[0].keylines,
                     slam.frames[1].cameras[1].keylines,
-                    calibration.camera_matrix[1],
+                    calibration.fundamental_matrix[0],
                     _options.slam.threshold_epipolar
                 );
 
@@ -248,6 +248,8 @@ void zenslam::slam_thread::loop()
 
                 slam.points3d_map[index] = point3d;
             }
+
+            slam.lines3d_map += slam.frames[1].pose * slam.frames[1].lines3d_map;
 
             slam.counts.points = slam.points3d_map.size();
 
