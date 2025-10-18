@@ -21,43 +21,52 @@ namespace zenslam
     class map : public std::map<size_t, T>
     {
     public:
-        // Type aliases for iterators
-        using iterator       = std::map<size_t, T>::iterator;
-        using const_iterator = std::map<size_t, T>::const_iterator;
-        using value_type     = T;
-        using key_type       = size_t;
-
-        static auto create(const std::vector<size_t> &indices, const std::vector<T> &items) -> map;
-
+        /** get all keys that have matching keys in another map
+         *
+         * @param other another map to match keys against
+         * @return a view of all keys with matching keys
+         */
         auto keys_matched(const map &other) const -> auto;
+
+        /** get all values
+         *
+         * @return a view of all values in the map
+         */
         auto values() const -> auto;
-        auto values_matched(const map &other) const -> auto;
 
-        template <indexable S>
-        auto values_matched(const map<S> &other) const -> auto;
-
+        /** cast all values to another type
+         *
+         * @tparam S target type
+         * @return a view of all values cast to type S
+         */
         template <typename S>
         auto values_cast() const -> auto;
 
-        auto operator+=(const T &item) -> void;
-        auto operator+=(const std::vector<T> &items) -> void;
-        auto operator+=(const std::map<size_t, T> &other) -> void;
-        auto operator+=(const map &other) -> void;
-        auto operator*=(const std::vector<cv::DMatch> &matches) -> void;
+        /** get all values that have matching keys in another map
+         *
+         * @param other another map to match keys against
+         * @return a view of all values with matching keys
+         */
+        auto values_matched(const map &other) const -> auto;
+
+        /** get all values that have matching keys in another map of different type
+         *
+         * @tparam S type of the other map, S must also be indexable
+         * @param other another map to match keys against
+         * @return a view of all values with matching keys
+         */
+        template <indexable S>
+        auto values_matched(const map<S> &other) const -> auto;
+
+        // add items
+        auto operator+=(const T &item) -> void;     // add item to map
+        auto operator+=(const std::vector<T> &items) -> void;   // add all items to map
+        auto operator+=(const std::map<size_t, T> &other) -> void;  // add another std::map to this map
+        auto operator+=(const map &other) -> void;  // add another map to this map
+
+        // remap indices
+        auto operator*=(const std::vector<cv::DMatch> &matches) -> void;    // remap indices based on matches
     };
-
-    template <indexable T>
-    auto map<T>::create(const std::vector<size_t> &indices, const std::vector<T> &items) -> map
-    {
-        map result;
-
-        for (size_t i = 0; i < indices.size(); ++i)
-        {
-            result._map[indices[i]] = items[i];
-        }
-
-        return result;
-    }
 
     template <indexable T>
     auto map<T>::keys_matched(const map &other) const -> auto
@@ -75,6 +84,19 @@ namespace zenslam
     auto map<T>::values() const -> auto
     {
         return *this | std::views::values;
+    }
+
+    template <indexable T>
+    template <typename S>
+    auto map<T>::values_cast() const -> auto
+    {
+        return *this | std::views::values | std::views::transform
+               (
+                   [](const auto &item) -> S
+                   {
+                       return static_cast<S>(item);
+                   }
+               );
     }
 
     template <indexable T>
@@ -98,19 +120,6 @@ namespace zenslam
                    [&other](const auto &item)
                    {
                        return other.contains(item.index);
-                   }
-               );
-    }
-
-    template <indexable T>
-    template <typename S>
-    auto map<T>::values_cast() const -> auto
-    {
-        return *this | std::views::values | std::views::transform
-               (
-                   [](const auto &item) -> S
-                   {
-                       return static_cast<S>(item);
                    }
                );
     }

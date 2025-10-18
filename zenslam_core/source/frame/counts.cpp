@@ -7,7 +7,7 @@ namespace zenslam::frame
     {
         SPDLOG_INFO("");
         SPDLOG_INFO("Counts:");
-        SPDLOG_INFO("   Keypoints L:           {:4}", keypoints_l);
+        SPDLOG_INFO("  Keypoints L:           {:4}", keypoints_l);
         SPDLOG_INFO("  Keypoints R:           {:4}", keypoints_r);
         SPDLOG_INFO("  Keypoints L Tracked:   {:4}", keypoints_l_tracked);
         SPDLOG_INFO("  Keypoints R Tracked:   {:4}", keypoints_r_tracked);

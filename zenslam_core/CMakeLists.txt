@@ -82,4 +82,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
+# Precompiled headers: speed up builds by precompiling commonly used header(s)
+# Requires CMake 3.16+; guarded to avoid breaking older environments
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+        # Precompile our lightweight umbrella header. It includes <concepts>, <cstddef>, <map>.
+        target_precompile_headers(${PROJECT_NAME}
+                PRIVATE
+                        include/zenslam/map.h
+        )
+endif()
+
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
