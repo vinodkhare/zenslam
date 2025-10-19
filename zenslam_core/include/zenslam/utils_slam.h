@@ -26,6 +26,24 @@ inline auto operator-(const std::vector<cv::Point2d> &lhs, const std::vector<cv:
     return difference;
 }
 
+inline auto operator*(const cv::Affine3d &pose, const zenslam::map<zenslam::line3d> &lines) -> zenslam::map<zenslam::line3d>
+{
+    zenslam::map<zenslam::line3d> transformed_lines { };
+
+    for (const auto line: lines | std::views::values)
+    {
+        zenslam::line3d transformed_line;
+
+        transformed_line.index = line.index;
+        transformed_line[0]    = pose * line[0];
+        transformed_line[1]    = pose * line[1];
+
+        transformed_lines[transformed_line.index] = transformed_line;
+    }
+
+    return transformed_lines;
+}
+
 namespace zenslam::utils
 {
     auto correspondences_3d2d
@@ -235,10 +253,10 @@ namespace zenslam::utils
      */
     auto triangulate
     (
-        const frame::stereo &    frame,
-        const cv::Matx34d &projection_0,
-        const cv::Matx34d &projection_1,
-        double             threshold
+        const frame::stereo &frame,
+        const cv::Matx34d &  projection_0,
+        const cv::Matx34d &  projection_1,
+        double               threshold
     ) -> map<point3d>;
 
     /**

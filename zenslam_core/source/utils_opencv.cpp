@@ -9,8 +9,6 @@
 
 #include <gsl/narrow>
 
-#include <spdlog/spdlog.h>
-
 auto zenslam::utils::apply_clahe(const cv::Mat &image, const cv::Ptr<cv::CLAHE> &clahe) -> cv::Mat
 {
     cv::Mat converted_image { };

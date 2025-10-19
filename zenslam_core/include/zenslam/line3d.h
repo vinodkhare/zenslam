@@ -4,11 +4,10 @@
 
 namespace zenslam
 {
-    struct line3d
+    struct line3d : std::array<cv::Point3d, 2>
     {
         static size_t index_next;
 
-        size_t                     index    = { };
-        std::array<cv::Point3d, 2> points3d = { };
+        size_t index = { };
     };
 }

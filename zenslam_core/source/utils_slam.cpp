@@ -1090,9 +1090,9 @@ auto zenslam::utils::triangulate_keylines
             (
                 line3d
                 {
-                    matched_indices[i],
                     points3d_0[i],
-                    points3d_1[i]
+                    points3d_1[i],
+                    matched_indices[i]
                 }
             );
         }

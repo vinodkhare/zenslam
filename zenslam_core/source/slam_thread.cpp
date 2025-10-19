@@ -241,7 +241,7 @@ void zenslam::slam_thread::loop()
                 slam.points3d_map[index] = point3d;
             }
 
-            // slam.lines3d_map += slam.frames[1].pose * slam.frames[1].lines3d;
+            slam.lines3d_map += slam.frames[1].pose * slam.frames[1].lines3d;
 
             slam.counts.points = slam.points3d_map.size();
 

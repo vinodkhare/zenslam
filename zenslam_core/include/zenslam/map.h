@@ -60,6 +60,9 @@ namespace zenslam
         template <indexable S>
         auto values_matched(const map<S> &other) const -> auto;
 
+        template <typename T_SLICE>
+        auto values_sliced(const std::function<T_SLICE(const T &)> &slice_function) const -> auto;
+
         // add items
         auto operator+=(const T &item) -> void;                    // add item to map
         auto operator+=(const std::vector<T> &items) -> void;      // add all items to map
@@ -85,7 +88,7 @@ namespace zenslam
     template <indexable T>
     auto map<T>::values() const -> auto
     {
-        return *this | std::views::values ;
+        return *this | std::views::values;
     }
 
     template <indexable T>
@@ -126,6 +129,12 @@ namespace zenslam
                );
     }
 
+    template <indexable T>
+    template <typename T_SLICE>
+    auto map<T>::values_sliced(const std::function<T_SLICE(const T &)> &slice_function) const -> auto
+    {
+        return *this | std::views::values | std::views::transform(slice_function);
+    }
 
     template <indexable T>
     auto map<T>::operator+=(const T &item) -> void

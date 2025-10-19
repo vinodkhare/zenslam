@@ -91,17 +91,11 @@ void zenslam::application::render()
             _viewer->showWidget("camera_gt", camera_gt);
             _viewer->setWidgetPose("camera_gt", slam.frames[1].pose_gt);
 
-            const auto &points = slam.points3d_map | std::views::values | std::views::transform
-                                 (
-                                     [](const auto &p)
-                                     {
-                                         return cv::Point3d { p.x, p.y, p.z };
-                                     }
-                                 ) | std::ranges::to<std::vector>();
+            const auto &points = slam.points3d_map.values_cast<cv::Point3d>() | std::ranges::to<std::vector>();
 
-            const auto &colors = slam.points3d_map | std::views::values | std::views::transform
+            const auto &colors = slam.points3d_map.values_sliced<cv::Vec3b>
                                  (
-                                     [](const auto &p)
+                                     [](const point3d &p)
                                      {
                                          return p.color;
                                      }
@@ -115,7 +109,7 @@ void zenslam::application::render()
                 _viewer->showWidget
                 (
                     "line_" + std::to_string(index),
-                    cv::viz::WLine(line.points3d[0], line.points3d[1], cv::viz::Color::green())
+                    cv::viz::WLine(line[0], line[1], cv::viz::Color::green())
                 );
             }
 
