@@ -26,7 +26,7 @@ zenslam::application::application(options options) :
 
 void zenslam::application::render()
 {
-    zenslam::frame::slam slam { };
+    frame::slam slam { };
     {
         std::lock_guard lock { _mutex };
         slam = _slam;

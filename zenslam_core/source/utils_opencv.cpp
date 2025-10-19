@@ -9,6 +9,8 @@
 
 #include <gsl/narrow>
 
+#include <spdlog/spdlog.h>
+
 auto zenslam::utils::apply_clahe(const cv::Mat &image, const cv::Ptr<cv::CLAHE> &clahe) -> cv::Mat
 {
     cv::Mat converted_image { };
@@ -31,10 +33,11 @@ auto zenslam::utils::draw_matches(const frame::stereo &frame, const map<point3d>
     const auto &keypoints_r              = frame.cameras[1].keypoints.values() | std::ranges::to<std::vector>();
     const auto &keypoints_l_matched      = frame.cameras[0].keypoints.values_matched(frame.cameras[1].keypoints) | std::ranges::to<std::vector>();
     const auto &keypoints_r_matched      = frame.cameras[1].keypoints.values_matched(frame.cameras[0].keypoints) | std::ranges::to<std::vector>();
-    const auto &keypoints_l_triangulated = frame.cameras[0].keypoints.values_matched(points) | std::ranges::to<std::vector>();
-    const auto &keypoints_r_triangulated = frame.cameras[1].keypoints.values_matched(points) | std::ranges::to<std::vector>();
-    const auto &matches                  = utils::matches(keypoints_l_matched.size());
-    const auto &matches_triangulated     = utils::matches(keypoints_l_triangulated.size());
+    const auto &keypoints_l_triangulated = frame.cameras[0].keypoints.values_matched(frame.points3d) | std::ranges::to<std::vector>();
+    const auto &keypoints_r_triangulated = frame.cameras[1].keypoints.values_matched(frame.points3d) | std::ranges::to<std::vector>();
+
+    const auto &matches              = utils::matches(keypoints_l_matched.size());
+    const auto &matches_triangulated = utils::matches(keypoints_l_triangulated.size());
 
     auto undistorted_l = frame.cameras[0].undistorted.clone();
     auto undistorted_r = frame.cameras[1].undistorted.clone();
@@ -194,7 +197,7 @@ auto zenslam::utils::project(const std::vector<cv::Point3d> &points, const cv::M
 
     for (auto i = 0; i < points.size(); i++)
     {
-        auto w = points2d_mat.at<double>(2, i);
+        const auto w = points2d_mat.at<double>(2, i);
         if (std::abs(w) > 1E-9)
         {
             points2d.emplace_back

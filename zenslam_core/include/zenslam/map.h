@@ -8,6 +8,8 @@
 
 #include <opencv2/core/types.hpp>
 
+#include <spdlog/spdlog.h>
+
 namespace zenslam
 {
     // Basic concept for checking index field
@@ -59,13 +61,13 @@ namespace zenslam
         auto values_matched(const map<S> &other) const -> auto;
 
         // add items
-        auto operator+=(const T &item) -> void;     // add item to map
-        auto operator+=(const std::vector<T> &items) -> void;   // add all items to map
-        auto operator+=(const std::map<size_t, T> &other) -> void;  // add another std::map to this map
-        auto operator+=(const map &other) -> void;  // add another map to this map
+        auto operator+=(const T &item) -> void;                    // add item to map
+        auto operator+=(const std::vector<T> &items) -> void;      // add all items to map
+        auto operator+=(const std::map<size_t, T> &other) -> void; // add another std::map to this map
+        auto operator+=(const map &other) -> void;                 // add another map to this map
 
         // remap indices
-        auto operator*=(const std::vector<cv::DMatch> &matches) -> void;    // remap indices based on matches
+        auto operator*=(const std::vector<cv::DMatch> &matches) -> void; // remap indices based on matches
     };
 
     template <indexable T>
@@ -77,13 +79,13 @@ namespace zenslam
                    {
                        return other.contains(index);
                    }
-               );
+               ) | std::ranges::to<std::vector>();
     }
 
     template <indexable T>
     auto map<T>::values() const -> auto
     {
-        return *this | std::views::values;
+        return *this | std::views::values ;
     }
 
     template <indexable T>
@@ -128,7 +130,7 @@ namespace zenslam
     template <indexable T>
     auto map<T>::operator+=(const T &item) -> void
     {
-        (*this)[item.index] = item;
+        this->operator[](item.index) = item;
     }
 
     template <indexable T>
@@ -136,7 +138,7 @@ namespace zenslam
     {
         for (const auto &item: items)
         {
-            (*this)[item.index] = item;
+            this->operator[](item.index) = item;
         }
     }
 
@@ -145,7 +147,7 @@ namespace zenslam
     {
         for (const auto &[index, item]: other)
         {
-            (*this)[index] = item;
+            this->operator[](item.index) = item;
         }
     }
 
@@ -154,7 +156,7 @@ namespace zenslam
     {
         for (const auto &[index, item]: other)
         {
-            (*this)[index] = item;
+            this->operator[](item.index) = item;
         }
     }
 
@@ -173,7 +175,7 @@ namespace zenslam
 
                 this->erase(index_old);
 
-                (*this)[item.index] = item;
+                this->operator[](item.index) = item;
             }
         }
     }
