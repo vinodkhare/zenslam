@@ -4,8 +4,8 @@
 
 auto zenslam::calibration::parse
 (
-    const std::filesystem::path &camera_calib_path,
-    const std::filesystem::path &imu_calib_path
+    const std::filesystem::path& camera_calib_path,
+    const std::filesystem::path& imu_calib_path
 ) -> calibration
 {
     calibration calib { };

@@ -15,7 +15,7 @@ namespace zenslam
     class slam_thread
     {
     public:
-    event<zenslam::frame::slam> on_frame;
+        event<zenslam::frame::slam> on_frame;
 
         explicit slam_thread(options options);
         ~slam_thread();

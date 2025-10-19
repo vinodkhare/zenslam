@@ -5,23 +5,23 @@
 
 #include <gsl/narrow>
 
-auto zenslam::utils::mean(const std::vector<double> &values) -> double
+auto zenslam::utils::mean(const std::vector<double>& values) -> double
 {
     auto mean = 0.0;
-    for (const auto &value: values)
+    for (const auto& value: values)
     {
         mean += value;
     }
     return mean / gsl::narrow<double>(values.size());
 }
 
-auto zenslam::utils::to_string(const std::vector<std::string> &strings, const std::string &delimiter) -> std::string
+auto zenslam::utils::to_string(const std::vector<std::string>& strings, const std::string& delimiter) -> std::string
 {
     return join_to_string(strings, delimiter, std::identity { });
 }
 
 
-auto zenslam::utils::to_string(const std::vector<double> &values, const std::string &delimiter) -> std::string
+auto zenslam::utils::to_string(const std::vector<double>& values, const std::string& delimiter) -> std::string
 {
     return join_to_string
     (
@@ -37,8 +37,8 @@ auto zenslam::utils::to_string(const std::vector<double> &values, const std::str
 std::string zenslam::utils::to_string_epoch(const double epoch_seconds)
 {
     // Split into integral seconds and fractional milliseconds
-    const auto &seconds      = std::chrono::floor<std::chrono::seconds>(std::chrono::duration<double>(epoch_seconds));
-    const auto &milliseconds =
+    const auto& seconds      = std::chrono::floor<std::chrono::seconds>(std::chrono::duration<double>(epoch_seconds));
+    const auto& milliseconds =
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(epoch_seconds) - seconds);
 
     // sys_time with milliseconds precision

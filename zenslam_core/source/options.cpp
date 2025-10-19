@@ -71,13 +71,13 @@ boost::program_options::options_description zenslam::options::description()
     return description;
 }
 
-zenslam::options zenslam::options::parse(const int argc, char **argv)
+zenslam::options zenslam::options::parse(const int argc, char** argv)
 {
     options          options { };
     zenslam::options options_default { };
 
-    const auto &description = options::description(); // inlining this can cause argument parse failures, don't know why!
-    const auto &parsed      = parse_command_line(argc, argv, description);
+    const auto& description = options::description(); // inlining this can cause argument parse failures, don't know why!
+    const auto& parsed      = parse_command_line(argc, argv, description);
     auto        map         = boost::program_options::variables_map();
 
     store(parsed, map);
@@ -94,7 +94,7 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     }
 
     std::map<std::string, boost::program_options::basic_option<char>> options_map { };
-    for (auto &option: parsed.options)
+    for (auto& option: parsed.options)
     {
         options_map[option.string_key] = option;
     }
@@ -132,7 +132,7 @@ zenslam::options zenslam::options::parse(const int argc, char **argv)
     return options;
 }
 
-zenslam::options zenslam::options::parse(const std::filesystem::path &path)
+zenslam::options zenslam::options::parse(const std::filesystem::path& path)
 {
     options options { };
 
@@ -142,13 +142,13 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
     {
         auto config = YAML::LoadFile(path.string());
 
-        if (const auto &application = config["application"])
+        if (const auto& application = config["application"])
         {
             options.log_level   = utils::log_levels_from_string[application["log_level"].as<std::string>()];
             options.log_pattern = application["log_pattern"].as<std::string>();
         }
 
-        if (const auto &folder = config["folder"])
+        if (const auto& folder = config["folder"])
         {
             options.folder.root             = folder["root"].as<std::string>();
             options.folder.left             = folder["left"].as<std::string>();
@@ -168,7 +168,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             }
         }
 
-        if (const auto &slam = config["slam"])
+        if (const auto& slam = config["slam"])
         {
             if (const auto cell_size = slam["cell_size"])
             {
@@ -196,7 +196,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             if (const auto descriptor = slam["descriptor"])
             {
                 options.slam.descriptor = magic_enum::enum_cast<descriptor_type>(descriptor.as<std::string>())
-                        .value_or(options.slam.descriptor);
+                       .value_or(options.slam.descriptor);
             }
 
             if (const auto fast_threshold = slam["fast_threshold"])
@@ -227,7 +227,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path &path)
             }
         }
     }
-    catch (const YAML::Exception &e)
+    catch (const YAML::Exception& e)
     {
         std::println("Failed to load config file: {}", e.what());
     }

@@ -38,7 +38,7 @@ namespace zenslam
          * 
          * @note If optional fields are not present in the file, default values are used
          */
-        static imu_calibration parse(const std::filesystem::path &path);
+        static imu_calibration parse(const std::filesystem::path& path);
 
         /// IMU topic name (e.g., "/imu0")
         std::string rostopic = { };
