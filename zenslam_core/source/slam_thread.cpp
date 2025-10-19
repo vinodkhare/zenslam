@@ -41,10 +41,10 @@ zenslam::slam_thread::~slam_thread()
 
 void zenslam::slam_thread::loop()
 {
-    const auto &calibration   = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file);
-    const auto &stereo_reader = stereo_folder_reader(_options.folder);
-    const auto &clahe         = cv::createCLAHE();
-    const auto &detector      = grid_detector::create(_options.slam);
+    const auto& calibration   = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file);
+    const auto& stereo_reader = stereo_folder_reader(_options.folder);
+    const auto& clahe         = cv::createCLAHE();
+    const auto& detector      = grid_detector::create(_options.slam);
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto motion      = zenslam::motion();
@@ -62,11 +62,11 @@ void zenslam::slam_thread::loop()
 
             time_this t { slam.durations.total };
 
-            const auto &dt = isnan(slam.frames[0].cameras[0].timestamp)
+            const auto& dt = isnan(slam.frames[0].cameras[0].timestamp)
                                  ? 0.0
                                  : slam.frames[1].cameras[0].timestamp - slam.frames[0].cameras[0].timestamp;
-            const auto &slerp                    = groundtruth.slerp(slam.frames[1].cameras[0].timestamp);
-            const auto &pose_gt_of_imu0_in_world = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
+            const auto& slerp                    = groundtruth.slerp(slam.frames[1].cameras[0].timestamp);
+            const auto& pose_gt_of_imu0_in_world = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
 
             slam.frames[1].pose_gt = pose_gt_of_imu0_in_world * calibration.cameras[0].pose_in_imu0;
             slam.frames[0].pose    = isnan(slam.frames[0].cameras[0].timestamp) ? slam.frames[1].pose_gt : slam.frames[0].pose;
@@ -83,7 +83,7 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.tracking };
 
-                const auto &tracked_keypoints = utils::track(slam.frames, _options.slam);
+                const auto& tracked_keypoints = utils::track(slam.frames, _options.slam);
                 slam.frames[1].cameras[0].keypoints += tracked_keypoints[0];
                 slam.frames[1].cameras[1].keypoints += tracked_keypoints[1];
 
@@ -159,7 +159,7 @@ void zenslam::slam_thread::loop()
                 slam.counts.matches             = std::ranges::count_if
                 (
                     slam.frames[1].cameras[0].keypoints | std::views::keys,
-                    [&slam](const auto &index)
+                    [&slam](const auto& index)
                     {
                         return slam.frames[1].cameras[1].keypoints.contains(index);
                     }
@@ -190,7 +190,7 @@ void zenslam::slam_thread::loop()
                         _options.slam.threshold_3d3d
                     );
                 }
-                catch (const std::runtime_error &error)
+                catch (const std::runtime_error& error)
                 {
                     SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
                 }
@@ -205,7 +205,7 @@ void zenslam::slam_thread::loop()
                         _options.slam.threshold_3d2d
                     );
                 }
-                catch (const std::runtime_error &error)
+                catch (const std::runtime_error& error)
                 {
                     SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
                 }
@@ -219,7 +219,7 @@ void zenslam::slam_thread::loop()
             SPDLOG_INFO("3D-3D mean error: {:.4f} m", utils::mean(pose_data_3d3d.errors));
             SPDLOG_INFO("3D-2D mean error: {:.4f} px", utils::mean(pose_data_3d2d.errors));
 
-            const auto &pose =
+            const auto& pose =
                     pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;
 
             SPDLOG_INFO("");
@@ -230,7 +230,7 @@ void zenslam::slam_thread::loop()
             SPDLOG_INFO("Estimated pose:   {}", slam.frames[1].pose);
             SPDLOG_INFO("Groundtruth pose: {}", slam.frames[1].pose_gt);
 
-            for (const auto &[index, point]: slam.frames[1].points3d)
+            for (const auto& [index, point]: slam.frames[1].points3d)
             {
                 auto point3d = slam.frames[1].pose * point;
 
@@ -247,7 +247,7 @@ void zenslam::slam_thread::loop()
 
             slam.colors = slam.points3d_map | std::views::values | std::views::transform
                           (
-                              [](const auto &p)
+                              [](const auto& p)
                               {
                                   return p.color;
                               }

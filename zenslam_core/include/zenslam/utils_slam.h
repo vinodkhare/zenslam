@@ -13,7 +13,7 @@
 #include "pose_data.h"
 #include "frame/stereo.h"
 
-inline auto operator-(const std::vector<cv::Point2d> &lhs, const std::vector<cv::Point2f> &rhs) -> std::vector<cv::Point2d>
+inline auto operator-(const std::vector<cv::Point2d>& lhs, const std::vector<cv::Point2f>& rhs) -> std::vector<cv::Point2d>
 {
     std::vector<cv::Point2d> difference;
     difference.reserve(lhs.size());
@@ -26,7 +26,7 @@ inline auto operator-(const std::vector<cv::Point2d> &lhs, const std::vector<cv:
     return difference;
 }
 
-inline auto operator*(const cv::Affine3d &pose, const zenslam::map<zenslam::line3d> &lines) -> zenslam::map<zenslam::line3d>
+inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::line3d>& lines) -> zenslam::map<zenslam::line3d>
 {
     zenslam::map<zenslam::line3d> transformed_lines { };
 
@@ -48,36 +48,36 @@ namespace zenslam::utils
 {
     auto correspondences_3d2d
     (
-        const std::map<size_t, point3d> & points,
-        const std::map<size_t, keypoint> &keypoints,
-        std::vector<cv::Point3d> &        points3d,
-        std::vector<cv::Point2d> &        points2d,
-        std::vector<size_t> &             indices
+        const std::map<size_t, point3d>&  points,
+        const std::map<size_t, keypoint>& keypoints,
+        std::vector<cv::Point3d>&         points3d,
+        std::vector<cv::Point2d>&         points2d,
+        std::vector<size_t>&              indices
     ) -> void;
 
 
     void correspondences_3d3d
     (
-        const std::map<size_t, point3d> &points_map_0,
-        const std::map<size_t, point3d> &points_map_1,
-        std::vector<cv::Point3d> &       points3d_0,
-        std::vector<cv::Point3d> &       points3d_1,
-        std::vector<size_t> &            indexes
+        const std::map<size_t, point3d>& points_map_0,
+        const std::map<size_t, point3d>& points_map_1,
+        std::vector<cv::Point3d>&        points3d_0,
+        std::vector<cv::Point3d>&        points3d_1,
+        std::vector<size_t>&             indexes
     );
 
     auto estimate_pose_3d2d
     (
-        const std::map<size_t, point3d> & map_points_0,
-        const std::map<size_t, keypoint> &map_keypoints_1,
-        const cv::Matx33d &               camera_matrix,
-        const double &                    threshold
+        const std::map<size_t, point3d>&  map_points_0,
+        const std::map<size_t, keypoint>& map_keypoints_1,
+        const cv::Matx33d&                camera_matrix,
+        const double&                     threshold
     ) -> pose_data;
 
     auto estimate_pose_3d3d
     (
-        const std::map<size_t, point3d> &map_points_0,
-        const std::map<size_t, point3d> &map_points_1,
-        const double &                   threshold
+        const std::map<size_t, point3d>& map_points_0,
+        const std::map<size_t, point3d>& map_points_1,
+        const double&                    threshold
     ) -> pose_data;
 
     // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
@@ -85,22 +85,22 @@ namespace zenslam::utils
     // Returns true if successful, false otherwise
     auto estimate_rigid
     (
-        const std::vector<cv::Point3d> &src,
-        const std::vector<cv::Point3d> &dst,
-        cv::Matx33d &                   R,
-        cv::Point3d &                   t
+        const std::vector<cv::Point3d>& src,
+        const std::vector<cv::Point3d>& dst,
+        cv::Matx33d&                    R,
+        cv::Point3d&                    t
     ) -> bool;
 
     // RANSAC wrapper for estimate_rigid: returns best R, t, and inlier/outlier indices
     auto estimate_rigid_ransac
     (
-        const std::vector<cv::Point3d> &src,
-        const std::vector<cv::Point3d> &dst,
-        cv::Matx33d &                   best_R,
-        cv::Point3d &                   best_t,
-        std::vector<size_t> &           inlier_indices,
-        std::vector<size_t> &           outlier_indices,
-        std::vector<double> &           errors,
+        const std::vector<cv::Point3d>& src,
+        const std::vector<cv::Point3d>& dst,
+        cv::Matx33d&                    best_R,
+        cv::Point3d&                    best_t,
+        std::vector<size_t>&            inlier_indices,
+        std::vector<size_t>&            outlier_indices,
+        std::vector<double>&            errors,
         double                          threshold      = 0.01,
         int                             max_iterations = 1000
     ) -> bool;
@@ -108,18 +108,18 @@ namespace zenslam::utils
     // filters matches using the epipolar crterion given the fundamental matrix
     auto filter
     (
-        const std::vector<cv::KeyPoint> &keypoints0,
-        const std::vector<cv::KeyPoint> &keypoints1,
-        const std::vector<cv::DMatch> &  matches,
-        const cv::Matx33d &              fundamental,
+        const std::vector<cv::KeyPoint>& keypoints0,
+        const std::vector<cv::KeyPoint>& keypoints1,
+        const std::vector<cv::DMatch>&   matches,
+        const cv::Matx33d&               fundamental,
         double                           epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
     auto match
     (
-        const map<keypoint> &map_keypoints_l,
-        const map<keypoint> &map_keypoints_r,
-        const cv::Matx33d &  fundamental,
+        const map<keypoint>& map_keypoints_l,
+        const map<keypoint>& map_keypoints_r,
+        const cv::Matx33d&   fundamental,
         double               epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
@@ -135,17 +135,17 @@ namespace zenslam::utils
      */
     auto match_keylines
     (
-        const map<keyline> &keylines_map_0,
-        const map<keyline> &keylines_map_1,
-        const cv::Matx33d & fundamental,
+        const map<keyline>& keylines_map_0,
+        const map<keyline>& keylines_map_1,
+        const cv::Matx33d&  fundamental,
         double              epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
     auto match_temporal
     (
-        const std::map<size_t, keypoint> &keypoints_map_0,
-        const std::map<size_t, keypoint> &keypoints_map_1,
-        const cv::Matx33d &               camera_matrix,
+        const std::map<size_t, keypoint>& keypoints_map_0,
+        const std::map<size_t, keypoint>& keypoints_map_1,
+        const cv::Matx33d&                camera_matrix,
         double                            threshold
     ) -> std::vector<cv::DMatch>;
 
@@ -159,10 +159,10 @@ namespace zenslam::utils
      */
     auto pre_process
     (
-        const frame::camera &      frame,
-        const camera_calibration & calibration,
-        const class options::slam &options,
-        const cv::Ptr<cv::CLAHE> & clahe
+        const frame::camera&       frame,
+        const camera_calibration&  calibration,
+        const class options::slam& options,
+        const cv::Ptr<cv::CLAHE>&  clahe
     ) -> frame::camera;
 
     /** Pre-process a camera frame by converting to grayscale, applying CLAHE, and building an image pyramid.
@@ -174,18 +174,18 @@ namespace zenslam::utils
      */
     auto pre_process
     (
-        const frame::stereo &                    frame,
-        const std::array<camera_calibration, 2> &calibration,
-        const class options::slam &              options,
-        const cv::Ptr<cv::CLAHE> &               clahe
+        const frame::stereo&                     frame,
+        const std::array<camera_calibration, 2>& calibration,
+        const class options::slam&               options,
+        const cv::Ptr<cv::CLAHE>&                clahe
     ) -> frame::stereo;
 
     auto solve_pnp
     (
-        const cv::Matx33d &             camera_matrix,
-        const std::vector<cv::Point3d> &points3d,
-        const std::vector<cv::Point2d> &points2d,
-        cv::Affine3d &                  pose
+        const cv::Matx33d&              camera_matrix,
+        const std::vector<cv::Point3d>& points3d,
+        const std::vector<cv::Point2d>& points2d,
+        cv::Affine3d&                   pose
     ) -> void;
 
     /** Track keypoints from frame_0 to frame_1 using KLT optical flow.
@@ -199,11 +199,11 @@ namespace zenslam::utils
      */
     auto track
     (
-        const std::vector<cv::Mat> &    pyramid_0,
-        const std::vector<cv::Mat> &    pyramid_1,
-        const map<keypoint> &           keypoints_map_0,
-        const class options::slam &     options,
-        const std::vector<cv::Point2f> &points_1_predicted = { }
+        const std::vector<cv::Mat>&     pyramid_0,
+        const std::vector<cv::Mat>&     pyramid_1,
+        const map<keypoint>&            keypoints_map_0,
+        const class options::slam&      options,
+        const std::vector<cv::Point2f>& points_1_predicted = { }
     ) -> std::vector<keypoint>;
 
     /** Track keypoints between two stereo frames.
@@ -214,8 +214,8 @@ namespace zenslam::utils
      */
     auto track
     (
-        const std::array<frame::stereo, 2> &frames,
-        const class options::slam &         options
+        const std::array<frame::stereo, 2>& frames,
+        const class options::slam&          options
     ) -> std::array<std::vector<keypoint>, 2>;
 
     /** Track keylines from frame_0 to frame_1 using KLT optical flow on endpoints.
@@ -233,10 +233,10 @@ namespace zenslam::utils
      */
     auto track_keylines
     (
-        const std::vector<cv::Mat> &pyramid_0,
-        const std::vector<cv::Mat> &pyramid_1,
-        const map<keyline> &        keylines_map_0,
-        const class options::slam & options
+        const std::vector<cv::Mat>& pyramid_0,
+        const std::vector<cv::Mat>& pyramid_1,
+        const map<keyline>&         keylines_map_0,
+        const class options::slam&  options
     ) -> std::vector<keyline>;
 
     /** Triangulate 3D points from stereo frame keypoints.
@@ -253,9 +253,9 @@ namespace zenslam::utils
      */
     auto triangulate
     (
-        const frame::stereo &frame,
-        const cv::Matx34d &  projection_0,
-        const cv::Matx34d &  projection_1,
+        const frame::stereo& frame,
+        const cv::Matx34d&   projection_0,
+        const cv::Matx34d&   projection_1,
         double               threshold
     ) -> map<point3d>;
 
@@ -271,10 +271,10 @@ namespace zenslam::utils
      */
     auto triangulate_keylines
     (
-        const map<keyline> &keylines_l,
-        const map<keyline> &keylines_r,
-        const cv::Matx34d & P_l,
-        const cv::Matx34d & P_r
+        const map<keyline>& keylines_l,
+        const map<keyline>& keylines_r,
+        const cv::Matx34d&  P_l,
+        const cv::Matx34d&  P_r
     ) -> std::vector<line3d>;
 
     /** Triangulate 3D points from matched 2D keypoints in stereo images.
@@ -290,19 +290,19 @@ namespace zenslam::utils
      */
     auto triangulate_points
     (
-        const std::vector<cv::Point2f> &points2f_0,
-        const std::vector<cv::Point2f> &points2f_1,
-        const cv::Matx34d &             projection_0,
-        const cv::Matx34d &             projection_1
+        const std::vector<cv::Point2f>& points2f_0,
+        const std::vector<cv::Point2f>& points2f_1,
+        const cv::Matx34d&              projection_0,
+        const cv::Matx34d&              projection_1
     ) -> std::vector<cv::Point3d>;
 
     auto umeyama
     (
-        const std::vector<cv::Point3d> &src,
-        const std::vector<cv::Point3d> &dst,
-        cv::Matx33d &                   R,
-        cv::Point3d &                   t
+        const std::vector<cv::Point3d>& src,
+        const std::vector<cv::Point3d>& dst,
+        cv::Matx33d&                    R,
+        cv::Point3d&                    t
     ) -> void;
 
-    auto undistort(const cv::Mat &image, const camera_calibration &calibration) -> cv::Mat;
+    auto undistort(const cv::Mat& image, const camera_calibration& calibration) -> cv::Mat;
 }

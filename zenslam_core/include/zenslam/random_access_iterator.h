@@ -16,7 +16,7 @@ namespace zenslam
 
         random_access_iterator() = default;
 
-        random_access_iterator(const Owner *owner, const std::size_t index) :
+        random_access_iterator(const Owner* owner, const std::size_t index) :
             owner_(owner),
             index_(index) {}
 
@@ -30,7 +30,7 @@ namespace zenslam
             return (*owner_)[index_ + n];
         }
 
-        random_access_iterator &operator++()
+        random_access_iterator& operator++()
         {
             ++index_;
             return *this;
@@ -43,7 +43,7 @@ namespace zenslam
             return tmp;
         }
 
-        random_access_iterator &operator--()
+        random_access_iterator& operator--()
         {
             --index_;
             return *this;
@@ -56,13 +56,13 @@ namespace zenslam
             return tmp;
         }
 
-        random_access_iterator &operator+=(const difference_type n)
+        random_access_iterator& operator+=(const difference_type n)
         {
             index_ += n;
             return *this;
         }
 
-        random_access_iterator &operator-=(const difference_type n)
+        random_access_iterator& operator-=(const difference_type n)
         {
             index_ -= n;
             return *this;
@@ -86,43 +86,43 @@ namespace zenslam
             return it;
         }
 
-        friend difference_type operator-(const random_access_iterator &a, const random_access_iterator &b)
+        friend difference_type operator-(const random_access_iterator& a, const random_access_iterator& b)
         {
             return static_cast<difference_type>(a.index_) - static_cast<difference_type>(b.index_);
         }
 
-        friend bool operator==(const random_access_iterator &a, const random_access_iterator &b)
+        friend bool operator==(const random_access_iterator& a, const random_access_iterator& b)
         {
             return a.owner_ == b.owner_ && a.index_ == b.index_;
         }
 
-        friend bool operator!=(const random_access_iterator &a, const random_access_iterator &b)
+        friend bool operator!=(const random_access_iterator& a, const random_access_iterator& b)
         {
             return !(a == b);
         }
 
-        friend bool operator<(const random_access_iterator &a, const random_access_iterator &b)
+        friend bool operator<(const random_access_iterator& a, const random_access_iterator& b)
         {
             return a.index_ < b.index_;
         }
 
-        friend bool operator>(const random_access_iterator &a, const random_access_iterator &b)
+        friend bool operator>(const random_access_iterator& a, const random_access_iterator& b)
         {
             return b < a;
         }
 
-        friend bool operator<=(const random_access_iterator &a, const random_access_iterator &b)
+        friend bool operator<=(const random_access_iterator& a, const random_access_iterator& b)
         {
             return !(b < a);
         }
 
-        friend bool operator>=(const random_access_iterator &a, const random_access_iterator &b)
+        friend bool operator>=(const random_access_iterator& a, const random_access_iterator& b)
         {
             return !(a < b);
         }
 
     private:
-        const Owner *owner_ = nullptr;
+        const Owner* owner_ = nullptr;
         std::size_t  index_ = 0;
     };
 } // namespace zenslam

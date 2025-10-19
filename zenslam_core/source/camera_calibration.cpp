@@ -13,7 +13,7 @@
 #include "utils.h"
 
 // read camera calibration from a kalibr yaml file
-auto zenslam::camera_calibration::parse(const std::filesystem::path &path, const std::string &camera_name) -> camera_calibration
+auto zenslam::camera_calibration::parse(const std::filesystem::path& path, const std::string& camera_name) -> camera_calibration
 {
     if (!std::filesystem::exists(path))
     {
@@ -64,7 +64,7 @@ auto zenslam::camera_calibration::parse(const std::filesystem::path &path, const
     if (cam["distortion_coeffs"])
     {
         calib.distortion_coefficients.clear();
-        for (const auto &coeff: cam["distortion_coeffs"])
+        for (const auto& coeff: cam["distortion_coeffs"])
         {
             calib.distortion_coefficients.push_back(coeff.as<double>());
         }
@@ -73,7 +73,7 @@ auto zenslam::camera_calibration::parse(const std::filesystem::path &path, const
     // Parse distortion model
     if (cam["distortion_model"])
     {
-        const auto &optional = magic_enum::enum_cast <
+        const auto& optional = magic_enum::enum_cast <
         enum distortion_model
         >
         (cam["distortion_model"].as<std::string>());
@@ -163,17 +163,17 @@ auto zenslam::camera_calibration::print() const -> void
     SPDLOG_INFO("  Pose in cam0: {}", pose_in_cam0);
 }
 
-auto zenslam::camera_calibration::fundamental(const camera_calibration &other) const -> cv::Matx33d
+auto zenslam::camera_calibration::fundamental(const camera_calibration& other) const -> cv::Matx33d
 {
     // Get camera matrices
     const auto K1 = this->camera_matrix();
     const auto K2 = other.camera_matrix();
 
     // Get the relative pose between cameras
-    const auto &relative_pose = other.pose_in_cam0.inv() * this->pose_in_cam0;
-    const auto &t             = relative_pose.translation();
-    const auto &R             = relative_pose.rotation();
-    const auto &E             = utils::skew(t) * R; // Compute essential matrix E = [t]x * R
+    const auto& relative_pose = other.pose_in_cam0.inv() * this->pose_in_cam0;
+    const auto& t             = relative_pose.translation();
+    const auto& R             = relative_pose.rotation();
+    const auto& E             = utils::skew(t) * R; // Compute essential matrix E = [t]x * R
 
     // Compute fundamental matrix F = K2^-T * E * K1^-1
     return K2.inv().t() * E * K1.inv();
@@ -185,22 +185,24 @@ auto zenslam::camera_calibration::projection() const -> cv::Matx34d
     const auto K = camera_matrix();
 
     // Take a 3x4 minor (top 3 rows, 4 cols) from the 4x4 affine matrix => [R|t]
-    const auto Rt = pose_in_cam0.inv().matrix.get_minor < 3, 
+    const auto Rt = pose_in_cam0.inv().matrix.get_minor < 3,
+    
     4 > (0, 0);
 
     // P = K * [R|t] =>
     return K * Rt; // Matx (3x3) * (3x4) => (3x4)
 }
 
-auto zenslam::camera_calibration::projection(const cv::Affine3d &pose_of_cam0_in_world) const -> cv::Matx34d
+auto zenslam::camera_calibration::projection(const cv::Affine3d& pose_of_cam0_in_world) const -> cv::Matx34d
 {
     // Projection matrix P = K * [R | t]
     const auto K = camera_matrix();
 
-    const auto &pose_of_this_in_world = pose_of_cam0_in_world * pose_in_cam0;
+    const auto& pose_of_this_in_world = pose_of_cam0_in_world * pose_in_cam0;
 
     // Take a 3x4 minor (top 3 rows, 4 cols) from the 4x4 affine matrix => [R|t]
-    const auto Rt = pose_of_this_in_world.inv().matrix.get_minor < 3, 
+    const auto Rt = pose_of_this_in_world.inv().matrix.get_minor < 3,
+    
     4 > (0, 0);
 
     // P = K * [R|t] =>

@@ -8,8 +8,8 @@ namespace zenslam
     class motion
     {
     public:
-        auto predict(const cv::Affine3d &pose_0, double dt) const -> cv::Affine3d;
-        auto update(const cv::Affine3d &pose_0, const cv::Affine3d &pose_1, double dt) -> void;
+        auto predict(const cv::Affine3d& pose_0, double dt) const -> cv::Affine3d;
+        auto update(const cv::Affine3d& pose_0, const cv::Affine3d& pose_1, double dt) -> void;
 
     private:
         cv::Vec3d _velocity_1 { cv::Vec3d::zeros() };

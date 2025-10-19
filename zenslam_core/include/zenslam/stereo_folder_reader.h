@@ -17,12 +17,12 @@ namespace zenslam
 
         stereo_folder_reader
         (
-            const path_type &left_dir,
-            const path_type &right_dir,
+            const path_type& left_dir,
+            const path_type& right_dir,
             const double     timescale = 1E-9
         );
 
-        explicit stereo_folder_reader(const class options::folder &options);
+        explicit stereo_folder_reader(const class options::folder& options);
 
         [[nodiscard]] std::size_t size() const noexcept
         {
@@ -49,12 +49,12 @@ namespace zenslam
             return iterator { this, size() };
         }
 
-        [[nodiscard]] const mono_folder_reader &left() const noexcept
+        [[nodiscard]] const mono_folder_reader& left() const noexcept
         {
             return _left;
         }
 
-        [[nodiscard]] const mono_folder_reader &right() const noexcept
+        [[nodiscard]] const mono_folder_reader& right() const noexcept
         {
             return _right;
         }

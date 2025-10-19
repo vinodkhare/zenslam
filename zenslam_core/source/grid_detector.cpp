@@ -10,7 +10,7 @@
 
 namespace zenslam
 {
-    auto grid_detector::create(const class options::slam &options) -> grid_detector
+    auto grid_detector::create(const class options::slam& options) -> grid_detector
     {
         auto feature_detector  = cv::Ptr<cv::Feature2D>();
         auto feature_describer = cv::Ptr<cv::Feature2D>();
@@ -51,29 +51,29 @@ namespace zenslam
         return detector;
     }
 
-    cv::Size operator/(const cv::Size &lhs, const cv::Size &rhs)
+    cv::Size operator/(const cv::Size& lhs, const cv::Size& rhs)
     {
         return { lhs.width / rhs.width, lhs.height / rhs.height };
     }
 
     auto grid_detector::detect
     (
-        const cv::Mat &      image,
-        const map<keypoint> &keypoints_map
+        const cv::Mat&       image,
+        const map<keypoint>& keypoints_map
     ) const -> std::vector<keypoint>
     {
         // Calculate grid dimensions
-        const auto &grid_size = cv::Size(image.cols, image.rows) / _cell_size;
+        const auto& grid_size = cv::Size(image.cols, image.rows) / _cell_size;
 
         // Create a vector of vectors of size grid_size.rows * grid_size.cols
         std::vector occupied(grid_size.width, std::vector(grid_size.height, false));
 
         // loop over all existing keypoints and update occupancy
-        for (const auto &keypoint: keypoints_map | std::views::values)
+        for (const auto& keypoint: keypoints_map | std::views::values)
         {
             // Calculate which grid cell this keypoint falls into
-            const auto &grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
-            const auto &grid_y = static_cast<int>(keypoint.pt.y) / _cell_size.height;
+            const auto& grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
+            const auto& grid_y = static_cast<int>(keypoint.pt.y) / _cell_size.height;
 
             // If the keypoint falls within grid bounds, mark the cell as occupied
             if
@@ -121,13 +121,13 @@ namespace zenslam
                 if (!cell_keypoints.empty())
                 {
                     // Find the keypoint with the highest response in this cell
-                    const auto &index = std::distance
+                    const auto& index = std::distance
                     (
                         cell_keypoints.begin(),
                         std::ranges::max_element
                         (
                             cell_keypoints,
-                            [](const cv::KeyPoint &a, const cv::KeyPoint &b)
+                            [](const cv::KeyPoint& a, const cv::KeyPoint& b)
                             {
                                 return a.response < b.response;
                             }
@@ -146,7 +146,7 @@ namespace zenslam
 
         auto points_cv = keypoints_cv | std::views::transform
                          (
-                             [](const auto &keypoint)
+                             [](const auto& keypoint)
                              {
                                  return keypoint.pt;
                              }
@@ -184,7 +184,7 @@ namespace zenslam
         return keypoints;
     }
 
-    auto grid_detector::detect(const cv::Mat &image) const -> std::vector<keyline>
+    auto grid_detector::detect(const cv::Mat& image) const -> std::vector<keyline>
     {
         std::vector<cv::line_descriptor::KeyLine> keylines_cv { };
         _line_detector->detect(image, keylines_cv, 2.0f, 1);
@@ -208,13 +208,13 @@ namespace zenslam
         return keylines;
     }
 
-    auto grid_detector::detect(const cv::Mat &image, const map<keyline> &keylines_map, const int mask_margin) const -> std::vector<keyline>
+    auto grid_detector::detect(const cv::Mat& image, const map<keyline>& keylines_map, const int mask_margin) const -> std::vector<keyline>
     {
         // Create a mask to block detection in areas where keylines already exist
         cv::Mat mask = cv::Mat::ones(image.size(), CV_8U) * 255;
 
         // For each existing keyline, mask out a thick line along the line segment
-        for (const auto &existing_keyline: keylines_map | std::views::values)
+        for (const auto& existing_keyline: keylines_map | std::views::values)
         {
             // Get start and end points of the line segment
             cv::Point start
@@ -256,19 +256,19 @@ namespace zenslam
         return keylines;
     }
 
-    void grid_detector::detect_par(cv::InputArray image_array, std::map<size_t, keypoint> &keypoints_map) const
+    void grid_detector::detect_par(cv::InputArray image_array, std::map<size_t, keypoint>& keypoints_map) const
     {
         const auto  image     = image_array.getMat();
-        const auto &grid_size = cv::Size(image.cols, image.rows) / _cell_size;
+        const auto& grid_size = cv::Size(image.cols, image.rows) / _cell_size;
 
         // Create occupancy grid
         std::vector occupied(grid_size.width, std::vector(grid_size.height, false));
 
         // Mark occupied cells
-        for (const auto &keypoint: keypoints_map | std::views::values)
+        for (const auto& keypoint: keypoints_map | std::views::values)
         {
-            const auto &grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
-            const auto &grid_y = static_cast<int>(keypoint.pt.y) / _cell_size.height;
+            const auto& grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
+            const auto& grid_y = static_cast<int>(keypoint.pt.y) / _cell_size.height;
 
             if (grid_x >= 0 && grid_x < grid_size.width &&
                 grid_y >= 0 && grid_y < grid_size.height)
@@ -315,7 +315,7 @@ namespace zenslam
         std::vector<std::future<cell_result>> futures;
         futures.reserve(cells_to_process.size());
 
-        for (const auto &cell: cells_to_process)
+        for (const auto& cell: cells_to_process)
         {
             futures.push_back
             (
@@ -340,10 +340,10 @@ namespace zenslam
                         }
 
                         // Find best keypoint
-                        const auto &max_it = std::ranges::max_element
+                        const auto& max_it = std::ranges::max_element
                         (
                             cell_keypoints,
-                            [](const cv::KeyPoint &a, const cv::KeyPoint &b)
+                            [](const cv::KeyPoint& a, const cv::KeyPoint& b)
                             {
                                 return a.response < b.response;
                             }
@@ -366,7 +366,7 @@ namespace zenslam
         std::vector<keypoint> new_keypoints;
         new_keypoints.reserve(futures.size());
 
-        for (auto &future: futures)
+        for (auto& future: futures)
         {
             auto [keypoint, valid] = future.get();
 
@@ -387,7 +387,7 @@ namespace zenslam
             std::vector<cv::Point2f> points_cv;
             points_cv.reserve(new_keypoints.size());
 
-            for (const auto &kp: new_keypoints)
+            for (const auto& kp: new_keypoints)
             {
                 keypoints_cv.push_back(kp);
                 points_cv.push_back(kp.pt);

@@ -16,7 +16,7 @@ namespace zenslam
     public:
         using path_type = std::filesystem::path;
 
-        explicit mono_folder_reader(const path_type &directory, bool recursive = false, double timescale = 1E-9);
+        explicit mono_folder_reader(const path_type& directory, bool recursive = false, double timescale = 1E-9);
 
         [[nodiscard]] std::size_t size() const noexcept
         {
@@ -28,15 +28,15 @@ namespace zenslam
             return _files.empty();
         }
 
-        [[nodiscard]] const std::vector<path_type> &paths() const noexcept
+        [[nodiscard]] const std::vector<path_type>& paths() const noexcept
         {
             return _files;
         }
 
         // Load mono_frame at index (lazy). Returns mono_frame with empty image if load fails.
-    zenslam::frame::camera operator[](std::size_t index) const;
+        zenslam::frame::camera operator[](std::size_t index) const;
 
-    using iterator = random_access_iterator<mono_folder_reader, zenslam::frame::camera>;
+        using iterator = random_access_iterator<mono_folder_reader, zenslam::frame::camera>;
 
         [[nodiscard]] iterator begin() const
         {
@@ -49,9 +49,9 @@ namespace zenslam
         }
 
     private:
-        void scan(const path_type &directory, bool recursive);
+        void scan(const path_type& directory, bool recursive);
 
-        static bool is_image_file(const path_type &p);
+        static bool is_image_file(const path_type& p);
 
         std::vector<path_type> _files     = { };
         double                 _timescale = 1E-9;

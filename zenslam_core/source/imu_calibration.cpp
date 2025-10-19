@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
-auto zenslam::imu_calibration::parse(const std::filesystem::path &path) -> imu_calibration
+auto zenslam::imu_calibration::parse(const std::filesystem::path& path) -> imu_calibration
 {
     if (!std::filesystem::exists(path))
     {

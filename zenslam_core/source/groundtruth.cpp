@@ -6,7 +6,7 @@
 
 #include <spdlog/spdlog.h>
 
-zenslam::groundtruth zenslam::groundtruth::read(const std::filesystem::path &path)
+zenslam::groundtruth zenslam::groundtruth::read(const std::filesystem::path& path)
 {
     groundtruth groundtruth { };
 
@@ -14,16 +14,16 @@ zenslam::groundtruth zenslam::groundtruth::read(const std::filesystem::path &pat
 
     for (size_t i = 0; i < doc.GetRowCount(); i++)
     {
-        const auto &timestamp = doc.GetCell<size_t>(0, i) * 1E-9;
+        const auto& timestamp = doc.GetCell<size_t>(0, i) * 1E-9;
 
-        const auto &t = cv::Vec3d
+        const auto& t = cv::Vec3d
         {
             doc.GetCell<double>(1, i),
             doc.GetCell<double>(2, i),
             doc.GetCell<double>(3, i)
         };
 
-        const auto &q = cv::Quatd
+        const auto& q = cv::Quatd
         {
             doc.GetCell<double>(4, i),
             doc.GetCell<double>(5, i),
@@ -41,7 +41,7 @@ auto zenslam::groundtruth::slerp(const double timestamp) -> pose
 {
     while (_index < _poses.size() && _poses[_index].timestamp < timestamp) _index++;
 
-    const auto &t = (timestamp - _poses[_index - 1].timestamp) /
+    const auto& t = (timestamp - _poses[_index - 1].timestamp) /
                     (_poses[_index].timestamp - _poses[_index - 1].timestamp);
 
     pose pose { };

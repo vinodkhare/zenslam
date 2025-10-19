@@ -24,9 +24,9 @@ namespace zenslam::frame
             cameras { std::move(l), std::move(r) } {}
 
         stereo()                                   = default;
-        stereo(const stereo &other)                = default;
-        stereo(stereo &&other) noexcept            = default;
-        stereo &operator=(const stereo &other)     = default;
-        stereo &operator=(stereo &&other) noexcept = default;
+        stereo(const stereo& other)                = default;
+        stereo(stereo&& other) noexcept            = default;
+        stereo& operator=(const stereo& other)     = default;
+        stereo& operator=(stereo&& other) noexcept = default;
     };
 } // namespace zenslam::frame

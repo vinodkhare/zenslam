@@ -8,7 +8,7 @@
 
 namespace zenslam { namespace
     {
-        bool is_equals(const std::string &a, const std::string &b)
+        bool is_equals(const std::string& a, const std::string& b)
         {
             if (a.size() != b.size()) return false;
             for (size_t i = 0; i < a.size(); ++i)
@@ -19,9 +19,9 @@ namespace zenslam { namespace
         }
     } // namespace
 
-    bool mono_folder_reader::is_image_file(const path_type &p)
+    bool mono_folder_reader::is_image_file(const path_type& p)
     {
-        static const char *extensions[] = {
+        static const char* extensions[] = {
             ".png", ".jpg", ".jpeg",
             ".bmp", ".tif", ".tiff"
         };
@@ -38,7 +38,7 @@ namespace zenslam { namespace
         );
     }
 
-    void mono_folder_reader::scan(const path_type &directory, const bool recursive)
+    void mono_folder_reader::scan(const path_type& directory, const bool recursive)
     {
         _files.clear();
 
@@ -50,7 +50,7 @@ namespace zenslam { namespace
 
         if (recursive)
         {
-            for (auto &entry:
+            for (auto& entry:
                  std::filesystem::recursive_directory_iterator(directory))
             {
                 if (entry.is_regular_file() && is_image_file(entry.path()))
@@ -61,7 +61,7 @@ namespace zenslam { namespace
         }
         else
         {
-            for (auto &entry: std::filesystem::directory_iterator(directory))
+            for (auto& entry: std::filesystem::directory_iterator(directory))
             {
                 if (entry.is_regular_file())
                 {
@@ -73,7 +73,7 @@ namespace zenslam { namespace
         std::ranges::sort(_files);
     }
 
-    mono_folder_reader::mono_folder_reader(const path_type &directory, const bool recursive, const double timescale)
+    mono_folder_reader::mono_folder_reader(const path_type& directory, const bool recursive, const double timescale)
     {
         scan(directory, recursive);
 

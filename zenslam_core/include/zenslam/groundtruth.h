@@ -10,7 +10,7 @@ namespace zenslam
     class groundtruth
     {
     public:
-        static groundtruth read(const std::filesystem::path &path);
+        static groundtruth read(const std::filesystem::path& path);
 
         auto slerp(double timestamp) -> pose;
 

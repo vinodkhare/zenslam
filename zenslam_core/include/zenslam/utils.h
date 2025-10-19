@@ -31,20 +31,20 @@ namespace zenslam::utils
 
     inline auto log_levels_to_string = invert(log_levels_from_string);
 
-    auto skew(const cv::Vec3d &vector) -> cv::Matx33d;
-    auto to_keypoints(const std::vector<keypoint> &keypoints) -> std::vector<cv::KeyPoint>;
-    auto to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>;
+    auto skew(const cv::Vec3d& vector) -> cv::Matx33d;
+    auto to_keypoints(const std::vector<keypoint>& keypoints) -> std::vector<cv::KeyPoint>;
+    auto to_map(const std::vector<cv::DMatch>& matches) -> std::map<int, int>;
 
     auto to_points
     (
-        const std::vector<cv::KeyPoint> &keypoints0,
-        const std::vector<cv::KeyPoint> &keypoints1,
-        const std::vector<cv::DMatch> &  matches
+        const std::vector<cv::KeyPoint>& keypoints0,
+        const std::vector<cv::KeyPoint>& keypoints1,
+        const std::vector<cv::DMatch>&   matches
     ) -> std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>>;
 
-    auto to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>;
-    auto to_points(const std::vector<keypoint> &keypoints) -> std::vector<cv::Point2f>;
-    auto to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>;
+    auto to_points(const std::vector<cv::KeyPoint>& keypoints) -> std::vector<cv::Point2f>;
+    auto to_points(const std::vector<keypoint>& keypoints) -> std::vector<cv::Point2f>;
+    auto to_points(const std::map<size_t, keypoint>& keypoints) -> std::vector<cv::Point2f>;
 
     /**
      * Convert a 3x3 rotation matrix to Euler angles using ZYX (yaw-pitch-roll) convention
@@ -54,13 +54,13 @@ namespace zenslam::utils
      *         pitch (y): Rotation around Y axis [-pi/2, pi/2]
      *         yaw   (z): Rotation around Z axis [-pi,   pi]
      */
-    auto matrix_to_euler(const cv::Matx33d &R) -> cv::Vec3d;
+    auto matrix_to_euler(const cv::Matx33d& R) -> cv::Vec3d;
 
     template <typename T>
-    auto vecnorm(const std::vector<cv::Point_<T>> &vec) -> std::vector<T>
+    auto vecnorm(const std::vector<cv::Point_<T>>& vec) -> std::vector<T>
     {
         std::vector<T> vecnorm { };
-        for (const auto &v: vec)
+        for (const auto& v: vec)
         {
             vecnorm.emplace_back(cv::norm(v));
         }
@@ -73,11 +73,11 @@ template <>
 struct fmt::formatter<cv::Affine3d> : formatter<std::string>
 {
     template <typename FormatContext>
-    auto format(const cv::Affine3d &value, FormatContext &context) const
+    auto format(const cv::Affine3d& value, FormatContext& context) const
     {
-        const auto &R      = value.rotation();
-        const auto &t      = value.translation();
-        const auto &angles = zenslam::utils::matrix_to_euler(R) * (180.0 / std::numbers::pi);
+        const auto& R      = value.rotation();
+        const auto& t      = value.translation();
+        const auto& angles = zenslam::utils::matrix_to_euler(R) * (180.0 / std::numbers::pi);
 
         return formatter<std::string>::format
         (

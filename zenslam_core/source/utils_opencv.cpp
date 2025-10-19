@@ -9,33 +9,33 @@
 
 #include <gsl/narrow>
 
-auto zenslam::utils::apply_clahe(const cv::Mat &image, const cv::Ptr<cv::CLAHE> &clahe) -> cv::Mat
+auto zenslam::utils::apply_clahe(const cv::Mat& image, const cv::Ptr<cv::CLAHE>& clahe) -> cv::Mat
 {
     cv::Mat converted_image { };
     clahe->apply(image, converted_image);
     return converted_image;
 }
 
-auto zenslam::utils::convert_color(const cv::Mat &image, int code) -> cv::Mat
+auto zenslam::utils::convert_color(const cv::Mat& image, int code) -> cv::Mat
 {
     cv::Mat converted_image { };
     cv::cvtColor(image, converted_image, code);
     return converted_image;
 }
 
-auto zenslam::utils::draw_matches(const frame::stereo &frame, const map<point3d> &points) -> cv::Mat
+auto zenslam::utils::draw_matches(const frame::stereo& frame, const map<point3d>& points) -> cv::Mat
 {
     cv::Mat matches_image { };
 
-    const auto &keypoints_l              = frame.cameras[0].keypoints.values() | std::ranges::to<std::vector>();
-    const auto &keypoints_r              = frame.cameras[1].keypoints.values() | std::ranges::to<std::vector>();
-    const auto &keypoints_l_matched      = frame.cameras[0].keypoints.values_matched(frame.cameras[1].keypoints) | std::ranges::to<std::vector>();
-    const auto &keypoints_r_matched      = frame.cameras[1].keypoints.values_matched(frame.cameras[0].keypoints) | std::ranges::to<std::vector>();
-    const auto &keypoints_l_triangulated = frame.cameras[0].keypoints.values_matched(frame.points3d) | std::ranges::to<std::vector>();
-    const auto &keypoints_r_triangulated = frame.cameras[1].keypoints.values_matched(frame.points3d) | std::ranges::to<std::vector>();
+    const auto& keypoints_l              = frame.cameras[0].keypoints.values() | std::ranges::to<std::vector>();
+    const auto& keypoints_r              = frame.cameras[1].keypoints.values() | std::ranges::to<std::vector>();
+    const auto& keypoints_l_matched      = frame.cameras[0].keypoints.values_matched(frame.cameras[1].keypoints) | std::ranges::to<std::vector>();
+    const auto& keypoints_r_matched      = frame.cameras[1].keypoints.values_matched(frame.cameras[0].keypoints) | std::ranges::to<std::vector>();
+    const auto& keypoints_l_triangulated = frame.cameras[0].keypoints.values_matched(frame.points3d) | std::ranges::to<std::vector>();
+    const auto& keypoints_r_triangulated = frame.cameras[1].keypoints.values_matched(frame.points3d) | std::ranges::to<std::vector>();
 
-    const auto &matches              = utils::matches(keypoints_l_matched.size());
-    const auto &matches_triangulated = utils::matches(keypoints_l_triangulated.size());
+    const auto& matches              = utils::matches(keypoints_l_matched.size());
+    const auto& matches_triangulated = utils::matches(keypoints_l_triangulated.size());
 
     auto undistorted_l = frame.cameras[0].undistorted.clone();
     auto undistorted_r = frame.cameras[1].undistorted.clone();
@@ -94,12 +94,12 @@ auto zenslam::utils::draw_matches(const frame::stereo &frame, const map<point3d>
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches(const frame::camera &frame_0, const frame::camera &frame_1) -> cv::Mat
+auto zenslam::utils::draw_matches(const frame::camera& frame_0, const frame::camera& frame_1) -> cv::Mat
 {
     cv::Mat matches_image { };
 
-    const auto &keypoints_0 = frame_0.keypoints.values() | std::ranges::to<std::vector>();
-    const auto &keypoints_1 = frame_1.keypoints.values() | std::ranges::to<std::vector>();
+    const auto& keypoints_0 = frame_0.keypoints.values() | std::ranges::to<std::vector>();
+    const auto& keypoints_1 = frame_1.keypoints.values() | std::ranges::to<std::vector>();
 
     // Prepare images with keylines
     auto img_0 = frame_0.undistorted.clone();
@@ -116,7 +116,7 @@ auto zenslam::utils::draw_matches(const frame::camera &frame_0, const frame::cam
     {
         std::vector<cv::line_descriptor::KeyLine> keylines_vec;
         keylines_vec.reserve(frame_0.keylines.size());
-        for (const auto &kl: frame_0.keylines | std::views::values)
+        for (const auto& kl: frame_0.keylines | std::views::values)
         {
             keylines_vec.push_back(kl);
         }
@@ -127,7 +127,7 @@ auto zenslam::utils::draw_matches(const frame::camera &frame_0, const frame::cam
     {
         std::vector<cv::line_descriptor::KeyLine> keylines_vec;
         keylines_vec.reserve(frame_1.keylines.size());
-        for (const auto &kl: frame_1.keylines | std::views::values)
+        for (const auto& kl: frame_1.keylines | std::views::values)
         {
             keylines_vec.push_back(kl);
         }
@@ -164,7 +164,7 @@ auto zenslam::utils::draw_matches(const frame::camera &frame_0, const frame::cam
     return matches_image;
 }
 
-auto zenslam::utils::project(const std::vector<cv::Point3d> &points, const cv::Matx34d &projection) -> std::vector<cv::Point2d>
+auto zenslam::utils::project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>
 {
     std::vector<cv::Point2d> points2d { };
     cv::Mat                  points3d_mat(4, gsl::narrow<int>(points.size()), CV_64F);
@@ -181,7 +181,7 @@ auto zenslam::utils::project(const std::vector<cv::Point3d> &points, const cv::M
 
     points2d = std::views::iota(0, gsl::narrow<int>(points.size())) | std::views::transform
                (
-                   [&points2d_mat](const auto &i)
+                   [&points2d_mat](const auto& i)
                    {
                        return std::abs(points2d_mat.at<double>(2, i)) > 1E-9
                                   ? cv::Point2d
@@ -213,7 +213,7 @@ auto zenslam::utils::project(const std::vector<cv::Point3d> &points, const cv::M
     return points2d;
 }
 
-auto zenslam::utils::pyramid(const cv::Mat &image, const class options::slam &options) -> std::vector<cv::Mat>
+auto zenslam::utils::pyramid(const cv::Mat& image, const class options::slam& options) -> std::vector<cv::Mat>
 {
     std::vector<cv::Mat> pyramid { };
     cv::buildOpticalFlowPyramid(image, pyramid, options.klt_window_size, options.klt_max_level);

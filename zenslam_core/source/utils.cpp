@@ -9,7 +9,7 @@
 #include <spdlog/spdlog.h>
 
 
-auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d
+auto zenslam::utils::skew(const cv::Vec3d& vector) -> cv::Matx33d
 {
     auto skew = cv::Matx33d::zeros();
 
@@ -23,7 +23,7 @@ auto zenslam::utils::skew(const cv::Vec3d &vector) -> cv::Matx33d
     return skew;
 }
 
-auto zenslam::utils::to_keypoints(const std::vector<keypoint> &keypoints) -> std::vector<cv::KeyPoint>
+auto zenslam::utils::to_keypoints(const std::vector<keypoint>& keypoints) -> std::vector<cv::KeyPoint>
 {
     std::vector<cv::KeyPoint> cv_keypoints;
     cv_keypoints.reserve(keypoints.size());
@@ -32,7 +32,7 @@ auto zenslam::utils::to_keypoints(const std::vector<keypoint> &keypoints) -> std
     (
         keypoints,
         std::back_inserter(cv_keypoints),
-        [](const auto &keypoint)
+        [](const auto& keypoint)
         {
             return keypoint;
         }
@@ -41,14 +41,14 @@ auto zenslam::utils::to_keypoints(const std::vector<keypoint> &keypoints) -> std
     return cv_keypoints;
 }
 
-auto zenslam::utils::to_map(const std::vector<cv::DMatch> &matches) -> std::map<int, int>
+auto zenslam::utils::to_map(const std::vector<cv::DMatch>& matches) -> std::map<int, int>
 {
     std::map<int, int> map;
     std::ranges::transform
     (
         matches,
         std::inserter(map, map.begin()),
-        [](const auto &match)
+        [](const auto& match)
         {
             return std::make_pair(match.queryIdx, match.trainIdx);
         }
@@ -58,9 +58,9 @@ auto zenslam::utils::to_map(const std::vector<cv::DMatch> &matches) -> std::map<
 
 auto zenslam::utils::to_points
 (
-    const std::vector<cv::KeyPoint> &keypoints0,
-    const std::vector<cv::KeyPoint> &keypoints1,
-    const std::vector<cv::DMatch> &  matches
+    const std::vector<cv::KeyPoint>& keypoints0,
+    const std::vector<cv::KeyPoint>& keypoints1,
+    const std::vector<cv::DMatch>&   matches
 ) -> std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>>
 {
     std::vector<cv::Point2f> points0;
@@ -69,7 +69,7 @@ auto zenslam::utils::to_points
     std::vector<cv::Point2f> points1;
     points1.reserve(matches.size());
 
-    for (const auto &match: matches)
+    for (const auto& match: matches)
     {
         points0.push_back(keypoints0[match.queryIdx].pt);
         points1.push_back(keypoints1[match.trainIdx].pt);
@@ -78,30 +78,30 @@ auto zenslam::utils::to_points
     return std::make_tuple(points0, points1);
 }
 
-auto zenslam::utils::to_points(const std::vector<cv::KeyPoint> &keypoints) -> std::vector<cv::Point2f>
+auto zenslam::utils::to_points(const std::vector<cv::KeyPoint>& keypoints) -> std::vector<cv::Point2f>
 {
     std::vector<cv::Point2f> points;
     cv::KeyPoint::convert(keypoints, points);
     return points;
 }
 
-auto zenslam::utils::to_points(const std::vector<keypoint> &keypoints) -> std::vector<cv::Point2f>
+auto zenslam::utils::to_points(const std::vector<keypoint>& keypoints) -> std::vector<cv::Point2f>
 {
     return keypoints | std::views::transform
            (
-               [](const auto &keypoint)
+               [](const auto& keypoint)
                {
                    return keypoint.pt;
                }
            ) | std::ranges::to<std::vector>();
 }
 
-auto zenslam::utils::to_points(const std::map<size_t, keypoint> &keypoints) -> std::vector<cv::Point2f>
+auto zenslam::utils::to_points(const std::map<size_t, keypoint>& keypoints) -> std::vector<cv::Point2f>
 {
     std::vector<cv::Point2f> points;
     points.reserve(keypoints.size());
 
-    for (const auto &value: keypoints | std::views::values)
+    for (const auto& value: keypoints | std::views::values)
     {
         points.emplace_back(value.pt);
     }
@@ -109,7 +109,7 @@ auto zenslam::utils::to_points(const std::map<size_t, keypoint> &keypoints) -> s
     return points;
 }
 
-auto zenslam::utils::matrix_to_euler(const cv::Matx33d &R) -> cv::Vec3d
+auto zenslam::utils::matrix_to_euler(const cv::Matx33d& R) -> cv::Vec3d
 {
     // Handle singularity when cos(pitch) = 0 (gimbal lock case)
     if (std::abs(R(2, 0)) >= 1.0 - 1e-8)

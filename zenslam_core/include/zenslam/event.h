@@ -16,7 +16,7 @@ namespace zenslam
         struct connection
         {
             std::size_t index { };
-            event *     event { };
+            event*      event { };
 
             void disconnect() const
             {
@@ -39,7 +39,7 @@ namespace zenslam
         {
             std::unique_lock lock(_mutex);
 
-            for (auto &slot: _slots)
+            for (auto& slot: _slots)
             {
                 if (slot.id == index)
                 {
@@ -67,7 +67,7 @@ namespace zenslam
                         (
                             _slots.begin(),
                             _slots.end(),
-                            [](auto &slot)
+                            [](auto& slot)
                             {
                                 return slot.index == _invalid;
                             }
@@ -80,7 +80,7 @@ namespace zenslam
                 lock.lock();
             }
 
-            for (auto &slot: _slots) if (slot.function) slot.function(args...);
+            for (auto& slot: _slots) if (slot.function) slot.function(args...);
         }
 
     private:
