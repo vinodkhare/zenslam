@@ -897,8 +897,8 @@ auto zenslam::utils::track_keylines
             status_start_bwd[i] && status_end_bwd[i])
         {
             // Compute forward-backward error for both endpoints
-            const float fb_error_start = cv::norm(start_points_0_back[i] - start_points_0[i]);
-            const float fb_error_end   = cv::norm(end_points_0_back[i] - end_points_0[i]);
+            const auto fb_error_start = gsl::narrow<float>(cv::norm(start_points_0_back[i] - start_points_0[i]));
+            const auto fb_error_end   = gsl::narrow<float>(cv::norm(end_points_0_back[i] - end_points_0[i]));
 
             // Accept the track only if both endpoints pass the forward-backward threshold
             if (fb_error_start < options.klt_threshold && fb_error_end < options.klt_threshold)
@@ -969,43 +969,16 @@ auto zenslam::utils::triangulate
 
 auto zenslam::utils::triangulate_keylines
 (
-    const std::map<size_t, keyline> &keylines_l,
-    const std::map<size_t, keyline> &keylines_r,
-    const cv::Matx34d &              P_l,
-    const cv::Matx34d &              P_r
+    const map<keyline> &keylines_l,
+    const map<keyline> &keylines_r,
+    const cv::Matx34d & P_l,
+    const cv::Matx34d & P_r
 ) -> std::vector<line3d>
 {
     std::vector<line3d> lines3d { };
 
-    const auto &matched_indices = keylines_l | std::views::keys |
-                                  std::ranges::views::filter
-                                  (
-                                      [&keylines_r](const auto &index)
-                                      {
-                                          return keylines_r.contains(index);
-                                      }
-                                  ) |
-                                  std::ranges::to<std::vector>();
-
-    const auto &matched_keylines_l = matched_indices |
-                                     std::views::transform
-                                     (
-                                         [&keylines_l](const auto &index)
-                                         {
-                                             return keylines_l.at(index);
-                                         }
-                                     ) |
-                                     std::ranges::to<std::vector>();
-
-    const auto &matched_keylines_r = matched_indices |
-                                     std::views::transform
-                                     (
-                                         [&keylines_r](const auto &index)
-                                         {
-                                             return keylines_r.at(index);
-                                         }
-                                     ) |
-                                     std::ranges::to<std::vector>();
+    const auto &matched_keylines_l = keylines_l.values_matched(keylines_r) | std::ranges::to<std::vector>();
+    const auto &matched_keylines_r = keylines_r.values_matched(keylines_l) | std::ranges::to<std::vector>();
 
     const auto &points_l_0 = matched_keylines_l |
                              std::views::transform
@@ -1084,7 +1057,7 @@ auto zenslam::utils::triangulate_keylines
 
     for (auto i = 0; i < points3d_0.size(); ++i)
     {
-        if (points3d_0[i].z > 0 && points3d_1[i].z > 0 && errors[i] < 1.0) // 1 pixel reprojection error threshold
+        if (points3d_0[i].z > 1 && points3d_1[i].z > 1 && errors[i] < 1.0) // 1 pixel reprojection error threshold
         {
             lines3d.emplace_back
             (
@@ -1092,7 +1065,7 @@ auto zenslam::utils::triangulate_keylines
                 {
                     points3d_0[i],
                     points3d_1[i],
-                    matched_indices[i]
+                    matched_keylines_l[i].index
                 }
             );
         }

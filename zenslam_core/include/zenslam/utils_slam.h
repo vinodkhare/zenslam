@@ -271,10 +271,10 @@ namespace zenslam::utils
      */
     auto triangulate_keylines
     (
-        const std::map<size_t, keyline> &keylines_l,
-        const std::map<size_t, keyline> &keylines_r,
-        const cv::Matx34d &              P_l,
-        const cv::Matx34d &              P_r
+        const map<keyline> &keylines_l,
+        const map<keyline> &keylines_r,
+        const cv::Matx34d & P_l,
+        const cv::Matx34d & P_r
     ) -> std::vector<line3d>;
 
     /** Triangulate 3D points from matched 2D keypoints in stereo images.
