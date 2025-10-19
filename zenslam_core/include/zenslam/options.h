@@ -59,8 +59,8 @@ namespace zenslam
             double          klt_threshold         = { 1.0 };
             double          min_depth             = { 1.0 };  // in meters
             double          max_depth             = { 50.0 }; // in meters
-            double          threshold_epipolar    = { 1.0 };
-            double          threshold_triangulate = { 1.0 };   // in pixels
+            double          epipolar_threshold    = { 1.0 };
+            double          triangulation_threshold = { 1.0 };   // in pixels
             double          threshold_3d3d        = { 0.005 }; // in meters - for 3D-3D RANSAC pose estimation
             double          threshold_3d2d        = { 1.0 };   // in pixels - for 3D-2D RANSAC pose estimation
 

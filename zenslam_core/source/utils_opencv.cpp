@@ -94,69 +94,36 @@ auto zenslam::utils::draw_matches(const frame::stereo& frame, const map<point3d>
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches(const frame::camera& frame_0, const frame::camera& frame_1) -> cv::Mat
+auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const frame::camera& frame_1) -> cv::Mat
 {
-    cv::Mat matches_image { };
+    // Prepare images with keylines
+    auto image_0 = frame_0.undistorted.clone();
+    auto image_1 = frame_1.undistorted.clone();
+
+    if (image_0.channels() == 1) image_0 = convert_color(image_0, cv::COLOR_GRAY2BGR);
+    if (image_1.channels() == 1) image_1 = convert_color(image_1, cv::COLOR_GRAY2BGR);
 
     const auto& keypoints_0 = frame_0.keypoints.values() | std::ranges::to<std::vector>();
     const auto& keypoints_1 = frame_1.keypoints.values() | std::ranges::to<std::vector>();
 
-    // Prepare images with keylines
-    auto img_0 = frame_0.undistorted.clone();
-    auto img_1 = frame_1.undistorted.clone();
+    cv::drawKeypoints(image_0, utils::cast<cv::KeyPoint>(keypoints_0), image_0, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    cv::drawKeypoints(image_1, utils::cast<cv::KeyPoint>(keypoints_1), image_1, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
-    if (img_0.channels() == 1)
-    {
-        cv::cvtColor(img_0, img_0, cv::COLOR_GRAY2BGR);
-        cv::cvtColor(img_1, img_1, cv::COLOR_GRAY2BGR);
-    }
+    const auto& keypoints_0_matched = frame_0.keypoints.values_matched(frame_1.keypoints) | std::ranges::to<std::vector>();
+    const auto& keypoints_1_matched = frame_1.keypoints.values_matched(frame_0.keypoints) | std::ranges::to<std::vector>();
+    const auto& matches             = utils::matches(keypoints_0_matched.size());
 
-    // Draw keylines
-    if (!frame_0.keylines.empty())
-    {
-        std::vector<cv::line_descriptor::KeyLine> keylines_vec;
-        keylines_vec.reserve(frame_0.keylines.size());
-        for (const auto& kl: frame_0.keylines | std::views::values)
-        {
-            keylines_vec.push_back(kl);
-        }
-        cv::line_descriptor::drawKeylines(img_0, keylines_vec, img_0, cv::Scalar(255, 255, 0));
-    }
-
-    if (!frame_1.keylines.empty())
-    {
-        std::vector<cv::line_descriptor::KeyLine> keylines_vec;
-        keylines_vec.reserve(frame_1.keylines.size());
-        for (const auto& kl: frame_1.keylines | std::views::values)
-        {
-            keylines_vec.push_back(kl);
-        }
-        cv::line_descriptor::drawKeylines(img_1, keylines_vec, img_1, cv::Scalar(255, 255, 0));
-    }
-
-    std::vector<cv::DMatch> matches { };
-
-    for (auto query = 0; query < keypoints_0.size(); query++)
-    {
-        for (auto train = 0; train < keypoints_1.size(); train++)
-        {
-            if (keypoints_0[query].index == keypoints_1[train].index)
-            {
-                matches.emplace_back(query, train, 0);
-            }
-        }
-    }
-
+    cv::Mat matches_image { };
     cv::drawMatches
     (
-        img_0,
-        utils::cast<cv::KeyPoint>(keypoints_0),
-        img_1,
-        utils::cast<cv::KeyPoint>(keypoints_1),
+        image_0,
+        utils::cast<cv::KeyPoint>(keypoints_0_matched),
+        image_1,
+        utils::cast<cv::KeyPoint>(keypoints_1_matched),
         matches,
         matches_image,
         cv::Scalar(000, 255, 000),
-        cv::Scalar(255, 000, 000),
+        cv::Scalar::all(-1),
         std::vector<char>(),
         cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
     );

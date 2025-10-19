@@ -47,10 +47,10 @@ void zenslam::application::render()
 
     // display matches temporal
     {
-        const auto &matches_image = utils::draw_matches(slam.frames[0].cameras[0], slam.frames[1].cameras[0]);
+        const auto &image = utils::draw_matches_temporal(slam.frames[0].cameras[0], slam.frames[1].cameras[0]);
 
         cv::namedWindow("matches_temporal");
-        cv::imshow("matches_temporal", matches_image);
+        cv::imshow("matches_temporal", image);
         cv::setWindowTitle("matches_temporal", "matches temporal");
         cv::resizeWindow("matches_spatial", 1024, 512);
     }
@@ -93,18 +93,10 @@ void zenslam::application::render()
 
             const auto &points = slam.points3d_map.values_cast<cv::Point3d>() | std::ranges::to<std::vector>();
 
-            const auto &colors = slam.points3d_map.values_sliced<cv::Vec3b>
-                                 (
-                                     [](const point3d &p)
-                                     {
-                                         return p.color;
-                                     }
-                                 ) | std::ranges::to<std::vector>();
-
-            _viewer->showWidget("cloud", cv::viz::WCloud(points, colors));
+            _viewer->showWidget("cloud", cv::viz::WCloud(points));
             _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);
 
-            for (const auto &[index, line]: slam.lines3d_map)
+            for (const auto &[index, line]: slam.lines3d)
             {
                 _viewer->showWidget
                 (

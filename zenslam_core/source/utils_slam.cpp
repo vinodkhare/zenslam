@@ -152,45 +152,45 @@ auto zenslam::utils::estimate_pose_3d3d
 
 bool zenslam::utils::estimate_rigid
 (
-    const std::vector<cv::Point3d>& src,
-    const std::vector<cv::Point3d>& dst,
+    const std::vector<cv::Point3d>& points3d_0,
+    const std::vector<cv::Point3d>& points3d_1,
     cv::Matx33d&                    R,
     cv::Point3d&                    t
 )
 {
-    if (src.size() != dst.size() || src.size() < 3) return false;
+    if (points3d_0.size() != points3d_1.size() || points3d_0.size() < 3) return false;
 
     // Compute means
     auto mean_src = std::accumulate
                     (
-                        src.begin(),
-                        src.end(),
+                        points3d_0.begin(),
+                        points3d_0.end(),
                         cv::Vec3d(0, 0, 0),
                         [](const cv::Vec3d& acc, const cv::Point3d& p)
                         {
                             return acc + cv::Vec3d(p.x, p.y, p.z);
                         }
                     ) /
-                    gsl::narrow<double>(src.size());
+                    gsl::narrow<double>(points3d_0.size());
 
     auto mean_dst = std::accumulate
                     (
-                        dst.begin(),
-                        dst.end(),
+                        points3d_1.begin(),
+                        points3d_1.end(),
                         cv::Vec3d(0, 0, 0),
                         [](const cv::Vec3d& acc, const cv::Point3d& p)
                         {
                             return acc + cv::Vec3d(p.x, p.y, p.z);
                         }
                     ) /
-                    gsl::narrow<double>(dst.size());
+                    gsl::narrow<double>(points3d_1.size());
 
     // Compute cross-covariance
     cv::Matx33d Sigma(0, 0, 0, 0, 0, 0, 0, 0, 0);
-    for (size_t i = 0; i < src.size(); ++i)
+    for (size_t i = 0; i < points3d_0.size(); ++i)
     {
-        auto a = cv::Vec3d(src[i].x, src[i].y, src[i].z) - mean_src;
-        auto b = cv::Vec3d(dst[i].x, dst[i].y, dst[i].z) - mean_dst;
+        auto a = cv::Vec3d(points3d_0[i].x, points3d_0[i].y, points3d_0[i].z) - mean_src;
+        auto b = cv::Vec3d(points3d_1[i].x, points3d_1[i].y, points3d_1[i].z) - mean_dst;
         Sigma(0, 0) += b[0] * a[0];
         Sigma(0, 1) += b[0] * a[1];
         Sigma(0, 2) += b[0] * a[2];
@@ -201,7 +201,7 @@ bool zenslam::utils::estimate_rigid
         Sigma(2, 1) += b[2] * a[1];
         Sigma(2, 2) += b[2] * a[2];
     }
-    Sigma *= 1.0 / gsl::narrow<double>(src.size());
+    Sigma *= 1.0 / gsl::narrow<double>(points3d_0.size());
 
     // SVD
     cv::Mat Sigma_mat(3, 3, CV_64F);
@@ -353,7 +353,7 @@ auto zenslam::utils::filter
     return filtered;
 }
 
-auto zenslam::utils::match
+auto zenslam::utils::match_keypoints
 (
     const map<keypoint>& map_keypoints_l,
     const map<keypoint>& map_keypoints_r,
@@ -688,7 +688,7 @@ auto zenslam::utils::solve_pnp
     }
 }
 
-auto zenslam::utils::track
+auto zenslam::utils::track_keypoints
 (
     const std::vector<cv::Mat>&     pyramid_0,
     const std::vector<cv::Mat>&     pyramid_1,
@@ -697,20 +697,27 @@ auto zenslam::utils::track
     const std::vector<cv::Point2f>& points_1_predicted
 ) -> std::vector<keypoint>
 {
-    // track points from the previous frame to this frame using the KLT tracker
-    // KLT tracking of keypoints from previous frame to current frame (left image)
-    auto               points_1 = points_1_predicted;
-    std::vector<uchar> status { };
-    std::vector<float> err { };
-
     // Convert previous keypoints to Point
     const auto& keypoints_0 = keypoints_map_0.values() | std::ranges::to<std::vector>();
-    const auto& points_0    = to_points(keypoints_map_0.values_cast<cv::KeyPoint>() | std::ranges::to<std::vector>());
 
     if (keypoints_0.empty())
     {
         return { };
     }
+
+    const auto& points_0 = keypoints_map_0.values_sliced<cv::Point2f>
+                           (
+                               [](const keypoint& kp)
+                               {
+                                   return kp.pt;
+                               }
+                           ) | std::ranges::to<std::vector>();
+
+    // track points from the previous frame to this frame using the KLT tracker
+    // KLT tracking of keypoints from previous frame to current frame (left image)
+    auto               points_1 = points_1_predicted;
+    std::vector<uchar> status { };
+    std::vector<float> errors { };
 
     cv::calcOpticalFlowPyrLK
     (
@@ -719,7 +726,7 @@ auto zenslam::utils::track
         points_0,
         points_1,
         status,
-        err,
+        errors,
         options.klt_window_size,
         options.klt_max_level,
         cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
@@ -735,7 +742,7 @@ auto zenslam::utils::track
         points_1,
         points_0_back,
         status_back,
-        err,
+        errors,
         options.klt_window_size,
         options.klt_max_level,
         cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
@@ -743,15 +750,17 @@ auto zenslam::utils::track
     );
 
     // Verify KLT tracking results have consistent sizes
-    assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == err.size());
+    assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == errors.size());
 
     std::vector<keypoint> tracked_keypoints { };
     for (size_t i = 0; i < points_1.size(); ++i)
     {
         if (status[i] && status_back[i] && cv::norm(points_0_back[i] - points_0[i]) < options.klt_threshold)
         {
-            tracked_keypoints.emplace_back(keypoints_0[i]);
-            tracked_keypoints.back().pt = points_1[i];
+            auto tracked_keypoint = keypoints_0[i];
+            tracked_keypoint.pt   = points_1[i];
+
+            tracked_keypoints.emplace_back(tracked_keypoint);
         }
     }
 
@@ -766,7 +775,7 @@ auto zenslam::utils::track
 {
     return
     {
-        track
+        track_keypoints
         (
             frames[0].cameras[0].pyramid,
             frames[1].cameras[0].pyramid,
@@ -774,7 +783,7 @@ auto zenslam::utils::track
             options
         ),
 
-        track
+        track_keypoints
         (
             frames[0].cameras[1].pyramid,
             frames[1].cameras[1].pyramid,
@@ -930,21 +939,21 @@ auto zenslam::utils::track_keylines
     return tracked_keylines;
 }
 
-
-auto zenslam::utils::triangulate
+auto zenslam::utils::triangulate_keypoints
 (
-    const frame::stereo& frame,
-    const cv::Matx34d&   projection_0,
-    const cv::Matx34d&   projection_1,
-    const double         threshold
-) -> map<point3d>
+    const map<keypoint>& keypoints_0,
+    const map<keypoint>& keypoints_1,
+    const cv::Matx34d& projection_0,
+    const cv::Matx34d& projection_1,
+    const double triangulation_threshold
+) -> std::vector<point3d>
 {
-    const auto& points2f_0  = to_points(frame.cameras[0].keypoints.values_matched(frame.cameras[1].keypoints) | std::ranges::to<std::vector>());
-    const auto& points2f_1  = to_points(frame.cameras[1].keypoints.values_matched(frame.cameras[0].keypoints) | std::ranges::to<std::vector>());
+    const auto& points2f_0  = to_points(keypoints_0.values_matched(keypoints_1) | std::ranges::to<std::vector>());
+    const auto& points2f_1  = to_points(keypoints_1.values_matched(keypoints_0) | std::ranges::to<std::vector>());
     const auto& points3d_cv = triangulate_points(points2f_0, points2f_1, projection_0, projection_1);
 
-    const auto& indices  = frame.cameras[0].keypoints.keys_matched(frame.cameras[1].keypoints) | std::ranges::to<std::vector>();
-    const auto& points3d = point3d::create(indices, points3d_cv);
+    const auto& indices  = keypoints_0.keys_matched(keypoints_1) | std::ranges::to<std::vector>();
+    const auto& points3d_all = point3d::create(points3d_cv, indices);
 
     // Reproject points to compute reprojection error
     const auto& points2f_0_back = project(points3d_cv, projection_0);
@@ -953,16 +962,16 @@ auto zenslam::utils::triangulate
     const auto& errors_0 = vecnorm(points2f_0_back - points2f_0);
     const auto& errors_1 = vecnorm(points2f_1_back - points2f_1);
 
-    map<point3d> points3d_map { };
-    for (auto i = 0; i < points3d.size(); ++i)
+    std::vector<point3d> points3d { };
+    for (auto i = 0; i < points3d_all.size(); ++i)
     {
-        if (points3d[i].z > 1 && errors_0[i] < threshold && errors_1[i] < threshold) // 4 pixel reprojection error threshold
+        if (points3d_all[i].z > 1 && errors_0[i] < triangulation_threshold && errors_1[i] < triangulation_threshold) // 4 pixel reprojection error threshold
         {
-            points3d_map[points3d[i].index] = points3d[i];
+            points3d.emplace_back(points3d_all[i]);
         }
     }
 
-    return points3d_map;
+    return points3d;
 }
 
 
@@ -1081,6 +1090,11 @@ auto zenslam::utils::triangulate_points
     const cv::Matx34d&              projection_1
 ) -> std::vector<cv::Point3d>
 {
+    if (points2f_0.empty() || points2f_1.empty())
+    {
+        return { };
+    }
+
     cv::Mat points4d { };
     cv::triangulatePoints(projection_0, projection_1, points2f_0, points2f_1, points4d);
 

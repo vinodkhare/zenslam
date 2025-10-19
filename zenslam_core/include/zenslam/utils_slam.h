@@ -11,6 +11,8 @@
 #include "options.h"
 #include "point3d.h"
 #include "pose_data.h"
+#include "slam_thread.h"
+
 #include "frame/stereo.h"
 
 inline auto operator-(const std::vector<cv::Point2d>& lhs, const std::vector<cv::Point2f>& rhs) -> std::vector<cv::Point2d>
@@ -26,19 +28,38 @@ inline auto operator-(const std::vector<cv::Point2d>& lhs, const std::vector<cv:
     return difference;
 }
 
+inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::point3d>& points3d) -> zenslam::map<zenslam::point3d>
+{
+    zenslam::map<zenslam::point3d> lines3d_trans { };
+
+    for (const auto& point3d: points3d | std::views::values)
+    {
+        lines3d_trans[point3d.index]       = pose * point3d;
+        lines3d_trans[point3d.index].index = point3d.index;
+    }
+
+    return lines3d_trans;
+}
+
+inline auto operator*(const cv::Affine3d& pose, const zenslam::line3d& line) -> zenslam::line3d
+{
+    zenslam::line3d transformed_line;
+
+    transformed_line.index = line.index;
+    transformed_line[0]    = pose * line[0];
+    transformed_line[1]    = pose * line[1];
+
+    return transformed_line;
+}
+
 inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::line3d>& lines) -> zenslam::map<zenslam::line3d>
 {
     zenslam::map<zenslam::line3d> transformed_lines { };
 
     for (const auto line: lines | std::views::values)
     {
-        zenslam::line3d transformed_line;
-
-        transformed_line.index = line.index;
-        transformed_line[0]    = pose * line[0];
-        transformed_line[1]    = pose * line[1];
-
-        transformed_lines[transformed_line.index] = transformed_line;
+        transformed_lines[line.index]       = pose * line;
+        transformed_lines[line.index].index = line.index;
     }
 
     return transformed_lines;
@@ -80,13 +101,18 @@ namespace zenslam::utils
         const double&                    threshold
     ) -> pose_data;
 
-    // Estimate rigid transform (rotation R and translation t) between two sets of 3D points
-    // src, dst: corresponding points
-    // Returns true if successful, false otherwise
+    /** Estimate rigid transformation (R, t) between two sets of 3D points.
+     *
+     * @param points3d_0 First set of 3D points
+     * @param points3d_1 Second set of 3D points
+     * @param R Output rotation matrix
+     * @param t Output translation vector
+     * @return True if estimation was successful, false otherwise
+     */
     auto estimate_rigid
     (
-        const std::vector<cv::Point3d>& src,
-        const std::vector<cv::Point3d>& dst,
+        const std::vector<cv::Point3d>& points3d_0,
+        const std::vector<cv::Point3d>& points3d_1,
         cv::Matx33d&                    R,
         cv::Point3d&                    t
     ) -> bool;
@@ -115,7 +141,7 @@ namespace zenslam::utils
         double                           epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
-    auto match
+    auto match_keypoints
     (
         const map<keypoint>& map_keypoints_l,
         const map<keypoint>& map_keypoints_r,
@@ -180,6 +206,13 @@ namespace zenslam::utils
         const cv::Ptr<cv::CLAHE>&                clahe
     ) -> frame::stereo;
 
+    /** Solve the PnP problem to estimate camera pose from 3D-2D point correspondences.
+     *
+     * @param camera_matrix The intrinsic camera matrix.
+     * @param points3d A vector of 3D points in the world coordinate system.
+     * @param points2d A vector of corresponding 2D points in the image plane.
+     * @param pose Output affine transformation representing the camera pose.
+     */
     auto solve_pnp
     (
         const cv::Matx33d&              camera_matrix,
@@ -197,7 +230,7 @@ namespace zenslam::utils
      * @param points_1_predicted Optional predicted positions of keypoints in frame_1 for improved tracking.
      * @return A vector of tracked keypoints in frame_1.
      */
-    auto track
+    auto track_keypoints
     (
         const std::vector<cv::Mat>&     pyramid_0,
         const std::vector<cv::Mat>&     pyramid_1,
@@ -239,25 +272,24 @@ namespace zenslam::utils
         const class options::slam&  options
     ) -> std::vector<keyline>;
 
-    /** Triangulate 3D points from stereo frame keypoints.
+    /** Triangulate keypoints between stereo frames using their indices.
+     * For each keypoint index present in both maps, triangulate the 3D point.
      *
-     * This function triangulates 3D points from matched keypoints in a stereo frame.
-     * It uses the provided projection matrices for the left and right cameras to perform
-     * triangulation. Points with reprojection error below the specified threshold are returned.
-     *
-     * @param frame The stereo frame containing matched keypoints.
-     * @param projection_0 The 3x4 projection matrix for the left camera.
-     * @param projection_1 The 3x4 projection matrix for the right camera.
-     * @param threshold The maximum allowable reprojection error for triangulated points.
-     * @return A tuple containing a map of triangulated 3D points and a vector of reprojection errors.
+     * @param keypoints_0 Map of keypoints in left image
+     * @param keypoints_1 Map of keypoints in right image
+     * @param projection_0 3x4 projection matrix for left camera
+     * @param projection_1 3x4 projection matrix for right camera
+     * @param triangulation_threshold Maximum allowable reprojection error
+     * @return Map from keypoint index to triangulated 3D point
      */
-    auto triangulate
+    auto triangulate_keypoints
     (
-        const frame::stereo& frame,
+        const map<keypoint>& keypoints_0,
+        const map<keypoint>& keypoints_1,
         const cv::Matx34d&   projection_0,
         const cv::Matx34d&   projection_1,
-        double               threshold
-    ) -> map<point3d>;
+        double               triangulation_threshold
+    ) -> std::vector<point3d>;
 
     /**
      * Triangulate keylines between stereo frames using their indices.
@@ -305,4 +337,5 @@ namespace zenslam::utils
     ) -> void;
 
     auto undistort(const cv::Mat& image, const camera_calibration& calibration) -> cv::Mat;
+
 }

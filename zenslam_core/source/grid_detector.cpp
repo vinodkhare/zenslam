@@ -56,7 +56,7 @@ namespace zenslam
         return { lhs.width / rhs.width, lhs.height / rhs.height };
     }
 
-    auto grid_detector::detect
+    auto grid_detector::detect_keypoints
     (
         const cv::Mat&       image,
         const map<keypoint>& keypoints_map
@@ -208,7 +208,7 @@ namespace zenslam
         return keylines;
     }
 
-    auto grid_detector::detect(const cv::Mat& image, const map<keyline>& keylines_map, const int mask_margin) const -> std::vector<keyline>
+    auto grid_detector::detect_keylines(const cv::Mat& image, const map<keyline>& keylines_map, const int mask_margin) const -> std::vector<keyline>
     {
         // Create a mask to block detection in areas where keylines already exist
         cv::Mat mask = cv::Mat::ones(image.size(), CV_8U) * 255;

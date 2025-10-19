@@ -8,9 +8,8 @@ namespace zenslam
     class point3d : public cv::Point3d
     {
     public:
-        static auto create(const std::vector<size_t>& indices, const std::vector<cv::Point3d>& points) -> std::vector<point3d>;
+        static auto create(const std::vector<cv::Point3d>& points, const std::vector<size_t>& indices) -> std::vector<point3d>;
 
-        size_t    index { };
-        cv::Vec3b color { };
+        size_t index { };
     };
 }

@@ -36,7 +36,7 @@ boost::program_options::options_description zenslam::options::description()
     )
     (
         "epipolar-threshold",
-        boost::program_options::value<double>()->default_value(options.slam.threshold_epipolar),
+        boost::program_options::value<double>()->default_value(options.slam.epipolar_threshold),
         "Epipolar threshold"
     )
     (
@@ -118,7 +118,7 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
         options.log_level = utils::log_levels_from_string[map["log-level"].as<std::string>()];
     if (options_map.contains("log-pattern")) options.log_pattern = map["log-pattern"].as<std::string>();
     if (options_map.contains("clahe-enabled")) options.slam.clahe_enabled = map["clahe-enabled"].as<bool>();
-    if (options_map.contains("epipolar-threshold")) options.slam.threshold_epipolar = map["epipolar-threshold"].as<double>();
+    if (options_map.contains("epipolar-threshold")) options.slam.epipolar_threshold = map["epipolar-threshold"].as<double>();
     if (options_map.contains("feature"))
         options.slam.feature = magic_enum::enum_cast<feature_type>
                 (map["feature"].as<std::string>()).value_or(options.slam.feature);
@@ -184,7 +184,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
 
             if (const auto epipolar_threshold = slam["threshold_epipolar"])
             {
-                options.slam.threshold_epipolar = epipolar_threshold.as<double>();
+                options.slam.epipolar_threshold = epipolar_threshold.as<double>();
             }
 
             if (const auto feature = slam["feature"])
@@ -302,7 +302,7 @@ void zenslam::options::slam::print() const
 {
     SPDLOG_INFO("cell size: [{}, {}]", cell_size.width, cell_size.height);
     SPDLOG_INFO("CLAHE enabled: {}", clahe_enabled ? "true" : "false");
-    SPDLOG_INFO("epipolar threshold: {}", threshold_epipolar);
+    SPDLOG_INFO("epipolar threshold: {}", epipolar_threshold);
     SPDLOG_INFO("feature type: {}", magic_enum::enum_name(feature));
     SPDLOG_INFO("descriptor type: {}", magic_enum::enum_name(descriptor));
     SPDLOG_INFO("fast threshold: {}", fast_threshold);

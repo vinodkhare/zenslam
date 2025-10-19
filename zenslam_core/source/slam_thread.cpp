@@ -8,7 +8,6 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/core/types.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -20,7 +19,6 @@
 #include "motion.h"
 #include "time_this.h"
 #include "utils.h"
-#include "utils_opencv.h"
 #include "utils_slam.h"
 #include "frame/durations.h"
 #include "frame/slam.h"
@@ -83,9 +81,21 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.tracking };
 
-                const auto& tracked_keypoints = utils::track(slam.frames, _options.slam);
-                slam.frames[1].cameras[0].keypoints += tracked_keypoints[0];
-                slam.frames[1].cameras[1].keypoints += tracked_keypoints[1];
+                slam.frames[1].cameras[0].keypoints += utils::track_keypoints
+                (
+                    slam.frames[0].cameras[0].pyramid,
+                    slam.frames[1].cameras[0].pyramid,
+                    slam.frames[0].cameras[0].keypoints,
+                    _options.slam
+                );
+
+                slam.frames[1].cameras[1].keypoints += utils::track_keypoints
+                (
+                    slam.frames[0].cameras[1].pyramid,
+                    slam.frames[1].cameras[1].pyramid,
+                    slam.frames[0].cameras[1].keypoints,
+                    _options.slam
+                );
 
                 slam.frames[1].cameras[0].keylines += utils::track_keylines
                 (
@@ -111,16 +121,16 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.detection };
 
-                slam.frames[1].cameras[0].keypoints += detector.detect
+                slam.frames[1].cameras[0].keypoints += detector.detect_keypoints
                         (slam.frames[1].cameras[0].undistorted, slam.frames[1].cameras[0].keypoints);
 
-                slam.frames[1].cameras[1].keypoints += detector.detect
+                slam.frames[1].cameras[1].keypoints += detector.detect_keypoints
                         (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keypoints);
 
-                slam.frames[1].cameras[0].keylines += detector.detect
+                slam.frames[1].cameras[0].keylines += detector.detect_keylines
                         (slam.frames[1].cameras[0].undistorted, slam.frames[1].cameras[0].keylines);
 
-                slam.frames[1].cameras[1].keylines += detector.detect
+                slam.frames[1].cameras[1].keylines += detector.detect_keylines
                         (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keylines);
             }
 
@@ -131,38 +141,35 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.matching };
 
-                slam.frames[1].cameras[1].keypoints *= utils::match
+                auto matches = utils::match_keypoints
                 (
                     slam.frames[1].cameras[0].keypoints,
                     slam.frames[1].cameras[1].keypoints,
                     calibration.fundamental_matrix[0],
-                    _options.slam.threshold_epipolar
+                    _options.slam.epipolar_threshold
                 );
+
+                slam.frames[1].cameras[1].keypoints *= matches;
+
+                slam.counts.matches = matches.size();
+
+                slam.frames[1].points3d += utils::triangulate_keypoints
+                (
+                    slam.frames[1].cameras[0].keypoints,
+                    slam.frames[1].cameras[1].keypoints,
+                    calibration.projection_matrix[0],
+                    calibration.projection_matrix[1],
+                    _options.slam.triangulation_threshold
+                );
+
+                slam.counts.maches_triangulated = slam.frames[1].points3d.size();
 
                 slam.frames[1].cameras[1].keylines *= utils::match_keylines
                 (
                     slam.frames[1].cameras[0].keylines,
                     slam.frames[1].cameras[1].keylines,
                     calibration.fundamental_matrix[0],
-                    _options.slam.threshold_epipolar
-                );
-
-                slam.frames[1].points3d = utils::triangulate
-                (
-                    slam.frames[1],
-                    calibration.projection_matrix[0],
-                    calibration.projection_matrix[1],
-                    _options.slam.threshold_triangulate
-                );
-
-                slam.counts.maches_triangulated = slam.frames[1].points3d.size();
-                slam.counts.matches             = std::ranges::count_if
-                (
-                    slam.frames[1].cameras[0].keypoints | std::views::keys,
-                    [&slam](const auto& index)
-                    {
-                        return slam.frames[1].cameras[1].keypoints.contains(index);
-                    }
+                    _options.slam.epipolar_threshold
                 );
 
                 slam.frames[1].lines3d += utils::triangulate_keylines
@@ -230,29 +237,10 @@ void zenslam::slam_thread::loop()
             SPDLOG_INFO("Estimated pose:   {}", slam.frames[1].pose);
             SPDLOG_INFO("Groundtruth pose: {}", slam.frames[1].pose_gt);
 
-            for (const auto& [index, point]: slam.frames[1].points3d)
-            {
-                auto point3d = slam.frames[1].pose * point;
-
-                point3d.index = index;
-                point3d.color = slam.frames[1].cameras[0].undistorted.at<cv::Vec3b>
-                        (slam.frames[1].cameras[0].keypoints.at(point.index).pt);
-
-                slam.points3d_map[index] = point3d;
-            }
-
-            slam.lines3d_map += slam.frames[1].pose * slam.frames[1].lines3d;
+            slam.points3d_map += slam.frames[1].pose * slam.frames[1].points3d;
+            slam.lines3d += slam.frames[1].pose * slam.frames[1].lines3d;
 
             slam.counts.points = slam.points3d_map.size();
-
-            slam.colors = slam.points3d_map | std::views::values | std::views::transform
-                          (
-                              [](const auto& p)
-                              {
-                                  return p.color;
-                              }
-                          ) |
-                          std::ranges::to<std::vector>();
 
             motion.update(slam.frames[0].pose, slam.frames[1].pose, dt);
 

@@ -38,7 +38,7 @@ namespace zenslam
          * @param keypoints_map A map to store detected keypoints with their indices
          * @return A vector of detected keypoints
          */
-        std::vector<keypoint> detect(const cv::Mat& image, const map<keypoint>& keypoints_map) const;
+        std::vector<keypoint> detect_keypoints(const cv::Mat& image, const map<keypoint>& keypoints_map) const;
 
         /**
          * @brief Detect keylines in the image using grid-based detection
@@ -60,7 +60,7 @@ namespace zenslam
          * @param mask_margin The margin (in pixels) around each existing keyline to mask out
          * @return A vector of newly detected keylines
          */
-        std::vector<keyline> detect(const cv::Mat& image, const map<keyline>& keylines_map, int mask_margin = 10) const;
+        std::vector<keyline> detect_keylines(const cv::Mat& image, const map<keyline>& keylines_map, int mask_margin = 10) const;
 
         void detect_par(cv::InputArray image_array, std::map<size_t, keypoint>& keypoints_map) const;
 

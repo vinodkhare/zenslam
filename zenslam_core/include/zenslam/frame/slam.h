@@ -15,7 +15,7 @@ namespace zenslam::frame
     public:
         std::array<stereo, 2>  frames       = { };
         map<point3d>           points3d_map = { };
-        map<line3d>            lines3d_map  = { };
+        map<line3d>            lines3d  = { };
         std::vector<cv::Vec3b> colors       = { };
         durations              durations    = { };
         counts                 counts       = { };
