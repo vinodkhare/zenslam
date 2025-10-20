@@ -26,3 +26,5 @@ slam:
   threshold_epipolar:    1.0    # (in pixels) max distance from the epipolar line for a match to be considered valid in stereo matching
   thresdhold_3d3d:       0.005  # (in m) reprojection error threshold for 3D-3D RANSAC pose estimation, points below this threshold are considered inliers
   thresdhold_3d2d:       1.0    # (in pixels) reprojection error threshold for 3D-2D RANSAC pose estimation, points below this threshold are considered inliers
+  show_keypoints:        true   # show keypoints in visualization
+  show_keylines:         true   # show keylines in visualization

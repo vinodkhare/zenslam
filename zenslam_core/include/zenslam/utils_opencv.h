@@ -56,7 +56,7 @@ namespace zenslam::utils
     );
 
     auto draw_matches_spatial(const frame::stereo& frame, const map<point3d>& points) -> cv::Mat;
-    auto draw_matches_temporal(const frame::camera& frame_0, const frame::camera& frame_1) -> cv::Mat;
+    auto draw_matches_temporal(const frame::camera& frame_0, const frame::camera& frame_1, bool show_keypoints = true, bool show_keylines = true) -> cv::Mat;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;
     auto pyramid(const cv::Mat& image, const class options::slam& options) -> std::vector<cv::Mat>;
 
