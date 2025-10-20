@@ -65,6 +65,10 @@ namespace zenslam
             double          threshold_3d2d        = { 1.0 };   // in pixels - for 3D-2D RANSAC pose estimation
             bool            show_keypoints        = { true };  // show keypoints in visualization
             bool            show_keylines         = { true };  // show keylines in visualization
+            // Visualization options for keylines
+            cv::Scalar      keyline_single_color  = { 0, 255, 0 };   // default green (BGR)
+            cv::Scalar      keyline_match_color   = { 0, 0, 255 };   // default red (BGR)
+            int             keyline_thickness     = { 1 };           // line thickness in pixels
 
             void print() const;
         } slam;

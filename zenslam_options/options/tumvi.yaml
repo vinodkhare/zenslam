@@ -28,3 +28,6 @@ slam:
   thresdhold_3d2d:       1.0    # (in pixels) reprojection error threshold for 3D-2D RANSAC pose estimation, points below this threshold are considered inliers
   show_keypoints:        true   # show keypoints in visualization
   show_keylines:         true   # show keylines in visualization
+  keyline_single_color: [0, 255, 255] # color for keylines when not using multiple colors
+  keyline_match_color:  [0, 255, 0]   # color for keyline matches
+  keyline_thickness:     1

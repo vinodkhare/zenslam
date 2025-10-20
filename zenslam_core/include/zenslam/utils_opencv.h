@@ -1,10 +1,10 @@
 #pragma once
 
-#include <map>
 #include <vector>
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
+#include <opencv2/line_descriptor.hpp>
 
 #include "options.h"
 #include "point3d.h"
@@ -52,11 +52,26 @@ namespace zenslam::utils
         const cv::Scalar&                                matchColor,
         const cv::Scalar&                                singleLineColor,
         const std::vector<char>&                         matchesMask,
-        int                                              flags
+        int                                              flags,
+        int                                              lineThickness
+    );
+
+    /** Draw keylines on an image with a specific color and thickness. */
+    void draw_keylines
+    (
+        cv::Mat&                                         image,
+        const std::vector<cv::line_descriptor::KeyLine>& keylines,
+        const cv::Scalar&                                color,
+        int                                              thickness
     );
 
     auto draw_matches_spatial(const frame::stereo& frame, const map<point3d>& points) -> cv::Mat;
-    auto draw_matches_temporal(const frame::camera& frame_0, const frame::camera& frame_1, bool show_keypoints = true, bool show_keylines = true) -> cv::Mat;
+    auto draw_matches_temporal
+    (
+        const frame::camera&       frame_0,
+        const frame::camera&       frame_1,
+        const class options::slam& options
+    ) -> cv::Mat;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;
     auto pyramid(const cv::Mat& image, const class options::slam& options) -> std::vector<cv::Mat>;
 

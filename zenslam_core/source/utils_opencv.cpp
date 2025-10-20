@@ -36,7 +36,8 @@ void zenslam::utils::draw_line_matches
     const cv::Scalar&                                matchColor,
     const cv::Scalar&                                singleLineColor,
     const std::vector<char>&                         matchesMask,
-    int                                              flags
+    int                                              flags,
+    int                                              lineThickness
 )
 {
     if (img1.type() != img2.type())
@@ -84,8 +85,7 @@ void zenslam::utils::draw_line_matches
     {
         for (auto k1: keylines1)
         {
-            //line( outImg, Point2f( k1.startPointX, k1.startPointY ), Point2f( k1.endPointX, k1.endPointY ), singleLineColorRGB, 2 );
-            line(outImg, cv::Point2f(k1.startPointX, k1.startPointY), cv::Point2f(k1.endPointX, k1.endPointY), singleLineColorRGB, 2);
+            line(outImg, cv::Point2f(k1.startPointX, k1.startPointY), cv::Point2f(k1.endPointX, k1.endPointY), singleLineColorRGB, lineThickness);
         }
 
         for (auto k2: keylines2)
@@ -96,7 +96,7 @@ void zenslam::utils::draw_line_matches
                 cv::Point2f(k2.startPointX + gsl::narrow<float>(offset), k2.startPointY),
                 cv::Point2f(k2.endPointX + gsl::narrow<float>(offset), k2.endPointY),
                 singleLineColorRGB,
-                2
+                lineThickness
             );
         }
     }
@@ -125,21 +125,14 @@ void zenslam::utils::draw_line_matches
             else matchColorRGB = matchColor;
 
             /* draw lines if necessary */
-            //      line( outImg, Point2f( left.startPointX, left.startPointY ), Point2f( left.endPointX, left.endPointY ), singleLineColorRGB, 2 );
-            //
-            //      line( outImg, Point2f( right.startPointX + offset, right.startPointY ), Point2f( right.endPointX + offset, right.endPointY ), singleLineColorRGB,
-            //            2 );
-            //
-            //      /* link correspondent lines */
-            //      line( outImg, Point2f( left.startPointX, left.startPointY ), Point2f( right.startPointX + offset, right.startPointY ), matchColorRGB, 1 );
-
             line
             (
                 outImg,
                 cv::Point2f(left.startPointX, left.startPointY),
                 cv::Point2f(left.endPointX, left.endPointY),
                 singleLineColorRGB,
-                2
+                lineThickness,
+                cv::LINE_AA
             );
 
             line
@@ -148,7 +141,8 @@ void zenslam::utils::draw_line_matches
                 cv::Point2f(right.startPointX + gsl::narrow<float>(offset), right.startPointY),
                 cv::Point2f(right.endPointX + gsl::narrow<float>(offset), right.endPointY),
                 singleLineColorRGB,
-                2
+                lineThickness,
+                cv::LINE_AA
             );
 
             /* link correspondent lines */
@@ -158,9 +152,34 @@ void zenslam::utils::draw_line_matches
                 left.pt,
                 right.pt + cv::Point2f(gsl::narrow<float>(offset), 0.0f),
                 matchColorRGB,
-                1
+                lineThickness,
+                cv::LINE_AA
             );
         }
+    }
+}
+
+void zenslam::utils::draw_keylines
+(
+    cv::Mat&                                         image,
+    const std::vector<cv::line_descriptor::KeyLine>& keylines,
+    const cv::Scalar&                                color,
+    int                                              thickness
+)
+{
+    if (keylines.empty()) return;
+
+    // OpenCV drawKeylines doesn't expose thickness, so we custom-draw segments
+    for (const auto& kl: keylines)
+    {
+        cv::line
+        (
+            image,
+            cv::Point2f(kl.startPointX, kl.startPointY),
+            cv::Point2f(kl.endPointX, kl.endPointY),
+            color,
+            thickness
+        );
     }
 }
 
@@ -235,7 +254,7 @@ auto zenslam::utils::draw_matches_spatial(const frame::stereo& frame, const map<
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const frame::camera& frame_1, bool show_keypoints, bool show_keylines) -> cv::Mat
+auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const frame::camera& frame_1, const class options::slam& options) -> cv::Mat
 {
     // Prepare images with keylines
     auto image_0 = frame_0.undistorted.clone();
@@ -245,7 +264,7 @@ auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const f
     if (image_1.channels() == 1) image_1 = convert_color(image_1, cv::COLOR_GRAY2BGR);
 
     // Draw keypoints if enabled
-    if (show_keypoints)
+    if (options.show_keypoints)
     {
         const auto& keypoints_0 = frame_0.keypoints.values() | std::ranges::to<std::vector>();
         const auto& keypoints_1 = frame_1.keypoints.values() | std::ranges::to<std::vector>();
@@ -270,35 +289,19 @@ auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const f
     }
 
     // Draw keylines if enabled
-    if (show_keylines)
+    if (options.show_keylines)
     {
         const auto& keylines_0 = frame_0.keylines.values() | std::ranges::to<std::vector>();
         const auto& keylines_1 = frame_1.keylines.values() | std::ranges::to<std::vector>();
-
-        cv::line_descriptor::drawKeylines
-        (
-            image_0,
-            utils::cast<cv::line_descriptor::KeyLine>(keylines_0),
-            image_0,
-            cv::viz::Color::raspberry(),
-            cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG
-        );
-
-        cv::line_descriptor::drawKeylines
-        (
-            image_1,
-            utils::cast<cv::line_descriptor::KeyLine>(keylines_1),
-            image_1,
-            cv::viz::Color::raspberry(),
-            cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG
-        );
+        draw_keylines(image_0, utils::cast<cv::line_descriptor::KeyLine>(keylines_0), options.keyline_single_color, options.keyline_thickness);
+        draw_keylines(image_1, utils::cast<cv::line_descriptor::KeyLine>(keylines_1), options.keyline_single_color, options.keyline_thickness);
     }
 
     cv::Mat matches_image { };
     cv::hconcat(image_0, image_1, matches_image);
 
     // Draw keypoint matches if enabled
-    if (show_keypoints)
+    if (options.show_keypoints)
     {
         const auto& keypoints_0_matched = frame_0.keypoints.values_matched(frame_1.keypoints) | std::ranges::to<std::vector>();
         const auto& keypoints_1_matched = frame_1.keypoints.values_matched(frame_0.keypoints) | std::ranges::to<std::vector>();
@@ -320,7 +323,7 @@ auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const f
     }
 
     // Draw keyline matches if enabled
-    if (show_keylines)
+    if (options.show_keylines)
     {
         const auto& keylines_0_matched = frame_0.keylines.values_matched(frame_1.keylines) | std::ranges::to<std::vector>();
         const auto& keylines_1_matched = frame_1.keylines.values_matched(frame_0.keylines) | std::ranges::to<std::vector>();
@@ -334,10 +337,11 @@ auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const f
             utils::cast<cv::line_descriptor::KeyLine>(keylines_1_matched),
             line_matches,
             matches_image,
-            cv::viz::Color::all(-1),
-            cv::viz::Color::all(-1),
+            options.keyline_match_color == cv::Scalar(-1,-1,-1) ? cv::viz::Color::all(-1) : options.keyline_match_color,
+            options.keyline_single_color == cv::Scalar(-1,-1,-1) ? cv::viz::Color::all(-1) : options.keyline_single_color,
             std::vector<char>(line_matches.size(), true),
-            cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG
+            cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG,
+            options.keyline_thickness
         );
     }
 

@@ -74,7 +74,23 @@ boost::program_options::options_description zenslam::options::description()
         "show-keylines",
         boost::program_options::value<bool>()->default_value(options.slam.show_keylines),
         "Show keylines in visualization"
-    )("help,h", "Show help")("version,v", "Show version");
+    )
+    (
+        "keyline-single-color",
+        boost::program_options::value<std::vector<int>>()->multitoken()->default_value(std::vector<int>{0,255,0}, "0 255 0"),
+        "Keyline single color (B G R)"
+    )
+    (
+        "keyline-match-color",
+        boost::program_options::value<std::vector<int>>()->multitoken()->default_value(std::vector<int>{0,0,255}, "0 0 255"),
+        "Keyline match color (B G R)"
+    )
+    (
+        "keyline-thickness",
+        boost::program_options::value<int>()->default_value(options.slam.keyline_thickness),
+        "Keyline line thickness (pixels)"
+    )
+    ("help,h", "Show help")("version,v", "Show version");
 
     description.add(folder::description());
 
@@ -140,6 +156,17 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     if (options_map.contains("threshold-3d2d")) options.slam.threshold_3d2d = map["threshold-3d2d"].as<double>();
     if (options_map.contains("show-keypoints")) options.slam.show_keypoints = map["show-keypoints"].as<bool>();
     if (options_map.contains("show-keylines")) options.slam.show_keylines = map["show-keylines"].as<bool>();
+    if (options_map.contains("keyline-single-color"))
+    {
+        const auto v = map["keyline-single-color"].as<std::vector<int>>();
+        if (v.size() == 3) options.slam.keyline_single_color = cv::Scalar(v[0], v[1], v[2]);
+    }
+    if (options_map.contains("keyline-match-color"))
+    {
+        const auto v = map["keyline-match-color"].as<std::vector<int>>();
+        if (v.size() == 3) options.slam.keyline_match_color = cv::Scalar(v[0], v[1], v[2]);
+    }
+    if (options_map.contains("keyline-thickness")) options.slam.keyline_thickness = map["keyline-thickness"].as<int>();
 
     return options;
 }
@@ -247,6 +274,23 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
             {
                 options.slam.show_keylines = show_keylines.as<bool>();
             }
+
+            if (const auto color_single = slam["keyline_single_color"]) // [B, G, R]
+            {
+                const auto v = color_single.as<std::vector<int>>();
+                if (v.size() == 3) options.slam.keyline_single_color = cv::Scalar(v[0], v[1], v[2]);
+            }
+
+            if (const auto color_match = slam["keyline_match_color"]) // [B, G, R]
+            {
+                const auto v = color_match.as<std::vector<int>>();
+                if (v.size() == 3) options.slam.keyline_match_color = cv::Scalar(v[0], v[1], v[2]);
+            }
+
+            if (const auto thickness = slam["keyline_thickness"]) // int
+            {
+                options.slam.keyline_thickness = thickness.as<int>();
+            }
         }
     }
     catch (const YAML::Exception& e)
@@ -334,6 +378,9 @@ void zenslam::options::slam::print() const
     SPDLOG_INFO("3D-2D RANSAC threshold: {} px", threshold_3d2d);
     SPDLOG_INFO("show keypoints: {}", show_keypoints ? "true" : "false");
     SPDLOG_INFO("show keylines: {}", show_keylines ? "true" : "false");
+    SPDLOG_INFO("keyline single color (BGR): [{}, {}, {}]", keyline_single_color[0], keyline_single_color[1], keyline_single_color[2]);
+    SPDLOG_INFO("keyline match color  (BGR): [{}, {}, {}]", keyline_match_color[0], keyline_match_color[1], keyline_match_color[2]);
+    SPDLOG_INFO("keyline thickness: {}", keyline_thickness);
 }
 
 void zenslam::options::print() const
