@@ -235,7 +235,7 @@ auto zenslam::utils::draw_matches_spatial(const frame::stereo& frame, const map<
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const frame::camera& frame_1) -> cv::Mat
+auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const frame::camera& frame_1, bool show_keypoints, bool show_keylines) -> cv::Mat
 {
     // Prepare images with keylines
     auto image_0 = frame_0.undistorted.clone();
@@ -244,86 +244,102 @@ auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const f
     if (image_0.channels() == 1) image_0 = convert_color(image_0, cv::COLOR_GRAY2BGR);
     if (image_1.channels() == 1) image_1 = convert_color(image_1, cv::COLOR_GRAY2BGR);
 
-    const auto& keypoints_0 = frame_0.keypoints.values() | std::ranges::to<std::vector>();
-    const auto& keypoints_1 = frame_1.keypoints.values() | std::ranges::to<std::vector>();
+    // Draw keypoints if enabled
+    if (show_keypoints)
+    {
+        const auto& keypoints_0 = frame_0.keypoints.values() | std::ranges::to<std::vector>();
+        const auto& keypoints_1 = frame_1.keypoints.values() | std::ranges::to<std::vector>();
 
-    cv::drawKeypoints
-    (
-        image_0,
-        utils::cast<cv::KeyPoint>(keypoints_0),
-        image_0,
-        cv::viz::Color::raspberry(),
-        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS | cv::DrawMatchesFlags::DRAW_OVER_OUTIMG
-    );
+        cv::drawKeypoints
+        (
+            image_0,
+            utils::cast<cv::KeyPoint>(keypoints_0),
+            image_0,
+            cv::viz::Color::raspberry(),
+            cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS | cv::DrawMatchesFlags::DRAW_OVER_OUTIMG
+        );
 
-    cv::drawKeypoints
-    (
-        image_1,
-        utils::cast<cv::KeyPoint>(keypoints_1),
-        image_1,
-        cv::viz::Color::raspberry(),
-        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS | cv::DrawMatchesFlags::DRAW_OVER_OUTIMG
-    );
+        cv::drawKeypoints
+        (
+            image_1,
+            utils::cast<cv::KeyPoint>(keypoints_1),
+            image_1,
+            cv::viz::Color::raspberry(),
+            cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS | cv::DrawMatchesFlags::DRAW_OVER_OUTIMG
+        );
+    }
 
-    const auto& keylines_0 = frame_0.keylines.values() | std::ranges::to<std::vector>();
-    const auto& keylines_1 = frame_1.keylines.values() | std::ranges::to<std::vector>();
+    // Draw keylines if enabled
+    if (show_keylines)
+    {
+        const auto& keylines_0 = frame_0.keylines.values() | std::ranges::to<std::vector>();
+        const auto& keylines_1 = frame_1.keylines.values() | std::ranges::to<std::vector>();
 
-    cv::line_descriptor::drawKeylines
-    (
-        image_0,
-        utils::cast<cv::line_descriptor::KeyLine>(keylines_0),
-        image_0,
-        cv::viz::Color::raspberry(),
-        cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG
-    );
+        cv::line_descriptor::drawKeylines
+        (
+            image_0,
+            utils::cast<cv::line_descriptor::KeyLine>(keylines_0),
+            image_0,
+            cv::viz::Color::raspberry(),
+            cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG
+        );
 
-    cv::line_descriptor::drawKeylines
-    (
-        image_1,
-        utils::cast<cv::line_descriptor::KeyLine>(keylines_1),
-        image_1,
-        cv::viz::Color::raspberry(),
-        cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG
-    );
-
-    const auto& keypoints_0_matched = frame_0.keypoints.values_matched(frame_1.keypoints) | std::ranges::to<std::vector>();
-    const auto& keypoints_1_matched = frame_1.keypoints.values_matched(frame_0.keypoints) | std::ranges::to<std::vector>();
-    const auto& matches             = utils::matches(keypoints_0_matched.size());
+        cv::line_descriptor::drawKeylines
+        (
+            image_1,
+            utils::cast<cv::line_descriptor::KeyLine>(keylines_1),
+            image_1,
+            cv::viz::Color::raspberry(),
+            cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG
+        );
+    }
 
     cv::Mat matches_image { };
     cv::hconcat(image_0, image_1, matches_image);
 
-    cv::drawMatches
-    (
-        image_0,
-        utils::cast<cv::KeyPoint>(keypoints_0_matched),
-        image_1,
-        utils::cast<cv::KeyPoint>(keypoints_1_matched),
-        matches,
-        matches_image,
-        cv::viz::Color::green(),
-        cv::viz::Color::blue(),
-        std::vector<char>(),
-        cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS | cv::DrawMatchesFlags::DRAW_OVER_OUTIMG
-    );
+    // Draw keypoint matches if enabled
+    if (show_keypoints)
+    {
+        const auto& keypoints_0_matched = frame_0.keypoints.values_matched(frame_1.keypoints) | std::ranges::to<std::vector>();
+        const auto& keypoints_1_matched = frame_1.keypoints.values_matched(frame_0.keypoints) | std::ranges::to<std::vector>();
+        const auto& matches             = utils::matches(keypoints_0_matched.size());
 
-    const auto& keylines_0_matched = frame_0.keylines.values_matched(frame_1.keylines) | std::ranges::to<std::vector>();
-    const auto& keylines_1_matched = frame_1.keylines.values_matched(frame_0.keylines) | std::ranges::to<std::vector>();
-    const auto& line_matches       = utils::matches(keylines_0_matched.size());
+        cv::drawMatches
+        (
+            image_0,
+            utils::cast<cv::KeyPoint>(keypoints_0_matched),
+            image_1,
+            utils::cast<cv::KeyPoint>(keypoints_1_matched),
+            matches,
+            matches_image,
+            cv::viz::Color::green(),
+            cv::viz::Color::blue(),
+            std::vector<char>(),
+            cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS | cv::DrawMatchesFlags::DRAW_OVER_OUTIMG
+        );
+    }
 
-    draw_line_matches
-    (
-        image_0,
-        utils::cast<cv::line_descriptor::KeyLine>(keylines_0_matched),
-        image_1,
-        utils::cast<cv::line_descriptor::KeyLine>(keylines_1_matched),
-        line_matches,
-        matches_image,
-        cv::viz::Color::all(-1),
-        cv::viz::Color::all(-1),
-        std::vector<char>(line_matches.size(), true),
-        cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG
-    );
+    // Draw keyline matches if enabled
+    if (show_keylines)
+    {
+        const auto& keylines_0_matched = frame_0.keylines.values_matched(frame_1.keylines) | std::ranges::to<std::vector>();
+        const auto& keylines_1_matched = frame_1.keylines.values_matched(frame_0.keylines) | std::ranges::to<std::vector>();
+        const auto& line_matches       = utils::matches(keylines_0_matched.size());
+
+        draw_line_matches
+        (
+            image_0,
+            utils::cast<cv::line_descriptor::KeyLine>(keylines_0_matched),
+            image_1,
+            utils::cast<cv::line_descriptor::KeyLine>(keylines_1_matched),
+            line_matches,
+            matches_image,
+            cv::viz::Color::all(-1),
+            cv::viz::Color::all(-1),
+            std::vector<char>(line_matches.size(), true),
+            cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG
+        );
+    }
 
     return matches_image;
 }

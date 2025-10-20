@@ -63,6 +63,8 @@ namespace zenslam
             double          triangulation_threshold = { 1.0 };   // in pixels
             double          threshold_3d3d        = { 0.005 }; // in meters - for 3D-3D RANSAC pose estimation
             double          threshold_3d2d        = { 1.0 };   // in pixels - for 3D-2D RANSAC pose estimation
+            bool            show_keypoints        = { true };  // show keypoints in visualization
+            bool            show_keylines         = { true };  // show keylines in visualization
 
             void print() const;
         } slam;

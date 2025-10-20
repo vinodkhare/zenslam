@@ -119,6 +119,25 @@ Run the app:
 ./build/zenslam_app/zenslam_app   # or from install prefix after `cmake --install build`
 ```
 
+### Visualization Options
+
+The application supports runtime toggling of keypoints and keylines in the visualization:
+
+**Command-line options:**
+* `--show-keypoints <true|false>` - Show/hide keypoints in the temporal matches view (default: true)
+* `--show-keylines <true|false>` - Show/hide keylines in the temporal matches view (default: true)
+
+**YAML configuration:**
+Add to your `options.yaml` under the `slam` section:
+```yaml
+slam:
+  show_keypoints: true   # Show keypoints in visualization
+  show_keylines: true    # Show keylines in visualization
+```
+
+**Runtime UI controls:**
+The ImGui panel includes checkboxes to toggle keypoints and keylines display while the application is running.
+
 Run tests:
 
 ```bash

@@ -14,7 +14,9 @@
 #include "zenslam/utils_opencv.h"
 
 zenslam::application::application(options options) :
-    _options { std::move(options) }
+    _options { std::move(options) },
+    _show_keypoints { _options.slam.show_keypoints },
+    _show_keylines { _options.slam.show_keylines }
 {
     _slam_thread.on_frame += [this](const frame::slam& slam)
     {
@@ -45,7 +47,7 @@ void zenslam::application::render()
 
     // display matches temporal
     {
-        const auto& image = utils::draw_matches_temporal(slam.frames[0].cameras[0], slam.frames[1].cameras[0]);
+        const auto& image = utils::draw_matches_temporal(slam.frames[0].cameras[0], slam.frames[1].cameras[0], _show_keypoints, _show_keylines);
 
         cv::namedWindow("matches_temporal");
         cv::imshow("matches_temporal", image);
@@ -108,6 +110,12 @@ void zenslam::application::render()
     }
 
     ImGui::Text("Hello Metal!");
+    
+    // Add checkboxes for show/hide keypoints and keylines
+    ImGui::Separator();
+    ImGui::Text("Visualization Options");
+    ImGui::Checkbox("Show Keypoints", &_show_keypoints);
+    ImGui::Checkbox("Show Keylines", &_show_keylines);
 
     cv::waitKey(1);
 }

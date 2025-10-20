@@ -64,6 +64,16 @@ boost::program_options::options_description zenslam::options::description()
         "threshold-3d2d",
         boost::program_options::value<double>()->default_value(options.slam.threshold_3d2d),
         "3D-2D RANSAC pose estimation threshold in pixels"
+    )
+    (
+        "show-keypoints",
+        boost::program_options::value<bool>()->default_value(options.slam.show_keypoints),
+        "Show keypoints in visualization"
+    )
+    (
+        "show-keylines",
+        boost::program_options::value<bool>()->default_value(options.slam.show_keylines),
+        "Show keylines in visualization"
     )("help,h", "Show help")("version,v", "Show version");
 
     description.add(folder::description());
@@ -128,6 +138,8 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     if (options_map.contains("fast-threshold")) options.slam.fast_threshold = map["fast-threshold"].as<int>();
     if (options_map.contains("threshold-3d3d")) options.slam.threshold_3d3d = map["threshold-3d3d"].as<double>();
     if (options_map.contains("threshold-3d2d")) options.slam.threshold_3d2d = map["threshold-3d2d"].as<double>();
+    if (options_map.contains("show-keypoints")) options.slam.show_keypoints = map["show-keypoints"].as<bool>();
+    if (options_map.contains("show-keylines")) options.slam.show_keylines = map["show-keylines"].as<bool>();
 
     return options;
 }
@@ -225,6 +237,16 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
             {
                 options.slam.threshold_3d2d = threshold_3d2d.as<double>();
             }
+
+            if (const auto show_keypoints = slam["show_keypoints"])
+            {
+                options.slam.show_keypoints = show_keypoints.as<bool>();
+            }
+
+            if (const auto show_keylines = slam["show_keylines"])
+            {
+                options.slam.show_keylines = show_keylines.as<bool>();
+            }
         }
     }
     catch (const YAML::Exception& e)
@@ -310,6 +332,8 @@ void zenslam::options::slam::print() const
     SPDLOG_INFO("klt max level: {}", klt_max_level);
     SPDLOG_INFO("3D-3D RANSAC threshold: {} m", threshold_3d3d);
     SPDLOG_INFO("3D-2D RANSAC threshold: {} px", threshold_3d2d);
+    SPDLOG_INFO("show keypoints: {}", show_keypoints ? "true" : "false");
+    SPDLOG_INFO("show keylines: {}", show_keylines ? "true" : "false");
 }
 
 void zenslam::options::print() const
