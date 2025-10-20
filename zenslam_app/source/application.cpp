@@ -47,7 +47,8 @@ void zenslam::application::render()
 
     // display matches temporal
     {
-        const auto& image = utils::draw_matches_temporal(
+        const auto& image = utils::draw_matches_temporal
+        (
             slam.frames[0].cameras[0],
             slam.frames[1].cameras[0],
             _options.slam
@@ -56,7 +57,7 @@ void zenslam::application::render()
         cv::namedWindow("matches_temporal");
         cv::imshow("matches_temporal", image);
         cv::setWindowTitle("matches_temporal", "matches temporal");
-        cv::resizeWindow("matches_spatial", 1024, 512);
+        cv::resizeWindow("matches_temporal", 1024, 512);
     }
 
     // display 3D points using viz module
@@ -114,12 +115,44 @@ void zenslam::application::render()
     }
 
     ImGui::Text("Hello Metal!");
-    
-    // Add checkboxes for show/hide keypoints and keylines
+
+    // Visualization controls with padding/grouping
     ImGui::Separator();
     ImGui::Text("Visualization Options");
+    ImGui::Spacing();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 6.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
+    ImGui::BeginChild("viz_section", ImVec2(0, 160.0f), true);
+
+    // Checkboxes for toggling overlays
     ImGui::Checkbox("Show Keypoints", &_options.slam.show_keypoints);
     ImGui::Checkbox("Show Keylines", &_options.slam.show_keylines);
+
+    // Color picker for keylines (single keyline color)
+    {
+        const auto& s = _options.slam.keyline_single_color; // B, G, R
+        ImVec4      color_rgba
+        (
+            static_cast<float>(s[2]) / 255.0f,
+            // R
+            static_cast<float>(s[1]) / 255.0f,
+            // G
+            static_cast<float>(s[0]) / 255.0f,
+            // B
+            1.0f
+        );
+
+        if (ImGui::ColorEdit3("Keyline Color", reinterpret_cast<float*>(&color_rgba)))
+        {
+            const auto r                       = static_cast<int>(std::round(color_rgba.x * 255.0f));
+            const auto g                       = static_cast<int>(std::round(color_rgba.y * 255.0f));
+            const auto b                       = static_cast<int>(std::round(color_rgba.z * 255.0f));
+            _options.slam.keyline_single_color = cv::Scalar(b, g, r);
+        }
+    }
+
+    ImGui::EndChild();
+    ImGui::PopStyleVar(2);
 
     cv::waitKey(1);
 }
