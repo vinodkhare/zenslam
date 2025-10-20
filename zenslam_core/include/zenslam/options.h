@@ -43,12 +43,16 @@ namespace zenslam
             std::filesystem::path groundtruth_file     = { "groundtruth.csv" };
             std::filesystem::path imu_calibration_file = { "imu_config.yaml" };
 
+            void validate() const;
             void print() const;
         } folder;
 
         class slam
         {
         public:
+            // Returns the options description for SLAM-related CLI options
+            static options_description description();
+
             bool            clahe_enabled         = { false };
             cv::Size        cell_size             = { 16, 16 };
             feature_type    feature               = { feature_type::FAST };
@@ -70,9 +74,11 @@ namespace zenslam
             cv::Scalar      keyline_match_color   = { 0, 0, 255 };   // default red (BGR)
             int             keyline_thickness     = { 1 };           // line thickness in pixels
 
+            void validate() const;
             void print() const;
         } slam;
 
+        void validate() const;
         void print() const;
     };
 } // namespace zenslam

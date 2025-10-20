@@ -48,6 +48,7 @@ int main(const int argc, char **argv)
         spdlog::set_level(options.log_level);
         spdlog::set_pattern(options.log_pattern);
 
+        options.validate();
         options.print();
 
         zenslam::application     application { options };
