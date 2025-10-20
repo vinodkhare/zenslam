@@ -11,7 +11,6 @@
 #include "options.h"
 #include "point3d.h"
 #include "pose_data.h"
-#include "slam_thread.h"
 
 #include "frame/stereo.h"
 
@@ -293,20 +292,22 @@ namespace zenslam::utils
 
     /**
      * Triangulate keylines between stereo frames using their indices.
-     * For each keyline index present in both maps, triangulate endpoints and midpoint.
+     * For each keyline index present in both maps, triangulate the two endpoints;
+     * the returned line3d stores just the 3D endpoints (no separate midpoint).
      *
      * @param keylines_l Map of keylines in left image
      * @param keylines_r Map of keylines in right image
      * @param P_l 3x4 projection matrix for left camera
      * @param P_r 3x4 projection matrix for right camera
-     * @return Map from keyline index to tuple of 3D endpoints and midpoint
+     * @return Vector of 3D line segments with original keyline indices
      */
     auto triangulate_keylines
     (
         const map<keyline>& keylines_l,
         const map<keyline>& keylines_r,
         const cv::Matx34d&  P_l,
-        const cv::Matx34d&  P_r
+        const cv::Matx34d&  P_r,
+        const class options::slam& options
     ) -> std::vector<line3d>;
 
     /** Triangulate 3D points from matched 2D keypoints in stereo images.

@@ -363,20 +363,7 @@ auto zenslam::utils::project(const std::vector<cv::Point3d>& points, const cv::M
 
     cv::Mat points2d_mat = projection * points3d_mat;
 
-    points2d = std::views::iota(0, gsl::narrow<int>(points.size())) | std::views::transform
-               (
-                   [&points2d_mat](const auto& i)
-                   {
-                       return std::abs(points2d_mat.at<double>(2, i)) > 1E-9
-                                  ? cv::Point2d
-                                  (
-                                      points2d_mat.at<double>(0, i) / points2d_mat.at<double>(2, i),
-                                      points2d_mat.at<double>(1, i) / points2d_mat.at<double>(2, i)
-                                  )
-                                  : cv::Point2d(0.0, 0.0);
-                   }
-               ) | std::ranges::to<std::vector>();
-
+    points2d.reserve(points.size());
     for (auto i = 0; i < points.size(); i++)
     {
         const auto w = points2d_mat.at<double>(2, i);

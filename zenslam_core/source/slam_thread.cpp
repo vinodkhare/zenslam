@@ -20,6 +20,7 @@
 #include "time_this.h"
 #include "utils.h"
 #include "utils_slam.h"
+#include "utils_std.h"
 #include "frame/durations.h"
 #include "frame/slam.h"
 #include "frame/writer.h"
@@ -177,7 +178,8 @@ void zenslam::slam_thread::loop()
                     slam.frames[1].cameras[0].keylines,
                     slam.frames[1].cameras[1].keylines,
                     calibration.projection_matrix[0],
-                    calibration.projection_matrix[1]
+                    calibration.projection_matrix[1],
+                    _options.slam
                 );
             }
 
@@ -223,8 +225,10 @@ void zenslam::slam_thread::loop()
             slam.counts.correspondences_3d2d_inliers = pose_data_3d2d.inliers.size();
             slam.counts.correspondences_3d3d_inliers = pose_data_3d3d.inliers.size();
 
-            SPDLOG_INFO("3D-3D mean error: {:.4f} m", utils::mean(pose_data_3d3d.errors));
-            SPDLOG_INFO("3D-2D mean error: {:.4f} px", utils::mean(pose_data_3d2d.errors));
+            const double err3d3d_mean = zenslam::utils::mean(pose_data_3d3d.errors);
+            const double err3d2d_mean = zenslam::utils::mean(pose_data_3d2d.errors);
+            SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
+            SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
 
             const auto& pose =
                     pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;

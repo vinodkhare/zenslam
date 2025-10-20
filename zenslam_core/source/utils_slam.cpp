@@ -977,10 +977,11 @@ auto zenslam::utils::triangulate_keypoints
 
 auto zenslam::utils::triangulate_keylines
 (
-    const map<keyline>& keylines_l,
-    const map<keyline>& keylines_r,
-    const cv::Matx34d&  P_l,
-    const cv::Matx34d&  P_r
+    const map<keyline>&       keylines_l,
+    const map<keyline>&       keylines_r,
+    const cv::Matx34d&        P_l,
+    const cv::Matx34d&        P_r,
+    const class options::slam& options
 ) -> std::vector<line3d>
 {
     std::vector<line3d> lines3d { };
@@ -988,94 +989,155 @@ auto zenslam::utils::triangulate_keylines
     const auto& matched_keylines_l = keylines_l.values_matched(keylines_r) | std::ranges::to<std::vector>();
     const auto& matched_keylines_r = keylines_r.values_matched(keylines_l) | std::ranges::to<std::vector>();
 
-    const auto& points_l_0 = matched_keylines_l |
-                             std::views::transform
-                             (
-                                 [](const auto& kl)
-                                 {
-                                     return cv::Point2f(kl.startPointX, kl.startPointY);
-                                 }
-                             ) |
-                             std::ranges::to<std::vector>();
+    if (matched_keylines_l.size() != matched_keylines_r.size()) return lines3d;
 
-    const auto& points_l_1 = matched_keylines_l |
-                             std::views::transform
-                             (
-                                 [](const auto& kl)
-                                 {
-                                     return cv::Point2f(kl.endPointX, kl.endPointY);
-                                 }
-                             ) |
-                             std::ranges::to<std::vector>();
+    constexpr auto reproj_thresh = 1.0; // pixels
+    // Minimum triangulation angle (in radians). 1 degree is a common conservative choice.
+    constexpr auto tri_min = 1.0 * CV_PI / 180.0;
 
-    const auto& points_r_0 = matched_keylines_r |
-                             std::views::transform
-                             (
-                                 [](const auto& kl)
-                                 {
-                                     return cv::Point2f(kl.startPointX, kl.startPointY);
-                                 }
-                             ) |
-                             std::ranges::to<std::vector>();
-
-    const auto& points_r_1 = matched_keylines_r |
-                             std::views::transform
-                             (
-                                 [](const auto& kl)
-                                 {
-                                     return cv::Point2f(kl.endPointX, kl.endPointY);
-                                 }
-                             ) |
-                             std::ranges::to<std::vector>();
-
-    const auto& points3d_0 = triangulate_points(points_l_0, points_r_0, P_l, P_r);
-    const auto& points3d_1 = triangulate_points(points_l_1, points_r_1, P_l, P_r);
-
-    const auto& points_l_0_back = project(points3d_0, P_l);
-    const auto& points_l_1_back = project(points3d_1, P_l);
-    const auto& points_r_0_back = project(points3d_0, P_r);
-    const auto& points_r_1_back = project(points3d_1, P_r);
-
-    const auto& errors = std::views::zip
-                         (
-                             points_l_0_back,
-                             points_l_1_back,
-                             points_r_0_back,
-                             points_r_1_back,
-                             points_l_0,
-                             points_l_1,
-                             points_r_0,
-                             points_r_1
-                         ) |
-                         std::views::transform
-                         (
-                             [](const auto& t)
-                             {
-                                 const auto& [pl0b, pl1b, pr0b, pr1b, pl0, pl1, pr0, pr1] = t;
-
-                                 const auto err_l0 = cv::norm(pl0b - cv::Point2d(pl0));
-                                 const auto err_l1 = cv::norm(pl1b - cv::Point2d(pl1));
-                                 const auto err_r0 = cv::norm(pr0b - cv::Point2d(pr0));
-                                 const auto err_r1 = cv::norm(pr1b - cv::Point2d(pr1));
-
-                                 return 0.25 * (err_l0 + err_l1 + err_r0 + err_r1);
-                             }
-                         ) |
-                         std::ranges::to<std::vector>();
-
-    for (auto i = 0; i < points3d_0.size(); ++i)
+    // Compute camera centers from projection matrices via SVD (P * C_h = 0)
+    auto camera_center = [](const cv::Matx34d& P) -> cv::Point3d
     {
-        if (points3d_0[i].z > 1 && points3d_1[i].z > 1 && errors[i] < 1.0) // 1 pixel reprojection error threshold
+        cv::Mat Pm(3, 4, CV_64F);
+        for (auto r = 0; r < 3; ++r) for (auto c = 0; c < 4; ++c) Pm.at<double>(r, c) = P(r, c);
+        cv::Mat w, u, vt;
+        cv::SVD::compute(Pm, w, u, vt, cv::SVD::FULL_UV);
+        cv::Mat v = vt.row(3).t();
+        const auto wv = v.at<double>(3);
+        return {v.at<double>(0) / wv, v.at<double>(1) / wv, v.at<double>(2) / wv};
+    };
+
+    const auto C_l = camera_center(P_l);
+    const auto C_r = camera_center(P_r);
+
+    auto triangulation_angle = [&](const cv::Point3d& X) -> double
+    {
+        const cv::Vec3d a(C_l.x - X.x, C_l.y - X.y, C_l.z - X.z);
+        const cv::Vec3d b(C_r.x - X.x, C_r.y - X.y, C_r.z - X.z);
+        const auto na = cv::norm(a), nb = cv::norm(b);
+        const auto denom = na * nb;
+        if (denom < 1e-12) return 0.0;
+        auto c = a.dot(b) / denom;
+        c = std::clamp(c, -1.0, 1.0);
+        return std::acos(c);
+    };
+
+    for (size_t i = 0; i < matched_keylines_l.size(); ++i)
+    {
+        const auto& kl_l = matched_keylines_l[i];
+        const auto& kl_r = matched_keylines_r[i];
+
+        const cv::Point2f pl0(kl_l.startPointX, kl_l.startPointY);
+        const cv::Point2f pl1(kl_l.endPointX,   kl_l.endPointY);
+        const cv::Point2f pr0(kl_r.startPointX, kl_r.startPointY);
+        const cv::Point2f pr1(kl_r.endPointX,   kl_r.endPointY);
+
+        // Hypothesis A: (pl0<->pr0, pl1<->pr1)
+        const auto X0_A = triangulate_points(std::vector<cv::Point2f>{pl0}, std::vector<cv::Point2f>{pr0}, P_l, P_r);
+        const auto X1_A = triangulate_points(std::vector<cv::Point2f>{pl1}, std::vector<cv::Point2f>{pr1}, P_l, P_r);
+
+        // Hypothesis B: (pl0<->pr1, pl1<->pr0)
+        const auto X0_B = triangulate_points(std::vector<cv::Point2f>{pl0}, std::vector<cv::Point2f>{pr1}, P_l, P_r);
+        const auto X1_B = triangulate_points(std::vector<cv::Point2f>{pl1}, std::vector<cv::Point2f>{pr0}, P_l, P_r);
+
+        auto reproj_error = [&](const cv::Point3d& X0, const cv::Point3d& X1) -> double
         {
-            lines3d.emplace_back
-            (
-                line3d
+            const auto pl0b = project(std::vector<cv::Point3d>{X0}, P_l)[0];
+            const auto pl1b = project(std::vector<cv::Point3d>{X1}, P_l)[0];
+            const auto pr0b = project(std::vector<cv::Point3d>{X0}, P_r)[0];
+            const auto pr1b = project(std::vector<cv::Point3d>{X1}, P_r)[0];
+
+            const auto err_l0 = cv::norm(pl0b - cv::Point2d(pl0));
+            const auto err_l1 = cv::norm(pl1b - cv::Point2d(pl1));
+            const auto err_r0 = cv::norm(pr0b - cv::Point2d(pr0));
+            const auto err_r1 = cv::norm(pr1b - cv::Point2d(pr1));
+            return 0.25 * (err_l0 + err_l1 + err_r0 + err_r1);
+        };
+
+        auto best_err = std::numeric_limits<double>::infinity();
+        cv::Point3d best_X0, best_X1;
+
+        auto depth_l = [&](const cv::Point3d& X) -> double
+        {
+            const cv::Vec4d Xh(X.x, X.y, X.z, 1.0);
+            const auto pl = P_l * Xh;
+            return pl[2];
+        };
+
+        auto depth_r = [&](const cv::Point3d& X) -> double
+        {
+            const cv::Vec4d Xh(X.x, X.y, X.z, 1.0);
+            const auto pr = P_r * Xh;
+            return pr[2];
+        };
+
+        auto disparity = [&](const cv::Point2f& a_l, const cv::Point2f& a_r,
+                             const cv::Point2f& b_l, const cv::Point2f& b_r) -> double
+        {
+            // If stereo is rectified, x-disparity is meaningful; otherwise use Euclidean as fallback
+            const auto d0 = std::abs(static_cast<double>(a_l.x) - static_cast<double>(a_r.x));
+            const auto d1 = std::abs(static_cast<double>(b_l.x) - static_cast<double>(b_r.x));
+            return 0.5 * (d0 + d1);
+        };
+
+        const auto disp_A = disparity(pl0, pr0, pl1, pr1);
+        const auto disp_B = disparity(pl0, pr1, pl1, pr0);
+
+        constexpr auto disp_min = 8.0; // px; tune if needed
+
+        if (!X0_A.empty() && !X1_A.empty() && X0_A[0].z > 0.0 && X1_A[0].z > 0.0 && disp_A >= disp_min)
+        {
+            const auto eA = reproj_error(X0_A[0], X1_A[0]);
+            if (eA < best_err) { best_err = eA; best_X0 = X0_A[0]; best_X1 = X1_A[0]; }
+        }
+        if (!X0_B.empty() && !X1_B.empty() && X0_B[0].z > 0.0 && X1_B[0].z > 0.0 && disp_B >= disp_min)
+        {
+            const auto eB = reproj_error(X0_B[0], X1_B[0]);
+            if (eB < best_err) { best_err = eB; best_X0 = X0_B[0]; best_X1 = X1_B[0]; }
+        }
+
+        // Cheirality for both cameras + triangulation angle gate at both endpoints
+        const auto ang0 = (std::isfinite(best_err) ? triangulation_angle(best_X0) : 0.0);
+        const auto ang1 = (std::isfinite(best_err) ? triangulation_angle(best_X1) : 0.0);
+        if (best_err < reproj_thresh &&
+            depth_l(best_X0) > 0.0 && depth_r(best_X0) > 0.0 &&
+            depth_l(best_X1) > 0.0 && depth_r(best_X1) > 0.0 &&
+            std::min(ang0, ang1) >= tri_min)
+        {
+            // Optional clipping to [min_depth, max_depth]
+            auto clip_depth = [&](const cv::Point3d& X) -> cv::Point3d
+            {
+                // Clip in camera-L depth; if outside, project along the segment to the nearest depth bound
+                const auto z = best_X1.z - best_X0.z;
+                auto clampZ = [&](double desiredZ) -> cv::Point3d
                 {
-                    points3d_0[i],
-                    points3d_1[i],
-                    matched_keylines_l[i].index
-                }
-            );
+                    const auto t = std::abs(z) > 1e-9 ? (desiredZ - best_X0.z) / z : 0.0;
+                    const auto tc = std::clamp(t, 0.0, 1.0);
+                    return {
+                        best_X0.x + tc * (best_X1.x - best_X0.x),
+                        best_X0.y + tc * (best_X1.y - best_X0.y),
+                        best_X0.z + tc * (best_X1.z - best_X0.z)
+                    };
+                };
+
+                const auto zmin = options.min_depth;
+                const auto zmax = options.max_depth;
+
+                if (X.z < zmin) return clampZ(zmin);
+                if (X.z > zmax) return clampZ(zmax);
+                return X;
+            };
+
+            auto X0c = clip_depth(best_X0);
+            auto X1c = clip_depth(best_X1);
+
+            // If clipping inverted the order into a degenerate segment, keep original
+            if (cv::norm(cv::Vec3d(X1c.x - X0c.x, X1c.y - X0c.y, X1c.z - X0c.z)) < 1e-6)
+            {
+                X0c = best_X0; X1c = best_X1;
+            }
+
+            lines3d.emplace_back(line3d{X0c, X1c, kl_l.index});
         }
     }
 
