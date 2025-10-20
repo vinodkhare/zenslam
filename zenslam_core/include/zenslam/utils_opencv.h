@@ -28,7 +28,34 @@ namespace zenslam::utils
      */
     auto convert_color(const cv::Mat& image, int code) -> cv::Mat;
 
-    auto draw_matches(const frame::stereo& frame, const map<point3d>& points) -> cv::Mat;
+    /** Draw matches between line descriptors in two images.
+     *
+     * @param img1 First input image.
+     * @param keylines1 Keylines detected in the first image.
+     * @param img2 Second input image.
+     * @param keylines2 Keylines detected in the second image.
+     * @param matches1to2 Matches between keylines in the first and second images.
+     * @param outImg Output image showing the matches.
+     * @param matchColor Color for drawing matched lines.
+     * @param singleLineColor Color for drawing unmatched lines.
+     * @param matchesMask Mask to indicate which matches to draw.
+     * @param flags Drawing flags (e.g., default behavior).
+     */
+    void draw_line_matches
+    (
+        const cv::Mat&                                   img1,
+        const std::vector<cv::line_descriptor::KeyLine>& keylines1,
+        const cv::Mat&                                   img2,
+        const std::vector<cv::line_descriptor::KeyLine>& keylines2,
+        const std::vector<cv::DMatch>&                   matches1to2,
+        cv::Mat&                                         outImg,
+        const cv::Scalar&                                matchColor,
+        const cv::Scalar&                                singleLineColor,
+        const std::vector<char>&                         matchesMask,
+        int                                              flags
+    );
+
+    auto draw_matches_spatial(const frame::stereo& frame, const map<point3d>& points) -> cv::Mat;
     auto draw_matches_temporal(const frame::camera& frame_0, const frame::camera& frame_1) -> cv::Mat;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;
     auto pyramid(const cv::Mat& image, const class options::slam& options) -> std::vector<cv::Mat>;

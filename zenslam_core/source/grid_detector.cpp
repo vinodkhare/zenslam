@@ -238,8 +238,8 @@ namespace zenslam
         _line_detector->detect(image, keylines_cv, 2.0f, 1, mask);
 
         // Compute descriptors for detected keylines
-        auto    bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
-        cv::Mat descriptors;
+        const auto&    bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
+        cv::Mat descriptors {};
         if (!keylines_cv.empty())
         {
             bd->compute(image, keylines_cv, descriptors);

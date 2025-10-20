@@ -237,10 +237,10 @@ void zenslam::slam_thread::loop()
             SPDLOG_INFO("Estimated pose:   {}", slam.frames[1].pose);
             SPDLOG_INFO("Groundtruth pose: {}", slam.frames[1].pose_gt);
 
-            slam.points3d_map += slam.frames[1].pose * slam.frames[1].points3d;
+            slam.points3d += slam.frames[1].pose * slam.frames[1].points3d;
             slam.lines3d += slam.frames[1].pose * slam.frames[1].lines3d;
 
-            slam.counts.points = slam.points3d_map.size();
+            slam.counts.points = slam.points3d.size();
 
             motion.update(slam.frames[0].pose, slam.frames[1].pose, dt);
 
