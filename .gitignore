@@ -52,3 +52,6 @@
 # Build directories
 build/
 
+# CodeQL analysis files
+_codeql_detected_source_root
+
