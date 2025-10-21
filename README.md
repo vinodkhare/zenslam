@@ -86,6 +86,7 @@ Installed via vcpkg (recommended). Core components require:
 * hello-imgui (GUI)
 * VTK (pulled indirectly by OpenCV viz)
 * Catch2 (tests)
+* nanoflann
 
 Example vcpkg install (adjust triplet, add --overlay-ports if needed):
 
@@ -98,7 +99,8 @@ Example vcpkg install (adjust triplet, add --overlay-ports if needed):
   'opencv[contrib,nonfree,vtk]' \
   spdlog \
   yaml-cpp \
-  catch2
+  catch2 \
+  nanoflann
 ```
 
 Ensure `CMAKE_TOOLCHAIN_FILE` points to your vcpkg toolchain when configuring.
