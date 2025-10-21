@@ -433,7 +433,9 @@ auto zenslam::utils::match_keypoints3d
     const point3d_cloud& points3d_world,
     const map<keypoint>& keypoints,
     const cv::Affine3d&  pose_of_camera0_in_world,
-    const double         radius
+    const cv::Matx34d&   projection,
+    const double         radius,
+    const double threshold
 ) -> std::vector<cv::DMatch>
 {
     if (points3d_world.empty() || keypoints.empty()) return std::vector<cv::DMatch> { };
@@ -501,15 +503,30 @@ auto zenslam::utils::match_keypoints3d
     ).match(descriptors3d, descriptors2d, matches_cv);
 
     // TODO: add reprojection filtering
-    std::vector<cv::DMatch> matches = { };
+    std::vector<cv::DMatch>  matches           = { };
+    std::vector<point3d> matched_points3d  = { };
+    std::vector<keypoint> matched_keypoints = { };
+
     for (const auto match: matches_cv)
     {
-        matches.emplace_back
-        (
-            points3d[match.queryIdx].index,
-            untriangulated[match.trainIdx].index,
-            match.distance
-        );
+        matched_points3d.emplace_back(points3d[match.queryIdx]);
+        matched_keypoints.emplace_back(untriangulated[match.trainIdx]);
+    }
+
+    const auto& projected = project(to_points(points3d), projection);
+    const auto& errors    = vecnorm(projected - to_points(matched_keypoints));
+
+    for (auto i = 0; i < matches_cv.size(); ++i)
+    {
+        if (errors[i] < threshold) // TODO: parameterize
+        {
+            matches.emplace_back
+            (
+                matched_points3d[i].index,
+                matched_keypoints[i].index,
+                matches_cv[i].distance
+            );
+        }
     }
 
     return matches;

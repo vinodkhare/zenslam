@@ -4,6 +4,7 @@
 #include <opencv2/core/types.hpp>
 #include <opencv2/viz/types.hpp>
 
+#include "map.h"
 
 namespace zenslam
 {
@@ -48,3 +49,4 @@ inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::poin
 
     return points3d_trans;
 }
+

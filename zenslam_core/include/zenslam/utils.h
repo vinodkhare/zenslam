@@ -11,6 +11,7 @@
 #include <spdlog/fmt/ostr.h>
 
 #include "keypoint.h"
+#include "point3d.h"
 #include "utils_std.h"
 
 
@@ -45,6 +46,13 @@ namespace zenslam::utils
     auto to_points(const std::vector<cv::KeyPoint>& keypoints) -> std::vector<cv::Point2f>;
     auto to_points(const std::vector<keypoint>& keypoints) -> std::vector<cv::Point2f>;
     auto to_points(const std::map<size_t, keypoint>& keypoints) -> std::vector<cv::Point2f>;
+
+    /**
+     * Convert a vector of zenslam::point3d to a vector of cv::Point3d
+     * @param points3d Input vector of zenslam::point3d
+     * @return Vector of cv::Point3d
+     */
+    auto to_points(const std::vector<point3d>& points3d) -> std::vector<cv::Point3d>;
 
     /**
      * Convert a 3x3 rotation matrix to Euler angles using ZYX (yaw-pitch-roll) convention

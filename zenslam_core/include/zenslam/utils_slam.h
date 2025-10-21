@@ -144,7 +144,9 @@ namespace zenslam::utils
      * @param points3d_world Map of 3D points in the world coordinate system
      * @param keypoints Map of 2D keypoints in the image
      * @param pose_of_camera0_in_world Affine transformation representing the camera pose in the world
+     * @param projection
      * @param radius Radius (in pixels) for matching projected 3D points to 2D keypoints
+     * @param threshold
      * @return Vector of cv::DMatch representing the matched 3D-2D correspondences
      */
     auto match_keypoints3d
@@ -152,7 +154,9 @@ namespace zenslam::utils
         const point3d_cloud& points3d_world,
         const map<keypoint>& keypoints,
         const cv::Affine3d&  pose_of_camera0_in_world,
-        double               radius
+        const cv::Matx34d&   projection,
+        double               radius,
+        double               threshold
     ) -> std::vector<cv::DMatch>;
 
     /**

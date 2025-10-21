@@ -109,6 +109,19 @@ auto zenslam::utils::to_points(const std::map<size_t, keypoint>& keypoints) -> s
     return points;
 }
 
+auto zenslam::utils::to_points(const std::vector<point3d>& points3d) -> std::vector<cv::Point3d>
+{
+    std::vector<cv::Point3d> points;
+    points.reserve(points3d.size());
+
+    for (const auto& point: points3d)
+    {
+        points.emplace_back(point);
+    }
+
+    return points;
+}
+
 auto zenslam::utils::matrix_to_euler(const cv::Matx33d& R) -> cv::Vec3d
 {
     // Handle singularity when cos(pitch) = 0 (gimbal lock case)

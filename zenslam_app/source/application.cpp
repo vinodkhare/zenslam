@@ -67,8 +67,7 @@ void zenslam::application::render()
             _viewer = std::make_unique<cv::viz::Viz3d>("3D Points");
 
             _viewer->setBackgroundColor();
-            _viewer->setWindowPosition(cv::Point(700, 100));
-            _viewer->setWindowSize(cv::Size(1024, 1024));
+            _viewer->setWindowSize(cv::Size(1024, 1024));   // TODO: make this configurable
         }
         else if (!slam.points3d.empty())
         {
@@ -83,7 +82,7 @@ void zenslam::application::render()
             );
 
             camera_position.setColor(cv::viz::Color::red());
-            _viewer->showWidget("camera", camera_position);
+            _viewer->showWidget("camera", camera_position);     // TODO: fix camera size
             _viewer->setWidgetPose("camera", slam.frames[1].pose);
 
             cv::viz::WCameraPosition camera_gt
@@ -101,16 +100,19 @@ void zenslam::application::render()
             _viewer->showWidget("cloud", cv::viz::WCloud(points));
             _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);
 
-            for (const auto& line: slam.lines3d | std::views::values)
+            if (_options.slam.show_keylines)
             {
-                if (!_line_indices.contains(line.index))
+                for (const auto& line: slam.lines3d | std::views::values)
                 {
-                    _merger.addWidget(cv::viz::WLine(line[0], line[1], cv::viz::Color::green()));
-                    _line_indices.insert(line.index);
+                    if (!_line_indices.contains(line.index))
+                    {
+                        _merger.addWidget(cv::viz::WLine(line[0], line[1], cv::viz::Color::green()));
+                        _line_indices.insert(line.index);
+                    }
                 }
-            }
 
-            _viewer->showWidget("merger", _merger);
+                _viewer->showWidget("merger", _merger);
+            }
 
             _viewer->spinOnce(0);
         }

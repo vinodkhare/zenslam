@@ -42,7 +42,7 @@ void zenslam::slam_thread::loop()
 {
     const auto& calibration   = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file);
     const auto& stereo_reader = stereo_folder_reader(_options.folder);
-    const auto& clahe         = cv::createCLAHE();
+    const auto& clahe         = cv::createCLAHE(2.0);   // TODO: make configurable
     const auto& detector      = grid_detector::create(_options.slam);
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
@@ -78,6 +78,7 @@ void zenslam::slam_thread::loop()
                 slam.frames[1] = utils::pre_process(slam.frames[1], calibration.cameras, _options.slam, clahe);
             }
 
+            // TODO: separate keyline and keypoints pipelines
             // TRACK
             {
                 time_this time_this { slam.durations.tracking };
@@ -149,10 +150,26 @@ void zenslam::slam_thread::loop()
                         slam.points3d,
                         slam.frames[1].cameras[0].keypoints,
                         slam.frames[1].pose,
-                        _options.slam.triangulation_max_depth
+                        calibration.cameras[0].projection(slam.frames[1].pose),
+                        _options.slam.triangulation_max_depth,
+                        _options.slam.triangulation_reprojection_threshold
                     );
 
                     slam.frames[1].cameras[0].keypoints *= matches3d;
+                }
+
+                {
+                    const auto& matches3d = utils::match_keypoints3d
+                    (
+                        slam.points3d,
+                        slam.frames[1].cameras[1].keypoints,
+                        slam.frames[1].pose,
+                        calibration.cameras[0].projection(slam.frames[1].pose),
+                        _options.slam.triangulation_max_depth,
+                        _options.slam.triangulation_reprojection_threshold
+                    );
+
+                    slam.frames[1].cameras[1].keypoints *= matches3d;
                 }
 
 

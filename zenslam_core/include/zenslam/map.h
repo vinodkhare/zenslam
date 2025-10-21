@@ -222,8 +222,11 @@ namespace zenslam
     {
         for (const auto& [index, item]: other)
         {
-            if (!this->contains(item.index)) this->_indices.push_back(item.index);
-            this->operator[](item.index) = item;
+            if (!this->contains(item.index))
+            {
+                this->_indices.push_back(item.index);
+                this->operator[](item.index) = item;
+            }
         }
     }
 
