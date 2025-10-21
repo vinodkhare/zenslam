@@ -202,18 +202,19 @@ Notes:
 
 Extended docs live in `zenslam_docs/`:
 
-| Topic                                                    | Summary                                                    |
-|----------------------------------------------------------|------------------------------------------------------------|
-| [Overview](zenslam_docs/overview.md)                     | High-level architecture & data flow                        |
-| [Calibration](zenslam_docs/calibration.md)               | Parsing Kalibr YAML, intrinsics, projection, F computation |
-| [IMU Calibration](zenslam_docs/imu_calibration.md)       | IMU noise parameters & integration with options system     |
-| [Feature Pipeline](zenslam_docs/feature_pipeline.md)     | Grid-based detection + descriptor backends                 |
-| [Stereo Matching](zenslam_docs/stereo_matching.md)       | Descriptor matching strategy & future improvements         |
-| [Epipolar Filtering](zenslam_docs/epipolar_filtering.md) | Geometric pruning via fundamental matrix distances         |
-| [Triangulation](zenslam_docs/triangulation.md)           | 3D reconstruction from filtered correspondences            |
-| [Tracking](zenslam_docs/tracking.md)                     | Temporal KLT plans & persistent tracks roadmap             |
-| [Roadmap](zenslam_docs/roadmap.md)                       | Short / medium / long-term goals                           |
-| [Build System](zenslam_docs/build_system.md)             | CMake, dependencies, dev environment                       |
+| Topic                                                                        | Summary                                                    |
+|------------------------------------------------------------------------------|------------------------------------------------------------|
+| [Overview](zenslam_docs/overview.md)                                         | High-level architecture & data flow                        |
+| [Calibration](zenslam_docs/calibration.md)                                   | Parsing Kalibr YAML, intrinsics, projection, F computation |
+| [IMU Calibration](zenslam_docs/imu_calibration.md)                           | IMU noise parameters & integration with options system     |
+| [Feature Pipeline](zenslam_docs/feature_pipeline.md)                         | Grid-based detection + descriptor backends                 |
+| [Line Segment Libraries](zenslam_docs/line_segment_libraries_research.md)    | Research on C++ line detection libraries & alternatives    |
+| [Stereo Matching](zenslam_docs/stereo_matching.md)                           | Descriptor matching strategy & future improvements         |
+| [Epipolar Filtering](zenslam_docs/epipolar_filtering.md)                     | Geometric pruning via fundamental matrix distances         |
+| [Triangulation](zenslam_docs/triangulation.md)                               | 3D reconstruction from filtered correspondences            |
+| [Tracking](zenslam_docs/tracking.md)                                         | Temporal KLT plans & persistent tracks roadmap             |
+| [Roadmap](zenslam_docs/roadmap.md)                                           | Short / medium / long-term goals                           |
+| [Build System](zenslam_docs/build_system.md)                                 | CMake, dependencies, dev environment                       |
 
 These documents are evolving—contributions and corrections are welcome.
 
