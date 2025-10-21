@@ -145,6 +145,26 @@ void zenslam::utils::draw_line_matches
                 cv::LINE_AA
             );
 
+            line
+            (
+                outImg,
+                cv::Point2f(left.startPointX, left.startPointY),
+                cv::Point2f(right.startPointX + gsl::narrow<float>(offset), right.startPointY),
+                singleLineColorRGB,
+                lineThickness,
+                cv::LINE_AA
+            );
+
+            line
+            (
+                outImg,
+                cv::Point2f(left.endPointX, left.endPointY),
+                cv::Point2f(right.endPointX + gsl::narrow<float>(offset), right.endPointY),
+                singleLineColorRGB,
+                lineThickness,
+                cv::LINE_AA
+            );
+
             /* link correspondent lines */
             line
             (

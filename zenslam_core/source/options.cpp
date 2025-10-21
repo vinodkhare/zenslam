@@ -92,7 +92,7 @@ namespace
         const std::map<std::string, boost::program_options::basic_option<char>>& options_map,
         const boost::program_options::variables_map&                             vm,
         const std::string_view                                                   key,
-        std::filesystem::path&                                                  out
+        std::filesystem::path&                                                   out
     )
     {
         const auto k  = std::string(key);
@@ -216,6 +216,11 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     set_if_provided(options_map, map, "show-keypoints", options.slam.show_keypoints);
     set_if_provided(options_map, map, "show-keylines", options.slam.show_keylines);
     set_if_provided(options_map, map, "keyline-thickness", options.slam.keyline_thickness);
+    set_if_provided(options_map, map, "triangulation-min-disparity", options.slam.triangulation_min_disparity);
+    set_if_provided(options_map, map, "triangulation-min-angle", options.slam.triangulation_min_angle);
+    set_if_provided(options_map, map, "triangulation-reprojection-threshold", options.slam.triangulation_reprojection_threshold);
+    set_if_provided(options_map, map, "triangulation-min-depth", options.slam.triangulation_min_depth);
+    set_if_provided(options_map, map, "triangulation-max-depth", options.slam.triangulation_max_depth);
     set_color_if_provided(options_map, map, "keyline-single-color", options.slam.keyline_single_color);
     set_color_if_provided(options_map, map, "keyline-match-color", options.slam.keyline_match_color);
     set_enum_if_provided(options_map, map, "feature", options.slam.feature);
@@ -269,6 +274,9 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
             yaml_set_color(slam, "keyline_single_color", options.slam.keyline_single_color);
             yaml_set_color(slam, "keyline_match_color", options.slam.keyline_match_color);
             yaml_set_if_present(slam, "keyline_thickness", options.slam.keyline_thickness);
+            yaml_set_if_present(slam, "triangulation_min_disparity", options.slam.triangulation_min_disparity);
+            yaml_set_if_present(slam, "triangulation_min_angle", options.slam.triangulation_min_angle);
+            yaml_set_if_present(slam, "triangulation_reprojection_threshold", options.slam.triangulation_reprojection_threshold);
         }
     }
     catch (const YAML::Exception& e)
@@ -455,6 +463,21 @@ boost::program_options::options_description zenslam::options::slam::description(
         "keyline-thickness",
         boost::program_options::value<int>()->default_value(opts_default.slam.keyline_thickness),
         "Keyline line thickness (pixels)"
+    )
+    (
+        "keyline-min-disparity-px",
+        boost::program_options::value<double>()->default_value(opts_default.slam.triangulation_min_disparity),
+        "Keyline min average disparity across endpoints (pixels)"
+    )
+    (
+        "keyline-min-triangulation-angle-deg",
+        boost::program_options::value<double>()->default_value(opts_default.slam.triangulation_min_angle),
+        "Keyline min triangulation angle at endpoints (degrees)"
+    )
+    (
+        "triangulation_reprojection_threshold",
+        boost::program_options::value<double>()->default_value(opts_default.slam.triangulation_reprojection_threshold),
+        "Keyline max average reprojection error across endpoints (pixels)"
     );
 
     return desc;
@@ -464,7 +487,10 @@ void zenslam::options::slam::validate() const
 {
     if (keyline_thickness < 1) throw std::invalid_argument("slam.keyline_thickness must be >= 1");
     if (epipolar_threshold < 0.0) throw std::invalid_argument("slam.epipolar_threshold must be >= 0");
-    if (min_depth <= 0.0 || max_depth <= 0.0 || min_depth >= max_depth)
+    if (triangulation_min_disparity < 0.0) throw std::invalid_argument("slam.keyline_min_disparity_px must be >= 0");
+    if (triangulation_min_angle < 0.0) throw std::invalid_argument("slam.keyline_min_triangulation_angle_deg must be >= 0");
+    if (triangulation_reprojection_threshold <= 0.0) throw std::invalid_argument("slam.triangulation_reprojection_threshold must be > 0");
+    if (triangulation_min_depth <= 0.0 || triangulation_max_depth <= 0.0 || triangulation_min_depth >= triangulation_max_depth)
         throw std::invalid_argument
                 ("slam depth range invalid: ensure 0 < min_depth < max_depth");
     if (klt_window_size.width <= 0 || klt_window_size.height <= 0) throw std::invalid_argument("slam.klt_window_size must be positive");
@@ -488,6 +514,9 @@ void zenslam::options::slam::print() const
     SPDLOG_INFO("keyline single color (BGR): [{}, {}, {}]", keyline_single_color[0], keyline_single_color[1], keyline_single_color[2]);
     SPDLOG_INFO("keyline match color  (BGR): [{}, {}, {}]", keyline_match_color[0], keyline_match_color[1], keyline_match_color[2]);
     SPDLOG_INFO("keyline thickness: {}", keyline_thickness);
+    SPDLOG_INFO("keyline min disparity (px): {}", triangulation_min_disparity);
+    SPDLOG_INFO("keyline min triangulation angle (deg): {}", triangulation_min_angle);
+    SPDLOG_INFO("keyline reprojection threshold (px): {}", triangulation_reprojection_threshold);
 }
 
 void zenslam::options::validate() const

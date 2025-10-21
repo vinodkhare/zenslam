@@ -279,6 +279,7 @@ namespace zenslam::utils
      * @param projection_0 3x4 projection matrix for left camera
      * @param projection_1 3x4 projection matrix for right camera
      * @param triangulation_threshold Maximum allowable reprojection error
+     * @param translation_of_camera1_in_camera0
      * @return Map from keypoint index to triangulated 3D point
      */
     auto triangulate_keypoints
@@ -287,7 +288,8 @@ namespace zenslam::utils
         const map<keypoint>& keypoints_1,
         const cv::Matx34d&   projection_0,
         const cv::Matx34d&   projection_1,
-        double               triangulation_threshold
+        double               triangulation_threshold,
+        const cv::Vec3d&     translation_of_camera1_in_camera0
     ) -> std::vector<point3d>;
 
     /**
@@ -295,19 +297,21 @@ namespace zenslam::utils
      * For each keyline index present in both maps, triangulate the two endpoints;
      * the returned line3d stores just the 3D endpoints (no separate midpoint).
      *
-     * @param keylines_l Map of keylines in left image
-     * @param keylines_r Map of keylines in right image
-     * @param P_l 3x4 projection matrix for left camera
-     * @param P_r 3x4 projection matrix for right camera
+     * @param keylines_0 Map of keylines in left image
+     * @param keylines_1 Map of keylines in right image
+     * @param projection_0 3x4 projection matrix for left camera
+     * @param projection_1 3x4 projection matrix for right camera
+     * @param translation_of_camera1_in_camera0
      * @return Vector of 3D line segments with original keyline indices
      */
     auto triangulate_keylines
     (
-        const map<keyline>& keylines_l,
-        const map<keyline>& keylines_r,
-        const cv::Matx34d&  P_l,
-        const cv::Matx34d&  P_r,
-        const class options::slam& options
+        const map<keyline>&        keylines_0,
+        const map<keyline>&        keylines_1,
+        const cv::Matx34d&         projection_0,
+        const cv::Matx34d&         projection_1,
+        const class options::slam& options,
+        const cv::Vec3d&           translation_of_camera1_in_camera0
     ) -> std::vector<line3d>;
 
     /** Triangulate 3D points from matched 2D keypoints in stereo images.

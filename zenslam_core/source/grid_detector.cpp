@@ -248,6 +248,12 @@ namespace zenslam
         std::vector<keyline> keylines { };
         for (size_t i = 0; i < keylines_cv.size(); ++i)
         {
+            if (keylines_cv[i].startPointY > keylines_cv[i].endPointY)
+            {
+                std::swap(keylines_cv[i].startPointX, keylines_cv[i].endPointX);
+                std::swap(keylines_cv[i].startPointY, keylines_cv[i].endPointY);
+            }
+
             keylines.emplace_back(keylines_cv[i], keyline::index_next);
             if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows)) keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
             keyline::index_next++;

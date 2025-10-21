@@ -66,7 +66,7 @@ void zenslam::application::render()
         {
             _viewer = std::make_unique<cv::viz::Viz3d>("3D Points");
 
-            _viewer->setBackgroundColor(cv::viz::Color::white());
+            _viewer->setBackgroundColor();
             _viewer->setWindowPosition(cv::Point(700, 100));
             _viewer->setWindowSize(cv::Size(1024, 1024));
         }
@@ -101,14 +101,14 @@ void zenslam::application::render()
             _viewer->showWidget("cloud", cv::viz::WCloud(points));
             _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);
 
-            for (const auto& [index, line]: slam.lines3d)
+            cv::viz::WWidgetMerger merger;
+
+            for (const auto& line: slam.lines3d | std::views::values)
             {
-                _viewer->showWidget
-                (
-                    "line_" + std::to_string(index),
-                    cv::viz::WLine(line[0], line[1], cv::viz::Color::green())
-                );
+                merger.addWidget(cv::viz::WLine(line[0], line[1], cv::viz::Color::green()));
             }
+
+            _viewer->showWidget("merger", merger);
 
             _viewer->spinOnce(0, true);
         }

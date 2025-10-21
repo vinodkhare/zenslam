@@ -24,5 +24,5 @@ target_link_libraries(imu_calibration_test PRIVATE zenslam_core Catch2::Catch2Wi
 add_test(NAME imu_calibration_test COMMAND imu_calibration_test)
 
 add_executable(options_test source/options_test.cpp)
-target_link_libraries(options_test PRIVATE zenslam_core Catch2::Catch2WithMain)
+target_link_libraries(options_test PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_imgproc)
 add_test(NAME options_test COMMAND options_test)

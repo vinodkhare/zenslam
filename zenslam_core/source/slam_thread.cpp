@@ -51,7 +51,7 @@ void zenslam::slam_thread::loop()
 
     calibration.print();
 
-    zenslam::frame::slam slam { };
+    frame::slam slam { };
 
     for (auto f: stereo_reader)
     {
@@ -160,7 +160,8 @@ void zenslam::slam_thread::loop()
                     slam.frames[1].cameras[1].keypoints,
                     calibration.projection_matrix[0],
                     calibration.projection_matrix[1],
-                    _options.slam.triangulation_threshold
+                    _options.slam.triangulation_reprojection_threshold,
+                    calibration.cameras[1].pose_in_cam0.translation()
                 );
 
                 slam.counts.maches_triangulated = slam.frames[1].points3d.size();
@@ -179,7 +180,8 @@ void zenslam::slam_thread::loop()
                     slam.frames[1].cameras[1].keylines,
                     calibration.projection_matrix[0],
                     calibration.projection_matrix[1],
-                    _options.slam
+                    _options.slam,
+                    calibration.cameras[1].pose_in_cam0.translation()
                 );
             }
 

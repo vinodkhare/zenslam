@@ -30,8 +30,8 @@ TEST_CASE("Options validation", "[options]")
     SECTION("Invalid depth range throws")
     {
         auto opts = options{};
-        opts.slam.min_depth = 5.0;
-        opts.slam.max_depth = 2.0;
+        opts.slam.triangulation_min_depth = 5.0;
+        opts.slam.triangulation_max_depth = 2.0;
         REQUIRE_THROWS_AS(opts.slam.validate(), std::invalid_argument);
     }
 

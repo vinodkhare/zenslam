@@ -3,7 +3,6 @@
 #include <filesystem>
 
 #include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
 
 #include <opencv2/core/types.hpp>
 
@@ -53,26 +52,37 @@ namespace zenslam
             // Returns the options description for SLAM-related CLI options
             static options_description description();
 
-            bool            clahe_enabled         = { false };
-            cv::Size        cell_size             = { 16, 16 };
-            feature_type    feature               = { feature_type::FAST };
-            descriptor_type descriptor            = { descriptor_type::ORB };
-            int             fast_threshold        = { 10 };
-            cv::Size        klt_window_size       = { 31, 31 };
-            int             klt_max_level         = { 3 };
-            double          klt_threshold         = { 1.0 };
-            double          min_depth             = { 1.0 };  // in meters
-            double          max_depth             = { 50.0 }; // in meters
-            double          epipolar_threshold    = { 1.0 };
-            double          triangulation_threshold = { 1.0 };   // in pixels
-            double          threshold_3d3d        = { 0.005 }; // in meters - for 3D-3D RANSAC pose estimation
-            double          threshold_3d2d        = { 1.0 };   // in pixels - for 3D-2D RANSAC pose estimation
-            bool            show_keypoints        = { true };  // show keypoints in visualization
-            bool            show_keylines         = { true };  // show keylines in visualization
+            bool            clahe_enabled   = { false };
+            cv::Size        cell_size       = { 16, 16 };
+            feature_type    feature         = { feature_type::FAST };
+            descriptor_type descriptor      = { descriptor_type::ORB };
+            int             fast_threshold  = { 10 };
+            cv::Size        klt_window_size = { 31, 31 };
+            int             klt_max_level   = { 3 };
+            double          klt_threshold   = { 1.0 };
+
+            double epipolar_threshold = { 1.0 };
+            double threshold_3d3d     = { 0.005 }; // in meters - for 3D-3D RANSAC pose estimation
+            double threshold_3d2d     = { 1.0 };   // in pixels - for 3D-2D RANSAC pose estimation
+            bool   show_keypoints     = { true };  // show keypoints in visualization
+            bool   show_keylines      = { true };  // show keylines in visualization
+
             // Visualization options for keylines
-            cv::Scalar      keyline_single_color  = { 0, 255, 0 };   // default green (BGR)
-            cv::Scalar      keyline_match_color   = { 0, 0, 255 };   // default red (BGR)
-            int             keyline_thickness     = { 1 };           // line thickness in pixels
+            cv::Scalar keyline_single_color = { 0, 255, 0 }; // default green (BGR)
+            cv::Scalar keyline_match_color  = { 0, 0, 255 }; // default red (BGR)
+            int        keyline_thickness    = { 1 };         // line thickness in pixels
+
+            // Keyline triangulation thresholds (configurable; previously hard-coded)
+            // Minimum acceptable average disparity between matched endpoints (pixels)
+            double triangulation_min_disparity = { 2.0 };
+            // Minimum acceptable triangulation angle at endpoints (degrees)
+            double triangulation_min_angle = { 15 };
+            // Maximum allowable reprojection error after triangulation (pixels)
+            double triangulation_reprojection_threshold = { 1.0 }; // in pixels
+            // Valid depth range for triangulated keylines (meters)
+            double triangulation_min_depth = { 1.0 }; // in meters
+            // Maximum depth for triangulated keylines (meters)
+            double triangulation_max_depth = { 50.0 }; // in meters
 
             void validate() const;
             void print() const;
