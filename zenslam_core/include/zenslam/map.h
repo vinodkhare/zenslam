@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <map>
 #include <ranges>
+#include <set>
 #include <vector>
 
 #include <opencv2/core/types.hpp>
@@ -51,6 +52,13 @@ namespace zenslam
          */
         auto values_matched(const map& other) const -> auto;
 
+        /** get all values that do not have matching keys in another map
+         *
+         * @param other another map to match keys against
+         * @return a view of all values without matching keys
+         */
+        auto values_unmatched(const map& other) const -> auto;
+
         /** get all values that have matching keys in another map of different type
          *
          * @tparam S type of the other map, S must also be indexable
@@ -60,11 +68,20 @@ namespace zenslam
         template <indexable S>
         auto values_matched(const map<S>& other) const -> auto;
 
+        /** get all values that do not have matching keys in another map of different type
+         *
+         * @tparam S type of the other map, S must also be indexable
+         * @param other another map to match keys against
+         * @return a view of all values without matching keys
+         */
+        template <indexable S>
+        auto values_unmatched(const map<S>& other) const -> auto;
+
         template <typename T_SLICE>
         auto values_sliced(const std::function<T_SLICE(const T&)>& slice_function) const -> auto;
 
         // ordered element access
-        auto operator()(size_t i) const -> const T&;               // get item by insertion order
+        auto operator()(size_t i) const -> const T&; // get item by insertion order
 
         // add items
         auto operator+=(const T& item) -> void;                    // add item to map
@@ -123,6 +140,18 @@ namespace zenslam
     }
 
     template <indexable T>
+    auto map<T>::values_unmatched(const map& other) const -> auto
+    {
+        return *this | std::views::values | std::views::filter
+               (
+                   [&other](const auto& item)
+                   {
+                       return !other.contains(item.index);
+                   }
+               );
+    }
+
+    template <indexable T>
     template <indexable S>
     auto map<T>::values_matched(const map<S>& other) const -> auto
     {
@@ -131,6 +160,19 @@ namespace zenslam
                    [&other](const auto& item)
                    {
                        return other.contains(item.index);
+                   }
+               );
+    }
+
+    template <indexable T>
+    template <indexable S>
+    auto map<T>::values_unmatched(const map<S>& other) const -> auto
+    {
+        return *this | std::views::values | std::views::filter
+               (
+                   [&other](const auto& item)
+                   {
+                       return !other.contains(item.index);
                    }
                );
     }
@@ -145,14 +187,14 @@ namespace zenslam
     template <indexable T>
     auto map<T>::operator()(const size_t i) const -> const T&
     {
-        return this->at(this->_indices.at(i));
+        return this->at(this->_indices[i]);
     }
 
     template <indexable T>
     auto map<T>::operator+=(const T& item) -> void
     {
+        if (!this->contains(item.index)) this->_indices.push_back(item.index);
         this->operator[](item.index) = item;
-        this->_indices.push_back(item.index);
     }
 
     template <indexable T>
@@ -160,8 +202,8 @@ namespace zenslam
     {
         for (const auto& item: items)
         {
+            if (!this->contains(item.index)) this->_indices.push_back(item.index);
             this->operator[](item.index) = item;
-            this->_indices.push_back(item.index);
         }
     }
 
@@ -170,8 +212,8 @@ namespace zenslam
     {
         for (const auto& [index, item]: other)
         {
+            if (!this->contains(item.index)) this->_indices.push_back(item.index);
             this->operator[](item.index) = item;
-            this->_indices.push_back(item.index);
         }
     }
 
@@ -180,8 +222,8 @@ namespace zenslam
     {
         for (const auto& [index, item]: other)
         {
+            if (!this->contains(item.index)) this->_indices.push_back(item.index);
             this->operator[](item.index) = item;
-            this->_indices.push_back(item.index);
         }
     }
 

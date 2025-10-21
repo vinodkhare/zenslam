@@ -44,6 +44,24 @@ namespace zenslam
             return false;
         }
 
+        // Additional helper methods
+        auto radius_search(const point3d& query_point, const double radius) const -> std::vector<point3d>
+        {
+            std::vector<nanoflann::ResultItem<unsigned>> matches;
+
+            const auto count = this->radiusSearch(&query_point.x, radius * radius, matches);
+
+            std::vector<point3d> points_found;
+            points_found.reserve(count);
+
+            for (auto i = 0; i < count; i++)
+            {
+                points_found.emplace_back(this->operator()(i));
+            }
+
+            return points_found;
+        }
+
         [[nodiscard]] auto size() const -> size_t
         {
             return map::size();

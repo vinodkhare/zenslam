@@ -9,10 +9,13 @@
 #include <gsl/narrow>
 
 #include <opencv2/calib3d.hpp>
-#include <opencv2/video/tracking.hpp>
 #include <opencv2/core/types.hpp>
+#include <opencv2/video/tracking.hpp>
 
 #include <spdlog/spdlog.h>
+
+#include "point3d.h"
+#include "point3d_cloud.h"
 
 #include "zenslam/pose_data.h"
 #include "zenslam/utils.h"
@@ -423,6 +426,93 @@ auto zenslam::utils::match_keypoints
     }
 
     return matches_new;
+}
+
+auto zenslam::utils::match_keypoints3d
+(
+    const point3d_cloud& points3d_world,
+    const map<keypoint>& keypoints,
+    const cv::Affine3d&  pose_of_camera0_in_world,
+    const double         radius
+) -> std::vector<cv::DMatch>
+{
+    if (points3d_world.empty() || keypoints.empty()) return std::vector<cv::DMatch> { };
+
+    // find keypoints that are not triangulated
+    const auto& untriangulated = keypoints.values_unmatched(points3d_world) | std::ranges::to<std::vector>();
+
+    if (untriangulated.empty()) return std::vector<cv::DMatch> { };
+
+    const auto& points3d = pose_of_camera0_in_world.inv() * points3d_world.radius_search
+                           (
+                               static_cast<point3d>(pose_of_camera0_in_world.translation()),
+                               radius
+                           )
+                           | std::views::filter // TODO: add frustum filtering
+                           (
+                               [](const auto& p3d)
+                               {
+                                   return p3d.z > 0.0;
+                               }
+                           )
+                           | std::ranges::to<std::vector>();
+
+    if (points3d.empty()) return std::vector<cv::DMatch> { };
+
+    cv::Mat descriptors3d = { };
+    cv::vconcat
+    (
+        points3d
+        | std::views::transform
+        (
+            [](const auto& kp)
+            {
+                return kp.descriptor;
+            }
+        )
+        | std::ranges::to<std::vector>(),
+
+        descriptors3d // output
+    );
+
+    cv::Mat descriptors2d = { };
+    cv::vconcat
+    (
+        untriangulated
+        | std::views::transform
+        (
+            [](const auto& keypoint)
+            {
+                return keypoint.descriptor;
+            }
+        )
+        | std::ranges::to<std::vector>(),
+
+        descriptors2d // output
+    );
+
+    if (descriptors3d.empty() || descriptors2d.empty()) return std::vector<cv::DMatch> { };
+
+    std::vector<cv::DMatch> matches_cv = { };
+    cv::BFMatcher
+    (
+        descriptors3d.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2,
+        true
+    ).match(descriptors3d, descriptors2d, matches_cv);
+
+    // TODO: add reprojection filtering
+    std::vector<cv::DMatch> matches = { };
+    for (const auto match: matches_cv)
+    {
+        matches.emplace_back
+        (
+            points3d[match.queryIdx].index,
+            untriangulated[match.trainIdx].index,
+            match.distance
+        );
+    }
+
+    return matches;
 }
 
 auto zenslam::utils::match_keylines
@@ -969,8 +1059,15 @@ auto zenslam::utils::triangulate_keypoints
 
     const auto& points3d_cv = triangulate_points(points2f_0, points2f_1, projection_0, projection_1);
     const auto& indices     = keypoints_0.keys_matched(keypoints_1) | std::ranges::to<std::vector>();
+    const auto& descriptors = keypoints_0.values_matched(keypoints_1) | std::views::transform
+                              (
+                                  [](const keypoint& kp)
+                                  {
+                                      return kp.descriptor;
+                                  }
+                              ) | std::ranges::to<std::vector>();
 
-    const auto& points3d_all = point3d::create(points3d_cv, indices);
+    const auto& points3d_all = point3d::create(points3d_cv, indices, descriptors);
 
     // Reproject points to compute reprojection error
     const auto& points2f_0_back = project(points3d_cv, projection_0);
@@ -1053,10 +1150,10 @@ auto zenslam::utils::triangulate_keylines
     std::vector<double> ang;
     for (auto i = 0; i < points3d_cv_0.size(); ++i)
     {
-        auto vector_0 = (points3d_cv_0[i] + points3d_cv_1[i]) / 2.0;
-        auto vector_1 = (points3d_cv_0[i] - points3d_cv_1[i]);
+        auto       vector_0  = (points3d_cv_0[i] + points3d_cv_1[i]) / 2.0;
+        auto       vector_1  = (points3d_cv_0[i] - points3d_cv_1[i]);
         const auto norm_prod = cv::norm(vector_0) * cv::norm(vector_1);
-        auto angle = norm_prod < 1e-12 ? 0.0 : std::abs(std::acos(std::clamp(vector_0.dot(vector_1) / norm_prod, -1.0, 1.0))) * 180 / CV_PI;
+        auto       angle     = norm_prod < 1e-12 ? 0.0 : std::abs(std::acos(std::clamp(vector_0.dot(vector_1) / norm_prod, -1.0, 1.0))) * 180 / CV_PI;
         ang.push_back(angle);
     }
 
@@ -1073,7 +1170,7 @@ auto zenslam::utils::triangulate_keylines
             angles_1[i] > 0.25 && angles_1[i] < (180 - 0.25) &&
             ang[i] > 45.0 && ang[i] < 135.0)
         {
-            lines3d.emplace_back(std::array{points3d_cv_0[i], points3d_cv_1[i]}, indices_0[i]);
+            lines3d.emplace_back(std::array { points3d_cv_0[i], points3d_cv_1[i] }, indices_0[i]);
         }
     }
 

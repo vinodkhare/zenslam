@@ -10,6 +10,7 @@
 #include "line3d.h"
 #include "options.h"
 #include "point3d.h"
+#include "point3d_cloud.h"
 #include "pose_data.h"
 
 #include "frame/stereo.h"
@@ -27,18 +28,6 @@ inline auto operator-(const std::vector<cv::Point2d>& lhs, const std::vector<cv:
     return difference;
 }
 
-inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::point3d>& points3d) -> zenslam::map<zenslam::point3d>
-{
-    zenslam::map<zenslam::point3d> lines3d_trans { };
-
-    for (const auto& point3d: points3d | std::views::values)
-    {
-        lines3d_trans[point3d.index]       = pose * point3d;
-        lines3d_trans[point3d.index].index = point3d.index;
-    }
-
-    return lines3d_trans;
-}
 
 inline auto operator*(const cv::Affine3d& pose, const zenslam::line3d& line) -> zenslam::line3d
 {
@@ -146,6 +135,24 @@ namespace zenslam::utils
         const map<keypoint>& map_keypoints_r,
         const cv::Matx33d&   fundamental,
         double               epipolar_threshold
+    ) -> std::vector<cv::DMatch>;
+
+    /**
+     * Match 3D points to 2D keypoints by projecting the 3D points into the camera frame
+     * and finding keypoints within a specified radius.
+     *
+     * @param points3d_world Map of 3D points in the world coordinate system
+     * @param keypoints Map of 2D keypoints in the image
+     * @param pose_of_camera0_in_world Affine transformation representing the camera pose in the world
+     * @param radius Radius (in pixels) for matching projected 3D points to 2D keypoints
+     * @return Vector of cv::DMatch representing the matched 3D-2D correspondences
+     */
+    auto match_keypoints3d
+    (
+        const point3d_cloud& points3d_world,
+        const map<keypoint>& keypoints,
+        const cv::Affine3d&  pose_of_camera0_in_world,
+        double               radius
     ) -> std::vector<cv::DMatch>;
 
     /**
@@ -342,5 +349,4 @@ namespace zenslam::utils
     ) -> void;
 
     auto undistort(const cv::Mat& image, const camera_calibration& calibration) -> cv::Mat;
-
 }

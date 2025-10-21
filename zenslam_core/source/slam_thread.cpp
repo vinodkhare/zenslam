@@ -142,6 +142,20 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.matching };
 
+                // find keypoints that are not triangulated
+                {
+                    const auto& matches3d = utils::match_keypoints3d
+                    (
+                        slam.points3d,
+                        slam.frames[1].cameras[0].keypoints,
+                        slam.frames[1].pose,
+                        _options.slam.triangulation_max_depth
+                    );
+
+                    slam.frames[1].cameras[0].keypoints *= matches3d;
+                }
+
+
                 auto matches = utils::match_keypoints
                 (
                     slam.frames[1].cameras[0].keypoints,
@@ -227,8 +241,8 @@ void zenslam::slam_thread::loop()
             slam.counts.correspondences_3d2d_inliers = pose_data_3d2d.inliers.size();
             slam.counts.correspondences_3d3d_inliers = pose_data_3d3d.inliers.size();
 
-            const double err3d3d_mean = zenslam::utils::mean(pose_data_3d3d.errors);
-            const double err3d2d_mean = zenslam::utils::mean(pose_data_3d2d.errors);
+            const auto err3d3d_mean = utils::mean(pose_data_3d3d.errors);
+            const auto err3d2d_mean = utils::mean(pose_data_3d2d.errors);
             SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
             SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
 
@@ -245,6 +259,8 @@ void zenslam::slam_thread::loop()
 
             slam.points3d += slam.frames[1].pose * slam.frames[1].points3d;
             slam.lines3d += slam.frames[1].pose * slam.frames[1].lines3d;
+
+            slam.points3d.buildIndex();
 
             slam.counts.points = slam.points3d.size();
 
