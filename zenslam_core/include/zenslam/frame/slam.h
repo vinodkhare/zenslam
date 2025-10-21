@@ -3,7 +3,7 @@
 #include <array>
 #include <vector>
 
-#include "zenslam/point3d.h"
+#include "zenslam/point3d_cloud.h"
 #include "zenslam/frame/counts.h"
 #include "zenslam/frame/durations.h"
 #include "zenslam/frame/stereo.h"
@@ -14,7 +14,7 @@ namespace zenslam::frame
     {
     public:
         std::array<stereo, 2>  frames    = { };
-        map<point3d>           points3d  = { };
+        point3d_cloud          points3d  = { };
         map<line3d>            lines3d   = { };
         std::vector<cv::Vec3b> colors    = { };
         durations              durations = { };

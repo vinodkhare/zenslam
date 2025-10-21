@@ -13,13 +13,24 @@ namespace zenslam
         point3d_cloud() :
             KDTreeSingleIndexAdaptor { 3, *this } {}
 
+        point3d_cloud(const point3d_cloud& other) :
+            map(other),
+            KDTreeSingleIndexAdaptor { 3, *this } {}
+
+        auto operator=(const point3d_cloud& other) -> point3d_cloud&
+        {
+            // copy
+            map::operator=(other);
+            return *this;
+        }
+
         // Must have these methods for nanoflann
-        size_t kdtree_get_point_count() const
+        [[nodiscard]] size_t kdtree_get_point_count() const
         {
             return map::size();
         }
 
-        double kdtree_get_pt(const size_t idx, const size_t dim) const
+        [[nodiscard]] double kdtree_get_pt(const size_t idx, const size_t dim) const
         {
             if (dim == 0) return this->operator()(idx).x;
             if (dim == 1) return this->operator()(idx).y;
@@ -31,6 +42,11 @@ namespace zenslam
         bool kdtree_get_bbox(BBOX&) const
         {
             return false;
+        }
+
+        [[nodiscard]] auto size() const -> size_t
+        {
+            return map::size();
         }
     };
 }
