@@ -101,16 +101,18 @@ void zenslam::application::render()
             _viewer->showWidget("cloud", cv::viz::WCloud(points));
             _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);
 
-            cv::viz::WWidgetMerger merger;
-
             for (const auto& line: slam.lines3d | std::views::values)
             {
-                merger.addWidget(cv::viz::WLine(line[0], line[1], cv::viz::Color::green()));
+                if (!_line_indices.contains(line.index))
+                {
+                    _merger.addWidget(cv::viz::WLine(line[0], line[1], cv::viz::Color::green()));
+                    _line_indices.insert(line.index);
+                }
             }
 
-            _viewer->showWidget("merger", merger);
+            _viewer->showWidget("merger", _merger);
 
-            _viewer->spinOnce(0, true);
+            _viewer->spinOnce(0);
         }
     }
 

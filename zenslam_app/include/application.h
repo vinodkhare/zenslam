@@ -15,13 +15,15 @@ namespace zenslam
         void render();
 
     private:
-        std::mutex _mutex { };
-    zenslam::frame::slam _slam { };
+        std::mutex  _mutex { };
+        frame::slam _slam { };
 
         options                         _options { };
         slam_thread                     _slam_thread { _options };
         std::unique_ptr<cv::viz::Viz3d> _viewer { };
-        
+        cv::viz::WWidgetMerger          _merger       = { };
+        std::set<size_t>                _line_indices = { };
+
         // UI state for checkboxes
         bool _show_keypoints { true };
         bool _show_keylines { true };
