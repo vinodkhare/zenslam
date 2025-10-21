@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     
     // Print information about first few lines
     std::cout << "\nFirst 5 detected lines:\n";
-    for (size_t i = 0; i < std::min(size_t(5), lines.size()); ++i) {
+    for (size_t i = 0; i < std::min(static_cast<size_t>(5), lines.size()); ++i) {
         const auto& line = lines[i];
         float length = std::sqrt(
             std::pow(line[2] - line[0], 2) + 

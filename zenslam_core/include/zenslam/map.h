@@ -63,6 +63,9 @@ namespace zenslam
         template <typename T_SLICE>
         auto values_sliced(const std::function<T_SLICE(const T&)>& slice_function) const -> auto;
 
+        // ordered element access
+        auto operator()(size_t i) const -> const T&;               // get item by insertion order
+
         // add items
         auto operator+=(const T& item) -> void;                    // add item to map
         auto operator+=(const std::vector<T>& items) -> void;      // add all items to map
@@ -71,6 +74,9 @@ namespace zenslam
 
         // remap indices
         auto operator*=(const std::vector<cv::DMatch>& matches) -> void; // remap indices based on matches
+
+    private:
+        std::vector<size_t> _indices = { };
     };
 
     template <indexable T>
@@ -137,9 +143,16 @@ namespace zenslam
     }
 
     template <indexable T>
+    auto map<T>::operator()(const size_t i) const -> const T&
+    {
+        return this->at(this->_indices.at(i));
+    }
+
+    template <indexable T>
     auto map<T>::operator+=(const T& item) -> void
     {
         this->operator[](item.index) = item;
+        this->_indices.push_back(item.index);
     }
 
     template <indexable T>
@@ -148,6 +161,7 @@ namespace zenslam
         for (const auto& item: items)
         {
             this->operator[](item.index) = item;
+            this->_indices.push_back(item.index);
         }
     }
 
@@ -157,6 +171,7 @@ namespace zenslam
         for (const auto& [index, item]: other)
         {
             this->operator[](item.index) = item;
+            this->_indices.push_back(item.index);
         }
     }
 
@@ -166,6 +181,7 @@ namespace zenslam
         for (const auto& [index, item]: other)
         {
             this->operator[](item.index) = item;
+            this->_indices.push_back(item.index);
         }
     }
 
@@ -186,6 +202,12 @@ namespace zenslam
 
                 this->operator[](item.index) = item;
             }
+        }
+
+        this->_indices.clear();
+        for (const auto& [index, item]: *this)
+        {
+            this->_indices.push_back(index);
         }
     }
 }
