@@ -22,6 +22,9 @@ message(STATUS "Using concurrentqueue: " ${concurrentqueue_VERSION})
 find_package(magic_enum CONFIG REQUIRED)
 message(STATUS "Using magic_enum: " ${magic_enum_VERSION})
 
+find_package(nanoflann CONFIG REQUIRED)
+message(STATUS "Using nanoflann: " ${nanoflann_VERSION})
+
 find_package(spdlog CONFIG REQUIRED)
 message(STATUS "Using spdlog: " ${spdlog_VERSION})
 
@@ -65,6 +68,9 @@ add_library(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PRIVATE include/zenslam ${RAPIDCSV_INCLUDE_DIRS} PUBLIC include)
 target_link_libraries(${PROJECT_NAME} PRIVATE
+        concurrentqueue::concurrentqueue
+        magic_enum::magic_enum
+        nanoflann::nanoflann
         opencv_calib3d
         opencv_core
         opencv_features2d
@@ -72,12 +78,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         opencv_line_descriptor
         opencv_video
         opencv_xfeatures2d
-        Boost::program_options
         spdlog::spdlog
-        concurrentqueue::concurrentqueue
-        Microsoft.GSL::GSL
         yaml-cpp::yaml-cpp
-        magic_enum::magic_enum
+        Boost::program_options
+        Microsoft.GSL::GSL
         ${VTK_LIBRARIES}
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
