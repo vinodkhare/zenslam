@@ -49,43 +49,39 @@ TEST_CASE("utils::rectify function", "[utils][stereo_rectify]")
     SECTION("rectify handles empty image gracefully")
     {
         cv::Mat empty_image;
-        cv::Matx33d K = cv::Matx33d::eye();
-        std::vector<double> distortion_coeffs = {0.0, 0.0, 0.0, 0.0};
-        cv::Matx33d R = cv::Matx33d::eye();
-        cv::Matx34d P = cv::Matx34d::zeros();
-        P(0,0) = 1.0; P(1,1) = 1.0; P(2,2) = 1.0;
-        cv::Size resolution(640, 480);
+        cv::Mat map_x, map_y;
         
-        // Should not crash with empty image
-        auto result = zenslam::utils::rectify(empty_image, K, distortion_coeffs, R, P, resolution);
+        // Should not crash with empty maps
+        auto result = zenslam::utils::rectify(empty_image, map_x, map_y);
         REQUIRE(result.empty());
     }
 
-    SECTION("rectify with identity matrices produces similar image")
+    SECTION("rectify with identity maps produces similar image")
     {
         // Create a simple test image
         cv::Mat test_image = cv::Mat::zeros(480, 640, CV_8UC1);
         cv::circle(test_image, cv::Point(320, 240), 50, cv::Scalar(255), -1);
         
-        // Identity camera matrix (simplified)
-        cv::Matx33d K = cv::Matx33d::eye();
-        K(0,0) = 500; K(1,1) = 500; K(0,2) = 320; K(1,2) = 240;
+        // Create identity maps (no transformation)
+        cv::Mat map_x(480, 640, CV_32FC1);
+        cv::Mat map_y(480, 640, CV_32FC1);
+        for (int y = 0; y < 480; y++)
+        {
+            for (int x = 0; x < 640; x++)
+            {
+                map_x.at<float>(y, x) = static_cast<float>(x);
+                map_y.at<float>(y, x) = static_cast<float>(y);
+            }
+        }
         
-        std::vector<double> distortion_coeffs = {0.0, 0.0, 0.0, 0.0};
-        cv::Matx33d R = cv::Matx33d::eye();
-        cv::Matx34d P = cv::Matx34d::zeros();
-        P(0,0) = K(0,0); P(1,1) = K(1,1); P(0,2) = K(0,2); P(1,2) = K(1,2); P(2,2) = 1.0;
-        
-        cv::Size resolution(640, 480);
-        
-        auto result = zenslam::utils::rectify(test_image, K, distortion_coeffs, R, P, resolution);
+        auto result = zenslam::utils::rectify(test_image, map_x, map_y);
         
         // Result should have the same size as input
         REQUIRE(result.rows == test_image.rows);
         REQUIRE(result.cols == test_image.cols);
         REQUIRE(result.type() == test_image.type());
         
-        // With identity transforms, the image should be very similar
+        // With identity maps, the image should be very similar
         // (may have minor interpolation differences)
         cv::Mat diff;
         cv::absdiff(test_image, result, diff);

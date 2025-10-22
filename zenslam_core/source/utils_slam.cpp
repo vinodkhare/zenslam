@@ -764,57 +764,42 @@ auto zenslam::utils::pre_process
 {
     auto result = frame;
 
-    result.cameras[0] = pre_process(result.cameras[0], calibration[0], options, clahe);
-    result.cameras[1] = pre_process(result.cameras[1], calibration[1], options, clahe);
-
-    return result;
-}
-
-auto zenslam::utils::pre_process
-(
-    const frame::stereo&                     frame,
-    const std::array<camera_calibration, 2>& calibration,
-    const cv::Matx33d&                       R1,
-    const cv::Matx33d&                       R2,
-    const cv::Matx34d&                       P1,
-    const cv::Matx34d&                       P2,
-    const class options::slam&               options,
-    const cv::Ptr<cv::CLAHE>&                clahe
-) -> frame::stereo
-{
-    auto result = frame;
-
-    // Convert to grayscale
-    result.cameras[0].image = convert_color(result.cameras[0].image, cv::COLOR_BGR2GRAY);
-    result.cameras[1].image = convert_color(result.cameras[1].image, cv::COLOR_BGR2GRAY);
-
-    // Apply CLAHE if enabled
-    if (options.clahe_enabled)
+    if (options.stereo_rectify)
     {
-        result.cameras[0].image = apply_clahe(result.cameras[0].image, clahe);
-        result.cameras[1].image = apply_clahe(result.cameras[1].image, clahe);
+        // Convert to grayscale
+        result.cameras[0].image = convert_color(result.cameras[0].image, cv::COLOR_BGR2GRAY);
+        result.cameras[1].image = convert_color(result.cameras[1].image, cv::COLOR_BGR2GRAY);
+
+        // Apply CLAHE if enabled
+        if (options.clahe_enabled)
+        {
+            result.cameras[0].image = apply_clahe(result.cameras[0].image, clahe);
+            result.cameras[1].image = apply_clahe(result.cameras[1].image, clahe);
+        }
+
+        // Apply stereo rectification using pre-computed maps
+        result.cameras[0].undistorted = utils::rectify(
+            result.cameras[0].image,
+            calibration[0].rectify_map_x,
+            calibration[0].rectify_map_y
+        );
+        
+        result.cameras[1].undistorted = utils::rectify(
+            result.cameras[1].image,
+            calibration[1].rectify_map_x,
+            calibration[1].rectify_map_y
+        );
+
+        // Build pyramids
+        result.cameras[0].pyramid = pyramid(result.cameras[0].undistorted, options);
+        result.cameras[1].pyramid = pyramid(result.cameras[1].undistorted, options);
     }
-
-    // Apply stereo rectification
-    result.cameras[0].undistorted = utils::rectify(
-        result.cameras[0].image,
-        calibration[0].camera_matrix(),
-        calibration[0].distortion_coefficients,
-        R1, P1,
-        calibration[0].resolution
-    );
-    
-    result.cameras[1].undistorted = utils::rectify(
-        result.cameras[1].image,
-        calibration[1].camera_matrix(),
-        calibration[1].distortion_coefficients,
-        R2, P2,
-        calibration[1].resolution
-    );
-
-    // Build pyramids
-    result.cameras[0].pyramid = pyramid(result.cameras[0].undistorted, options);
-    result.cameras[1].pyramid = pyramid(result.cameras[1].undistorted, options);
+    else
+    {
+        // Standard preprocessing without rectification
+        result.cameras[0] = pre_process(result.cameras[0], calibration[0], options, clahe);
+        result.cameras[1] = pre_process(result.cameras[1], calibration[1], options, clahe);
+    }
 
     return result;
 }

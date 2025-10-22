@@ -76,19 +76,13 @@ namespace zenslam::utils
     }
 
     /**
-     * Apply stereo rectification to an image
+     * Apply stereo rectification to an image using pre-computed maps
      * @param image Input image to rectify
-     * @param camera_matrix Original camera matrix
-     * @param distortion_coeffs Original distortion coefficients
-     * @param R Rectification rotation matrix
-     * @param P Rectified projection matrix
-     * @param resolution Image resolution
+     * @param map_x Pre-computed x rectification map
+     * @param map_y Pre-computed y rectification map
      * @return Rectified image
      */
-    auto rectify(const cv::Mat& image, const cv::Matx33d& camera_matrix,
-                 const std::vector<double>& distortion_coeffs,
-                 const cv::Matx33d& R, const cv::Matx34d& P,
-                 const cv::Size& resolution) -> cv::Mat;
+    auto rectify(const cv::Mat& image, const cv::Mat& map_x, const cv::Mat& map_y) -> cv::Mat;
 }
 
 // Pretty formatter for cv::Affine3d for spdlog/fmt

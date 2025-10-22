@@ -75,21 +75,7 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.preprocessing };
 
-                if (_options.slam.stereo_rectify)
-                {
-                    slam.frames[1] = utils::pre_process(
-                        slam.frames[1], 
-                        calibration.cameras, 
-                        calibration.R1, calibration.R2,
-                        calibration.P1, calibration.P2,
-                        _options.slam, 
-                        clahe
-                    );
-                }
-                else
-                {
-                    slam.frames[1] = utils::pre_process(slam.frames[1], calibration.cameras, _options.slam, clahe);
-                }
+                slam.frames[1] = utils::pre_process(slam.frames[1], calibration.cameras, _options.slam, clahe);
             }
 
             // TODO: separate keyline and keypoints pipelines

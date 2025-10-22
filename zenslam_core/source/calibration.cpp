@@ -42,6 +42,48 @@ auto zenslam::calibration::parse
     calib.P2 = cv::Matx34d(P2_mat);
     calib.Q  = cv::Matx44d(Q_mat);
 
+    // Pre-compute rectification maps for both cameras
+    if (calib.cameras[0].distortion_model == camera_calibration::distortion_model::radial_tangential)
+    {
+        cv::initUndistortRectifyMap(
+            calib.camera_matrix[0], calib.cameras[0].distortion_coefficients,
+            R1_mat, P1_mat,
+            calib.cameras[0].resolution,
+            CV_32FC1,
+            calib.cameras[0].rectify_map_x,
+            calib.cameras[0].rectify_map_y
+        );
+        
+        cv::initUndistortRectifyMap(
+            calib.camera_matrix[1], calib.cameras[1].distortion_coefficients,
+            R2_mat, P2_mat,
+            calib.cameras[1].resolution,
+            CV_32FC1,
+            calib.cameras[1].rectify_map_x,
+            calib.cameras[1].rectify_map_y
+        );
+    }
+    else if (calib.cameras[0].distortion_model == camera_calibration::distortion_model::equidistant)
+    {
+        cv::fisheye::initUndistortRectifyMap(
+            calib.camera_matrix[0], calib.cameras[0].distortion_coefficients,
+            R1_mat, P1_mat,
+            calib.cameras[0].resolution,
+            CV_32FC1,
+            calib.cameras[0].rectify_map_x,
+            calib.cameras[0].rectify_map_y
+        );
+        
+        cv::fisheye::initUndistortRectifyMap(
+            calib.camera_matrix[1], calib.cameras[1].distortion_coefficients,
+            R2_mat, P2_mat,
+            calib.cameras[1].resolution,
+            CV_32FC1,
+            calib.cameras[1].rectify_map_x,
+            calib.cameras[1].rectify_map_y
+        );
+    }
+
     return calib;
 }
 

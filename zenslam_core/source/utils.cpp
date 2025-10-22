@@ -144,38 +144,9 @@ auto zenslam::utils::matrix_to_euler(const cv::Matx33d& R) -> cv::Vec3d
     return { roll, pitch, yaw };
 }
 
-auto zenslam::utils::rectify(const cv::Mat& image, const cv::Matx33d& camera_matrix,
-                              const std::vector<double>& distortion_coeffs,
-                              const cv::Matx33d& R, const cv::Matx34d& P,
-                              const cv::Size& resolution) -> cv::Mat
+auto zenslam::utils::rectify(const cv::Mat& image, const cv::Mat& map_x, const cv::Mat& map_y) -> cv::Mat
 {
-    cv::Mat map_x, map_y;
     cv::Mat rectified;
-    
-    // Get new camera matrix from rectified projection matrix
-    cv::Matx33d new_camera_matrix;
-    for (int i = 0; i < 3; i++)
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            new_camera_matrix(i, j) = P(i, j);
-        }
-    }
-    
-    // Initialize rectification maps
-    cv::initUndistortRectifyMap(
-        camera_matrix,
-        distortion_coeffs,
-        R,
-        new_camera_matrix,
-        resolution,
-        CV_32FC1,
-        map_x,
-        map_y
-    );
-    
-    // Apply rectification
     cv::remap(image, rectified, map_x, map_y, cv::INTER_LINEAR);
-    
     return rectified;
 }
