@@ -26,3 +26,7 @@ add_test(NAME imu_calibration_test COMMAND imu_calibration_test)
 add_executable(options_test source/options_test.cpp)
 target_link_libraries(options_test PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_imgproc)
 add_test(NAME options_test COMMAND options_test)
+
+add_executable(stereo_rectification_test source/stereo_rectification_test.cpp)
+target_link_libraries(stereo_rectification_test PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_imgproc opencv_calib3d)
+add_test(NAME stereo_rectification_test COMMAND stereo_rectification_test)

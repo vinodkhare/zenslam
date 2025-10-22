@@ -28,7 +28,34 @@ cv::Affine3d pose_in_cam0  // Extrinsics wrt primary camera
 - Fundamental Matrix: `F = K2^{-T} [t]_x R K1^{-1}` using relative pose between two cameras.
 - Projection Matrix: `P = K [R|t]` (via minor extraction from pose affine matrix).
 
+## Stereo Rectification
+
+Stereo rectification is an optional preprocessing step that transforms the images from both cameras so that corresponding
+points appear on the same horizontal scanline. This simplifies stereo matching and can improve accuracy.
+
+When enabled via the `stereo_rectify` option, the calibration module computes:
+
+- `R1`, `R2`: Rectification rotation matrices for left and right cameras
+- `P1`, `P2`: Rectified projection matrices for left and right cameras
+- `Q`: Disparity-to-depth mapping matrix (4x4)
+
+The rectification is computed using OpenCV's `stereoRectify` function during calibration parsing. Images are then
+rectified during preprocessing using the `utils::rectify()` function.
+
+### Usage
+
+Enable stereo rectification via command line:
+```bash
+zenslam --stereo-rectify
+```
+
+Or in the YAML configuration file:
+```yaml
+slam:
+  stereo_rectify: true
+```
+
 ## Distortion & Undistortion
 
-Currently an undistortion helper prepares images before detection. Future improvements may include rectification or
-model switching.
+Images are undistorted before detection using camera calibration parameters. When stereo rectification is enabled,
+the rectification process combines both distortion removal and image alignment in a single remapping step.
