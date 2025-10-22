@@ -347,7 +347,7 @@ void zenslam::options::folder::validate() const
     // Non-fatal warnings for non-existent paths
     auto resolve = [this](const std::filesystem::path& p) -> std::filesystem::path
     {
-        return p.is_absolute() ? p : (root / p);
+        return p.is_absolute() ? p : root / p;
     };
 
     const auto root_path = root;
@@ -424,12 +424,12 @@ boost::program_options::options_description zenslam::options::slam::description(
     (
         "feature",
         boost::program_options::value<std::string>()->default_value(std::string(magic_enum::enum_name(opts_default.slam.feature))),
-        ("feature type - pick one of: " + zenslam::utils::to_string(magic_enum::enum_names<feature_type>())).c_str()
+        ("feature type - pick one of: " + utils::to_string(magic_enum::enum_names<feature_type>())).c_str()
     )
     (
         "descriptor",
         boost::program_options::value<std::string>()->default_value(std::string(magic_enum::enum_name(opts_default.slam.descriptor))),
-        ("descriptor type - pick one of: " + zenslam::utils::to_string(magic_enum::enum_names<descriptor_type>())).c_str()
+        ("descriptor type - pick one of: " + utils::to_string(magic_enum::enum_names<descriptor_type>())).c_str()
     )
     (
         "fast-threshold",

@@ -12,14 +12,14 @@ namespace zenslam
     class stereo_folder_reader
     {
     public:
-        using iterator  = random_access_iterator<stereo_folder_reader, zenslam::frame::stereo>;
+        using iterator  = random_access_iterator<stereo_folder_reader, frame::stereo>;
         using path_type = std::filesystem::path;
 
         stereo_folder_reader
         (
             const path_type& left_dir,
             const path_type& right_dir,
-            const double     timescale = 1E-9
+            double           timescale = 1E-9
         );
 
         explicit stereo_folder_reader(const class options::folder& options);
@@ -34,9 +34,9 @@ namespace zenslam
             return size() == 0;
         }
 
-        zenslam::frame::stereo operator[](const std::size_t idx) const
+        frame::stereo operator[](const std::size_t idx) const
         {
-            return zenslam::frame::stereo { _left[idx], _right[idx] };
+            return frame::stereo { _left[idx], _right[idx] };
         }
 
         [[nodiscard]] iterator begin() const

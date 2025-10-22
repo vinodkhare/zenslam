@@ -1,6 +1,5 @@
 #pragma once
 
-#include <map>
 #include <utility>
 
 #include <opencv2/core/affine.hpp>

@@ -15,7 +15,7 @@ TEST_CASE (
     using namespace zenslam;
 
     // Create a simple set of 4 non-coplanar points
-    std::vector<cv::Point3d> src = {
+    const std::vector<cv::Point3d> src = {
         { 0.0, 0.0, 0.0 },
         { 1.0, 0.0, 0.0 },
         { 0.0, 1.0, 0.0 },
@@ -28,7 +28,7 @@ TEST_CASE (
     cv::Rodrigues(rvec_gt, R_gt);
 
     // Ground-truth translation
-    cv::Vec3d t_gt(1.5, -2.0, 0.5);
+    const cv::Vec3d t_gt(1.5, -2.0, 0.5);
 
     std::vector<cv::Point3d> dst;
     dst.reserve(src.size());

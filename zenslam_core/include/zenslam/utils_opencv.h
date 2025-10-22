@@ -3,11 +3,12 @@
 #include <vector>
 
 #include <opencv2/imgproc.hpp>
-#include <opencv2/core/mat.hpp>
 #include <opencv2/line_descriptor.hpp>
+#include <opencv2/core/mat.hpp>
 
 #include "options.h"
 #include "point3d.h"
+
 #include "frame/stereo.h"
 
 namespace zenslam::utils

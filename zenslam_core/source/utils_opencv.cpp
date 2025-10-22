@@ -18,7 +18,7 @@ auto zenslam::utils::apply_clahe(const cv::Mat& image, const cv::Ptr<cv::CLAHE>&
     return converted_image;
 }
 
-auto zenslam::utils::convert_color(const cv::Mat& image, int code) -> cv::Mat
+auto zenslam::utils::convert_color(const cv::Mat& image, const int code) -> cv::Mat
 {
     cv::Mat converted_image { };
     cv::cvtColor(image, converted_image, code);
@@ -184,7 +184,7 @@ void zenslam::utils::draw_keylines
     cv::Mat&                                         image,
     const std::vector<cv::line_descriptor::KeyLine>& keylines,
     const cv::Scalar&                                color,
-    int                                              thickness
+    const int                                              thickness
 )
 {
     if (keylines.empty()) return;
@@ -347,7 +347,7 @@ auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const f
     {
         const auto& keylines_0_matched = frame_0.keylines.values_matched(frame_1.keylines) | std::ranges::to<std::vector>();
         const auto& keylines_1_matched = frame_1.keylines.values_matched(frame_0.keylines) | std::ranges::to<std::vector>();
-        const auto& line_matches       = utils::matches(keylines_0_matched.size());
+        const auto& line_matches       = matches(keylines_0_matched.size());
 
         draw_line_matches
         (

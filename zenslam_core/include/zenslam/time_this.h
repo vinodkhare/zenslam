@@ -18,7 +18,7 @@ namespace zenslam
 
         ~time_this()
         {
-            _time = (std::chrono::system_clock::now() - _start);
+            _time = std::chrono::system_clock::now() - _start;
         }
 
     private:

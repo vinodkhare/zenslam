@@ -4,8 +4,6 @@
 
 #include <opencv2/imgcodecs.hpp>
 
-#include <spdlog/spdlog.h>
-
 namespace zenslam { namespace
     {
         bool is_equals(const std::string& a, const std::string& b)
@@ -80,7 +78,7 @@ namespace zenslam { namespace
         _timescale = timescale;
     }
 
-    zenslam::frame::camera mono_folder_reader::operator[](const std::size_t index) const
+    frame::camera mono_folder_reader::operator[](const std::size_t index) const
     {
         if (index >= _files.size())
         {

@@ -1132,8 +1132,7 @@ auto zenslam::utils::triangulate_keypoints
     std::vector<point3d> points3d { };
     for (auto i = 0; i < points3d_all.size(); ++i)
     {
-        if (points3d_all[i].z > 1 && errors_0[i] < triangulation_threshold && errors_1[i] < triangulation_threshold && angles[i] > 0.25 && angles[i] < (
-                180 - 0.25)) // 4 pixel reprojection error threshold
+        if (points3d_all[i].z > 1 && errors_0[i] < triangulation_threshold && errors_1[i] < triangulation_threshold && angles[i] > 0.25 && angles[i] < 180 - 0.25) // 4 pixel reprojection error threshold
         {
             points3d.emplace_back(points3d_all[i]);
         }
@@ -1202,7 +1201,7 @@ auto zenslam::utils::triangulate_keylines
     for (auto i = 0; i < points3d_cv_0.size(); ++i)
     {
         auto       vector_0  = (points3d_cv_0[i] + points3d_cv_1[i]) / 2.0;
-        auto       vector_1  = (points3d_cv_0[i] - points3d_cv_1[i]);
+        auto       vector_1  = points3d_cv_0[i] - points3d_cv_1[i];
         const auto norm_prod = cv::norm(vector_0) * cv::norm(vector_1);
         auto       angle     = norm_prod < 1e-12 ? 0.0 : std::abs(std::acos(std::clamp(vector_0.dot(vector_1) / norm_prod, -1.0, 1.0))) * 180 / CV_PI;
         ang.push_back(angle);
@@ -1217,8 +1216,8 @@ auto zenslam::utils::triangulate_keylines
             errors_1_0[i] < options.triangulation_reprojection_threshold &&
             errors_0_1[i] < options.triangulation_reprojection_threshold &&
             errors_1_1[i] < options.triangulation_reprojection_threshold &&
-            angles_0[i] > 0.25 && angles_0[i] < (180 - 0.25) &&
-            angles_1[i] > 0.25 && angles_1[i] < (180 - 0.25) &&
+            angles_0[i] > 0.25 && angles_0[i] < 180 - 0.25 &&
+            angles_1[i] > 0.25 && angles_1[i] < 180 - 0.25 &&
             ang[i] > 45.0 && ang[i] < 135.0)
         {
             lines3d.emplace_back(std::array { points3d_cv_0[i], points3d_cv_1[i] }, indices_0[i]);
@@ -1272,8 +1271,8 @@ void zenslam::utils::umeyama
         mean_src += cv::Vec3d(src[i].x, src[i].y, src[i].z);
         mean_dst += cv::Vec3d(dst[i].x, dst[i].y, dst[i].z);
     }
-    mean_src *= (1.0 / static_cast<double>(src.size()));
-    mean_dst *= (1.0 / static_cast<double>(dst.size()));
+    mean_src *= 1.0 / static_cast<double>(src.size());
+    mean_dst *= 1.0 / static_cast<double>(dst.size());
 
     cv::Matx33d Sigma(0, 0, 0, 0, 0, 0, 0, 0, 0);
     for (size_t i = 0; i < src.size(); ++i)
@@ -1292,7 +1291,7 @@ void zenslam::utils::umeyama
         Sigma(2, 1) += b[2] * a[1];
         Sigma(2, 2) += b[2] * a[2];
     }
-    Sigma *= (1.0 / static_cast<double>(src.size()));
+    Sigma *= 1.0 / static_cast<double>(src.size());
 
     cv::Mat Sigma_mat(3, 3, CV_64F);
     for (auto r = 0; r < 3; ++r) for (auto c = 0; c < 3; ++c) Sigma_mat.at<double>(r, c) = Sigma(r, c);
