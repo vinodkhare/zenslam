@@ -209,6 +209,7 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     set_path_if_provided(options_map, map, "options-file", options.file);
     set_if_provided(options_map, map, "log-level", options.log_level);
     set_if_provided(options_map, map, "log-pattern", options.log_pattern);
+    set_if_provided(options_map, map, "stereo-rectify", options.slam.stereo_rectify);
     set_if_provided(options_map, map, "epipolar-threshold", options.slam.epipolar_threshold);
     set_if_provided(options_map, map, "fast-threshold", options.slam.fast_threshold);
     set_if_provided(options_map, map, "threshold-3d3d", options.slam.threshold_3d3d);
@@ -261,6 +262,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
         {
             yaml_set_size(slam, "cell_size", options.slam.cell_size);
             yaml_set_if_present(slam, "clahe_enabled", options.slam.clahe_enabled);
+            yaml_set_if_present(slam, "stereo_rectify", options.slam.stereo_rectify);
             yaml_set_if_present(slam, "epipolar_threshold", options.slam.epipolar_threshold);
             yaml_set_enum(slam, "feature", options.slam.feature);
             yaml_set_enum(slam, "descriptor", options.slam.descriptor);
@@ -410,6 +412,11 @@ boost::program_options::options_description zenslam::options::slam::description(
         "CLAHE enabled"
     )
     (
+        "stereo-rectify",
+        boost::program_options::bool_switch()->default_value(opts_default.slam.stereo_rectify),
+        "Enable stereo rectification"
+    )
+    (
         "epipolar-threshold",
         boost::program_options::value<double>()->default_value(opts_default.slam.epipolar_threshold),
         "Epipolar threshold"
@@ -501,6 +508,7 @@ void zenslam::options::slam::print() const
 {
     SPDLOG_INFO("cell size: [{}, {}]", cell_size.width, cell_size.height);
     SPDLOG_INFO("CLAHE enabled: {}", clahe_enabled ? "true" : "false");
+    SPDLOG_INFO("stereo rectify: {}", stereo_rectify ? "true" : "false");
     SPDLOG_INFO("epipolar threshold: {}", epipolar_threshold);
     SPDLOG_INFO("feature type: {}", magic_enum::enum_name(feature));
     SPDLOG_INFO("descriptor type: {}", magic_enum::enum_name(descriptor));

@@ -3,6 +3,11 @@
 #include <ranges>
 
 #include <opencv2/calib3d.hpp>
+#include <opencv2/features2d.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/video/tracking.hpp>
+
+#include <spdlog/spdlog.h>
 
 
 auto zenslam::utils::skew(const cv::Vec3d& vector) -> cv::Matx33d
@@ -137,4 +142,11 @@ auto zenslam::utils::matrix_to_euler(const cv::Matx33d& R) -> cv::Vec3d
     const auto yaw   = std::atan2(R(1, 0), R(0, 0));
 
     return { roll, pitch, yaw };
+}
+
+auto zenslam::utils::rectify(const cv::Mat& image, const cv::Mat& map_x, const cv::Mat& map_y) -> cv::Mat
+{
+    cv::Mat rectified;
+    cv::remap(image, rectified, map_x, map_y, cv::INTER_LINEAR);
+    return rectified;
 }

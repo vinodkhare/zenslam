@@ -74,6 +74,15 @@ namespace zenslam::utils
         }
         return vecnorm;
     }
+
+    /**
+     * Apply stereo rectification to an image using pre-computed maps
+     * @param image Input image to rectify
+     * @param map_x Pre-computed x rectification map
+     * @param map_y Pre-computed y rectification map
+     * @return Rectified image
+     */
+    auto rectify(const cv::Mat& image, const cv::Mat& map_x, const cv::Mat& map_y) -> cv::Mat;
 }
 
 // Pretty formatter for cv::Affine3d for spdlog/fmt

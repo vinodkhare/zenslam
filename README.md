@@ -3,8 +3,8 @@
 ZenSLAM is an experimental stereo SLAM playground. It currently provides:
 
 * A core C++23 library (`zenslam_core`) with calibration parsing, frame abstractions, feature detection (grid +
-  FAST/ORB/SIFT backends), stereo matching, epipolar filtering, triangulation utilities, threading helpers, and option
-  parsing.
+  FAST/ORB/SIFT backends), stereo matching, stereo rectification, epipolar filtering, triangulation utilities, 
+  threading helpers, and option parsing.
 * An application layer (`zenslam_app`) with a simple GUI (HelloImGui + OpenCV viz) for visualizing frames, matches,
   and (work-in-progress) reconstructed 3D points.
 * A Python utility (`zenslam_py/scripts/bag_to_images.py`) to extract image sequences from ROS1/ROS2 bag files using
