@@ -53,6 +53,7 @@ namespace zenslam
             static options_description description();
 
             bool            clahe_enabled   = { false };
+            bool            stereo_rectify  = { false };
             cv::Size        cell_size       = { 16, 16 };
             feature_type    feature         = { feature_type::FAST };
             descriptor_type descriptor      = { descriptor_type::ORB };

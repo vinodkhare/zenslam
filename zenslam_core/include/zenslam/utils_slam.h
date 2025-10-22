@@ -216,6 +216,30 @@ namespace zenslam::utils
         const cv::Ptr<cv::CLAHE>&                clahe
     ) -> frame::stereo;
 
+    /** Pre-process a stereo frame with stereo rectification.
+     *
+     * @param frame The input stereo frame containing the images to be processed.
+     * @param calibration The camera calibration parameters.
+     * @param R1 Rectification rotation matrix for left camera
+     * @param R2 Rectification rotation matrix for right camera
+     * @param P1 Rectified projection matrix for left camera
+     * @param P2 Rectified projection matrix for right camera
+     * @param options SLAM options that may include CLAHE settings and pyramid levels.
+     * @param clahe A pointer to an OpenCV CLAHE object configured with desired parameters.
+     * @return The pre-processed and rectified frame.
+     */
+    auto pre_process
+    (
+        const frame::stereo&                     frame,
+        const std::array<camera_calibration, 2>& calibration,
+        const cv::Matx33d&                       R1,
+        const cv::Matx33d&                       R2,
+        const cv::Matx34d&                       P1,
+        const cv::Matx34d&                       P2,
+        const class options::slam&               options,
+        const cv::Ptr<cv::CLAHE>&                clahe
+    ) -> frame::stereo;
+
     /** Solve the PnP problem to estimate camera pose from 3D-2D point correspondences.
      *
      * @param camera_matrix The intrinsic camera matrix.

@@ -74,6 +74,21 @@ namespace zenslam::utils
         }
         return vecnorm;
     }
+
+    /**
+     * Apply stereo rectification to an image
+     * @param image Input image to rectify
+     * @param camera_matrix Original camera matrix
+     * @param distortion_coeffs Original distortion coefficients
+     * @param R Rectification rotation matrix
+     * @param P Rectified projection matrix
+     * @param resolution Image resolution
+     * @return Rectified image
+     */
+    auto rectify(const cv::Mat& image, const cv::Matx33d& camera_matrix,
+                 const std::vector<double>& distortion_coeffs,
+                 const cv::Matx33d& R, const cv::Matx34d& P,
+                 const cv::Size& resolution) -> cv::Mat;
 }
 
 // Pretty formatter for cv::Affine3d for spdlog/fmt
