@@ -4,8 +4,6 @@
 
 #include <rapidcsv.h>
 
-#include <spdlog/spdlog.h>
-
 zenslam::groundtruth zenslam::groundtruth::read(const std::filesystem::path& path)
 {
     groundtruth groundtruth { };

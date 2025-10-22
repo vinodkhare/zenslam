@@ -56,7 +56,7 @@ int main(const int argc, char **argv)
 
         // Force Metal backend
         params.rendererBackendType = HelloImGui::RendererBackendType::Metal;
-        params.callbacks.ShowGui   = [&application]()
+        params.callbacks.ShowGui   = [&application]
         {
             application.render();
         };

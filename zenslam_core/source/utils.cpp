@@ -3,10 +3,6 @@
 #include <ranges>
 
 #include <opencv2/calib3d.hpp>
-#include <opencv2/features2d.hpp>
-#include <opencv2/video/tracking.hpp>
-
-#include <spdlog/spdlog.h>
 
 
 auto zenslam::utils::skew(const cv::Vec3d& vector) -> cv::Matx33d

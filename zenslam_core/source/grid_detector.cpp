@@ -190,7 +190,7 @@ namespace zenslam
         _line_detector->detect(image, keylines_cv, 2.0f, 1);
 
         // Compute descriptors for detected keylines
-        auto    bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
+        const auto    bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
         cv::Mat descriptors;
         if (!keylines_cv.empty())
         {
@@ -217,12 +217,12 @@ namespace zenslam
         for (const auto& existing_keyline: keylines_map | std::views::values)
         {
             // Get start and end points of the line segment
-            cv::Point start
+            const cv::Point start
             (
                 static_cast<int>(existing_keyline.startPointX),
                 static_cast<int>(existing_keyline.startPointY)
             );
-            cv::Point end
+            const cv::Point end
             (
                 static_cast<int>(existing_keyline.endPointX),
                 static_cast<int>(existing_keyline.endPointY)
@@ -313,8 +313,8 @@ namespace zenslam
         // Process cells in parallel using async
         struct cell_result
         {
-            keypoint keypoint;
-            bool     valid;
+            keypoint keypoint = {};
+            bool     valid = {};
         };
 
         // Launch async tasks for each cell

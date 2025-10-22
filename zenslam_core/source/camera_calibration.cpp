@@ -4,7 +4,6 @@
 #include <magic_enum/magic_enum.hpp>
 
 #include <opencv2/calib3d.hpp>
-#include <opencv2/video/tracking.hpp>
 
 #include <spdlog/spdlog.h>
 
