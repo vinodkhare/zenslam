@@ -74,6 +74,14 @@ namespace zenslam::utils
         const class options::slam& options
     ) -> cv::Mat;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;
+
+    /** Decompose a projection matrix into intrinsic, rotation, and translation components.
+     *
+     * @param projection The 3x4 projection matrix to decompose.
+     * @return A tuple containing the intrinsic matrix (K), rotation matrix (R), and translation vector (t).
+     */
+    auto projection_decompose(const cv::Matx34d& projection) -> std::tuple<cv::Matx33d, cv::Matx33d, cv::Vec3d>;
+
     auto pyramid(const cv::Mat& image, const class options::slam& options) -> std::vector<cv::Mat>;
 
     auto matches(size_t n) -> std::vector<cv::DMatch>;

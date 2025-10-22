@@ -5,6 +5,7 @@
 
 #include <opencv2/imgproc.hpp>
 
+#include "calibration.h"
 #include "camera_calibration.h"
 #include "keypoint.h"
 #include "line3d.h"
@@ -187,22 +188,6 @@ namespace zenslam::utils
 
     /** Pre-process a camera frame by converting to grayscale, applying CLAHE, and building an image pyramid.
      *
-     * @param frame The input camera frame containing the image to be processed.
-     * @param calibration The camera calibration parameters.
-     * @param options SLAM options that may include CLAHE settings and pyramid levels.
-     * @param clahe A pointer to an OpenCV CLAHE object configured with desired parameters.
-     * @return The pre-processed frame.
-     */
-    auto pre_process
-    (
-        const frame::camera&       frame,
-        const camera_calibration&  calibration,
-        const class options::slam& options,
-        const cv::Ptr<cv::CLAHE>&  clahe
-    ) -> frame::camera;
-
-    /** Pre-process a camera frame by converting to grayscale, applying CLAHE, and building an image pyramid.
-     *
      * @param frame The input stereo frame containing the image to be processed.
      * @param calibration The camera calibration parameters.
      * @param options SLAM options that may include CLAHE settings and pyramid levels.
@@ -210,10 +195,10 @@ namespace zenslam::utils
      */
     auto pre_process
     (
-        const frame::stereo&                     frame,
-        const std::array<camera_calibration, 2>& calibration,
-        const class options::slam&               options,
-        const cv::Ptr<cv::CLAHE>&                clahe
+        const frame::stereo&        frame,
+        const zenslam::calibration& calibration,
+        const class options::slam&  options,
+        const cv::Ptr<cv::CLAHE>&   clahe
     ) -> frame::stereo;
 
     /** Solve the PnP problem to estimate camera pose from 3D-2D point correspondences.
@@ -351,6 +336,4 @@ namespace zenslam::utils
         cv::Matx33d&                    R,
         cv::Point3d&                    t
     ) -> void;
-
-    auto undistort(const cv::Mat& image, const camera_calibration& calibration) -> cv::Mat;
 }

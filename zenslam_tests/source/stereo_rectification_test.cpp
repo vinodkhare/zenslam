@@ -1,10 +1,10 @@
 #include <catch2/catch_all.hpp>
 
-#include <zenslam/options.h>
-#include <zenslam/calibration.h>
-#include <zenslam/utils.h>
-
 #include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+
+#include <zenslam/options.h>
+#include <zenslam/utils.h>
 
 TEST_CASE("Stereo rectification option", "[options][stereo_rectify]")
 {
@@ -12,7 +12,7 @@ TEST_CASE("Stereo rectification option", "[options][stereo_rectify]")
 
     SECTION("Default stereo_rectify is false")
     {
-        auto opts = options{};
+        const auto opts = options{};
         REQUIRE(opts.slam.stereo_rectify == false);
     }
 
@@ -22,25 +22,6 @@ TEST_CASE("Stereo rectification option", "[options][stereo_rectify]")
         opts.slam.stereo_rectify = true;
         REQUIRE(opts.slam.stereo_rectify == true);
         REQUIRE_NOTHROW(opts.slam.validate());
-    }
-}
-
-TEST_CASE("Stereo rectification matrices computation", "[calibration][stereo_rectify]")
-{
-    using zenslam::calibration;
-
-    SECTION("Rectification matrices have correct dimensions")
-    {
-        // Note: This test would require a valid calibration file to run
-        // For now, we just verify that the calibration struct has the matrices
-        calibration calib;
-        
-        // Verify matrices are initialized (all zeros by default)
-        REQUIRE(calib.R1(0,0) == 0.0);
-        REQUIRE(calib.R2(0,0) == 0.0);
-        REQUIRE(calib.P1(0,0) == 0.0);
-        REQUIRE(calib.P2(0,0) == 0.0);
-        REQUIRE(calib.Q(0,0) == 0.0);
     }
 }
 

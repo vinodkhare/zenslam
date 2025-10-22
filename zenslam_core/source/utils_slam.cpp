@@ -14,6 +14,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "calibration.h"
 #include "point3d.h"
 #include "point3d_cloud.h"
 
@@ -435,7 +436,7 @@ auto zenslam::utils::match_keypoints3d
     const cv::Affine3d&  pose_of_camera0_in_world,
     const cv::Matx34d&   projection,
     const double         radius,
-    const double threshold
+    const double         threshold
 ) -> std::vector<cv::DMatch>
 {
     if (points3d_world.empty() || keypoints.empty()) return std::vector<cv::DMatch> { };
@@ -503,9 +504,9 @@ auto zenslam::utils::match_keypoints3d
     ).match(descriptors3d, descriptors2d, matches_cv);
 
     // TODO: add reprojection filtering
-    std::vector<cv::DMatch>  matches           = { };
-    std::vector<point3d> matched_points3d  = { };
-    std::vector<keypoint> matched_keypoints = { };
+    std::vector<cv::DMatch> matches           = { };
+    std::vector<point3d>    matched_points3d  = { };
+    std::vector<keypoint>   matched_keypoints = { };
 
     for (const auto match: matches_cv)
     {
@@ -733,73 +734,32 @@ auto zenslam::utils::match_temporal
 
 auto zenslam::utils::pre_process
 (
-    const frame::camera&       frame,
-    const camera_calibration&  calibration,
+    const frame::stereo&       frame,
+    const calibration&         calibration,
     const class options::slam& options,
     const cv::Ptr<cv::CLAHE>&  clahe
-) -> frame::camera
-{
-    auto result = frame;
-
-    result.image = convert_color(result.image, cv::COLOR_BGR2GRAY);
-
-    if (options.clahe_enabled)
-    {
-        result.image = apply_clahe(result.image, clahe);
-    }
-
-    result.undistorted = utils::undistort(result.image, calibration);
-    result.pyramid     = pyramid(result.undistorted, options);
-
-    return result;
-}
-
-auto zenslam::utils::pre_process
-(
-    const frame::stereo&                     frame,
-    const std::array<camera_calibration, 2>& calibration,
-    const class options::slam&               options,
-    const cv::Ptr<cv::CLAHE>&                clahe
 ) -> frame::stereo
 {
     auto result = frame;
 
-    if (options.stereo_rectify)
+    // Convert to grayscale
+    result.cameras[0].image = convert_color(result.cameras[0].image, cv::COLOR_BGR2GRAY);
+    result.cameras[1].image = convert_color(result.cameras[1].image, cv::COLOR_BGR2GRAY);
+
+    // Apply CLAHE if enabled
+    if (options.clahe_enabled)
     {
-        // Convert to grayscale
-        result.cameras[0].image = convert_color(result.cameras[0].image, cv::COLOR_BGR2GRAY);
-        result.cameras[1].image = convert_color(result.cameras[1].image, cv::COLOR_BGR2GRAY);
-
-        // Apply CLAHE if enabled
-        if (options.clahe_enabled)
-        {
-            result.cameras[0].image = apply_clahe(result.cameras[0].image, clahe);
-            result.cameras[1].image = apply_clahe(result.cameras[1].image, clahe);
-        }
-
-        // Apply stereo rectification using pre-computed maps
-        result.cameras[0].undistorted = utils::rectify(
-            result.cameras[0].image,
-            calibration[0].rectify_map_x,
-            calibration[0].rectify_map_y
-        );
-        
-        result.cameras[1].undistorted = utils::rectify(
-            result.cameras[1].image,
-            calibration[1].rectify_map_x,
-            calibration[1].rectify_map_y
-        );
-
-        // Build pyramids
-        result.cameras[0].pyramid = pyramid(result.cameras[0].undistorted, options);
-        result.cameras[1].pyramid = pyramid(result.cameras[1].undistorted, options);
+        result.cameras[0].image = apply_clahe(result.cameras[0].image, clahe);
+        result.cameras[1].image = apply_clahe(result.cameras[1].image, clahe);
     }
-    else
-    {
-        // Standard preprocessing without rectification
-        result.cameras[0] = pre_process(result.cameras[0], calibration[0], options, clahe);
-        result.cameras[1] = pre_process(result.cameras[1], calibration[1], options, clahe);
-    }
+
+    // Apply stereo rectification using pre-computed maps
+    result.cameras[0].undistorted = rectify(result.cameras[0].image, calibration.map_x[0], calibration.map_y[0]);
+    result.cameras[1].undistorted = rectify(result.cameras[1].image, calibration.map_x[1], calibration.map_y[1]);
+
+    // Build pyramids
+    result.cameras[0].pyramid = pyramid(result.cameras[0].undistorted, options);
+    result.cameras[1].pyramid = pyramid(result.cameras[1].undistorted, options);
 
     return result;
 }
@@ -1132,7 +1092,8 @@ auto zenslam::utils::triangulate_keypoints
     std::vector<point3d> points3d { };
     for (auto i = 0; i < points3d_all.size(); ++i)
     {
-        if (points3d_all[i].z > 1 && errors_0[i] < triangulation_threshold && errors_1[i] < triangulation_threshold && angles[i] > 0.25 && angles[i] < 180 - 0.25) // 4 pixel reprojection error threshold
+        if (points3d_all[i].z > 1 && errors_0[i] < triangulation_threshold && errors_1[i] < triangulation_threshold && angles[i] > 0.25 && angles[i] < 180 -
+            0.25) // 4 pixel reprojection error threshold
         {
             points3d.emplace_back(points3d_all[i]);
         }
@@ -1310,11 +1271,4 @@ void zenslam::utils::umeyama
     R                 = cv::Matx33d(R_mat);
     auto mean_src_rot = cv::Vec3d(R * mean_src);
     t                 = mean_dst - mean_src_rot;
-}
-
-auto zenslam::utils::undistort(const cv::Mat& image, const camera_calibration& calibration) -> cv::Mat
-{
-    cv::Mat undistorted { };
-    cv::remap(image, undistorted, calibration.map_x, calibration.map_y, cv::INTER_CUBIC);
-    return undistorted;
 }

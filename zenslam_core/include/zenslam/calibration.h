@@ -11,14 +11,9 @@ namespace zenslam
         std::array<cv::Matx33d, 2>        camera_matrix      = { };
         std::array<cv::Matx33d, 2>        fundamental_matrix = { };
         std::array<cv::Matx34d, 2>        projection_matrix  = { };
+        std::array<cv::Mat, 2>            map_x              = { };
+        std::array<cv::Mat, 2>            map_y              = { };
         imu_calibration                   imu                = { };
-
-        // Stereo rectification matrices
-        cv::Matx33d R1 = { };  // Rectification rotation for left camera
-        cv::Matx33d R2 = { };  // Rectification rotation for right camera
-        cv::Matx34d P1 = { };  // Rectified projection matrix for left camera
-        cv::Matx34d P2 = { };  // Rectified projection matrix for right camera
-        cv::Matx44d Q  = { };  // Disparity-to-depth mapping matrix
 
         static auto parse
         (

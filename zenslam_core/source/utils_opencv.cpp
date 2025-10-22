@@ -11,6 +11,8 @@
 
 #include <gsl/narrow>
 
+#include <opencv2/calib3d.hpp>
+
 auto zenslam::utils::apply_clahe(const cv::Mat& image, const cv::Ptr<cv::CLAHE>& clahe) -> cv::Mat
 {
     cv::Mat converted_image { };
@@ -184,7 +186,7 @@ void zenslam::utils::draw_keylines
     cv::Mat&                                         image,
     const std::vector<cv::line_descriptor::KeyLine>& keylines,
     const cv::Scalar&                                color,
-    const int                                              thickness
+    const int                                        thickness
 )
 {
     if (keylines.empty()) return;
@@ -357,8 +359,8 @@ auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const f
             utils::cast<cv::line_descriptor::KeyLine>(keylines_1_matched),
             line_matches,
             matches_image,
-            options.keyline_match_color == cv::Scalar(-1,-1,-1) ? cv::viz::Color::all(-1) : options.keyline_match_color,
-            options.keyline_single_color == cv::Scalar(-1,-1,-1) ? cv::viz::Color::all(-1) : options.keyline_single_color,
+            options.keyline_match_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : options.keyline_match_color,
+            options.keyline_single_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : options.keyline_single_color,
             std::vector<char>(line_matches.size(), true),
             cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG,
             options.keyline_thickness
@@ -370,6 +372,11 @@ auto zenslam::utils::draw_matches_temporal(const frame::camera& frame_0, const f
 
 auto zenslam::utils::project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>
 {
+    if (points.empty())
+    {
+        return { };
+    }
+
     std::vector<cv::Point2d> points2d { };
     cv::Mat                  points3d_mat(4, gsl::narrow<int>(points.size()), CV_64F);
 
@@ -402,6 +409,47 @@ auto zenslam::utils::project(const std::vector<cv::Point3d>& points, const cv::M
     }
 
     return points2d;
+}
+
+auto zenslam::utils::projection_decompose(const cv::Matx34d& projection) -> std::tuple<cv::Matx33d, cv::Matx33d, cv::Vec3d>
+{
+    auto projection_mat = cv::Mat(projection); // 3x4, CV_64F
+
+    cv::Mat camera_matrix = { };
+    cv::Mat rotation      = { };
+    cv::Mat center        = { };
+    cv::decomposeProjectionMatrix(projection_mat, camera_matrix, rotation, center);
+
+    // Normalize K so K(2,2) = 1
+    camera_matrix /= camera_matrix.at<double>(2, 2);
+
+    // Ensure K has positive diagonal (optional but common convention)
+    for (auto i = 0; i < 3; ++i)
+    {
+        if (camera_matrix.at<double>(i, i) < 0)
+        {
+            camera_matrix.col(i) *= -1;
+            rotation.row(i) *= -1;
+        }
+    }
+
+    // Camera center in Euclidean coordinates
+    cv::Mat C3 = center.rowRange(0, 3) / center.at<double>(3);
+
+    // t = -R * C
+    cv::Mat t_ = -rotation * C3;
+
+    auto K = cv::Matx33d(camera_matrix);
+    auto R = cv::Matx33d(rotation);
+    auto t = cv::Vec3d(t_);
+    // Optional: enforce det(R) = +1
+    if (cv::determinant(cv::Mat(R)) < 0)
+    {
+        R = -R;
+        t = -t;
+    }
+
+    return { K, R, t };
 }
 
 auto zenslam::utils::pyramid(const cv::Mat& image, const class options::slam& options) -> std::vector<cv::Mat>

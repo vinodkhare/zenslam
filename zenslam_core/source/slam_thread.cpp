@@ -17,6 +17,7 @@
 #include "grid_detector.h"
 #include "groundtruth.h"
 #include "motion.h"
+#include "stereo_folder_reader.h"
 #include "time_this.h"
 #include "utils.h"
 #include "utils_slam.h"
@@ -75,7 +76,7 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { slam.durations.preprocessing };
 
-                slam.frames[1] = utils::pre_process(slam.frames[1], calibration.cameras, _options.slam, clahe);
+                slam.frames[1] = utils::pre_process(slam.frames[1], calibration, _options.slam, clahe);
             }
 
             // TODO: separate keyline and keypoints pipelines
