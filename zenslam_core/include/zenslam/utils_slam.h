@@ -222,6 +222,7 @@ namespace zenslam::utils
      * @param pyramid_1 The image pyramid of the second frame.
      * @param keypoints_map_0 A map of keypoints in the first frame to be tracked.
      * @param options SLAM options that may include KLT parameters.
+         * @param camera_matrix Camera intrinsic matrix for essential matrix filtering.
      * @param points_1_predicted Optional predicted positions of keypoints in frame_1 for improved tracking.
      * @return A vector of tracked keypoints in frame_1.
      */
@@ -231,20 +232,11 @@ namespace zenslam::utils
         const std::vector<cv::Mat>&     pyramid_1,
         const map<keypoint>&            keypoints_map_0,
         const class options::slam&      options,
+            const cv::Matx33d&              camera_matrix,
         const std::vector<cv::Point2f>& points_1_predicted = { }
     ) -> std::vector<keypoint>;
 
-    /** Track keypoints between two stereo frames.
-     *
-     * @param frames An array containing the two stereo frames to track between.
-     * @param options SLAM options that may include KLT parameters.
-     * @return An array of stereo frames with tracked keypoints.
-     */
-    auto track
-    (
-        const std::array<frame::stereo, 2>& frames,
-        const class options::slam&          options
-    ) -> std::array<std::vector<keypoint>, 2>;
+        /** Match keypoints from frame_0 to frame_1 using descriptors for those not tracked by KLT.\n     *\n     * This function attempts to match keypoints that were not successfully tracked by KLT\n     * using descriptor matching followed by essential matrix RANSAC filtering. This helps\n     * recover tracks that were lost due to large motion, occlusion, or tracking failure.\n     *\n     * @param keypoints_map_0 All keypoints detected in frame 0.\n     * @param keypoints_map_1 All keypoints detected in frame 1.\n     * @param tracked_keypoints_map Keypoints already successfully tracked by KLT (to exclude from matching).\n     * @param camera_matrix Camera intrinsic matrix for essential matrix filtering.\n     * @param options SLAM options including epipolar threshold for geometric filtering.\n     * @return Vector of matched keypoints with positions updated to frame 1.\n     */\n    auto match_keypoints_temporal\n    (\n        const map<keypoint>&       keypoints_map_0,\n        const map<keypoint>&       keypoints_map_1,\n        const map<keypoint>&       tracked_keypoints_map,\n        const cv::Matx33d&         camera_matrix,\n        const class options::slam& options\n    ) -> std::vector<keypoint>;
 
     /** Track keylines from frame_0 to frame_1 using KLT optical flow on endpoints.
      *

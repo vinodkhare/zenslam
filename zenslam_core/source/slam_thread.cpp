@@ -41,9 +41,9 @@ zenslam::slam_thread::~slam_thread()
 
 void zenslam::slam_thread::loop()
 {
-    const auto& calibration   = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file);
+    const auto& calibration   = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file, _options.slam.stereo_rectify);
     const auto& stereo_reader = stereo_folder_reader(_options.folder);
-    const auto& clahe         = cv::createCLAHE(2.0);   // TODO: make configurable
+    const auto& clahe         = cv::createCLAHE(4.0); // TODO: make configurable
     const auto& detector      = grid_detector::create(_options.slam);
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
@@ -89,7 +89,8 @@ void zenslam::slam_thread::loop()
                     slam.frames[0].cameras[0].pyramid,
                     slam.frames[1].cameras[0].pyramid,
                     slam.frames[0].cameras[0].keypoints,
-                    _options.slam
+                    _options.slam,
+                    calibration.camera_matrix[0]
                 );
 
                 slam.frames[1].cameras[1].keypoints += utils::track_keypoints
@@ -97,7 +98,8 @@ void zenslam::slam_thread::loop()
                     slam.frames[0].cameras[1].pyramid,
                     slam.frames[1].cameras[1].pyramid,
                     slam.frames[0].cameras[1].keypoints,
-                    _options.slam
+                    _options.slam,
+                    calibration.camera_matrix[1]
                 );
 
                 slam.frames[1].cameras[0].keylines += utils::track_keylines
@@ -145,33 +147,33 @@ void zenslam::slam_thread::loop()
                 time_this time_this { slam.durations.matching };
 
                 // find keypoints that are not triangulated
-                {
-                    const auto& matches3d = utils::match_keypoints3d
-                    (
-                        slam.points3d,
-                        slam.frames[1].cameras[0].keypoints,
-                        slam.frames[1].pose,
-                        calibration.cameras[0].projection(slam.frames[1].pose),
-                        _options.slam.triangulation_max_depth,
-                        _options.slam.triangulation_reprojection_threshold
-                    );
-
-                    slam.frames[1].cameras[0].keypoints *= matches3d;
-                }
-
-                {
-                    const auto& matches3d = utils::match_keypoints3d
-                    (
-                        slam.points3d,
-                        slam.frames[1].cameras[1].keypoints,
-                        slam.frames[1].pose,
-                        calibration.cameras[0].projection(slam.frames[1].pose),
-                        _options.slam.triangulation_max_depth,
-                        _options.slam.triangulation_reprojection_threshold
-                    );
-
-                    slam.frames[1].cameras[1].keypoints *= matches3d;
-                }
+                // {
+                //     const auto& matches3d = utils::match_keypoints3d
+                //     (
+                //         slam.points3d,
+                //         slam.frames[1].cameras[0].keypoints,
+                //         slam.frames[1].pose,
+                //         calibration.cameras[0].projection(slam.frames[1].pose),
+                //         _options.slam.triangulation_max_depth,
+                //         _options.slam.triangulation_reprojection_threshold
+                //     );
+                //
+                //     slam.frames[1].cameras[0].keypoints *= matches3d;
+                // }
+                //
+                // {
+                //     const auto& matches3d = utils::match_keypoints3d
+                //     (
+                //         slam.points3d,
+                //         slam.frames[1].cameras[1].keypoints,
+                //         slam.frames[1].pose,
+                //         calibration.cameras[0].projection(slam.frames[1].pose),
+                //         _options.slam.triangulation_max_depth,
+                //         _options.slam.triangulation_reprojection_threshold
+                //     );
+                //
+                //     slam.frames[1].cameras[1].keypoints *= matches3d;
+                // }
 
 
                 auto matches = utils::match_keypoints

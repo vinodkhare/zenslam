@@ -18,7 +18,8 @@ namespace zenslam
         static auto parse
         (
             const std::filesystem::path& camera_calib_path,
-            const std::filesystem::path& imu_calib_path
+            const std::filesystem::path& imu_calib_path,
+            bool                         stereo_rectify
         ) -> calibration;
 
         void print() const;

@@ -796,6 +796,7 @@ auto zenslam::utils::track_keypoints
     const std::vector<cv::Mat>&     pyramid_1,
     const map<keypoint>&            keypoints_map_0,
     const class options::slam&      options,
+    const cv::Matx33d&              camera_matrix,
     const std::vector<cv::Point2f>& points_1_predicted
 ) -> std::vector<keypoint>
 {
@@ -854,45 +855,66 @@ auto zenslam::utils::track_keypoints
     // Verify KLT tracking results have consistent sizes
     assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == errors.size());
 
-    std::vector<keypoint> tracked_keypoints { };
+    // Collect candidates that pass forward-backward check
+    std::vector<cv::Point2f> candidate_points_0;
+    std::vector<cv::Point2f> candidate_points_1;
+    std::vector<size_t>      candidate_indices;
+
     for (size_t i = 0; i < points_1.size(); ++i)
     {
         if (status[i] && status_back[i] && cv::norm(points_0_back[i] - points_0[i]) < options.klt_threshold)
         {
+            candidate_points_0.push_back(points_0[i]);
+            candidate_points_1.push_back(points_1[i]);
+            candidate_indices.push_back(i);
+        }
+    }
+
+    // Apply essential matrix filtering if we have enough candidates
+    std::vector<keypoint> tracked_keypoints;
+
+    if (candidate_points_0.size() >= 8)
+    {
+        // Find essential matrix with RANSAC
+        std::vector<uchar> inlier_mask;
+
+        auto E = cv::findEssentialMat
+        (
+            candidate_points_0,
+            candidate_points_1,
+            camera_matrix,
+            cv::RANSAC,
+            0.999,
+            // Confidence
+            options.epipolar_threshold,
+            // Threshold in pixels
+            inlier_mask
+        );
+
+        // Keep only inliers
+        for (size_t j = 0; j < candidate_indices.size(); ++j)
+        {
+            if (inlier_mask[j])
+            {
+                auto i                = candidate_indices[j];
+                auto tracked_keypoint = keypoints_0[i];
+                tracked_keypoint.pt   = points_1[i];
+                tracked_keypoints.emplace_back(tracked_keypoint);
+            }
+        }
+    }
+    else
+    {
+        // Not enough points for essential matrix, use all candidates
+        for (auto i: candidate_indices)
+        {
             auto tracked_keypoint = keypoints_0[i];
             tracked_keypoint.pt   = points_1[i];
-
             tracked_keypoints.emplace_back(tracked_keypoint);
         }
     }
 
     return tracked_keypoints;
-}
-
-auto zenslam::utils::track
-(
-    const std::array<frame::stereo, 2>& frames,
-    const class options::slam&          options
-) -> std::array<std::vector<keypoint>, 2>
-{
-    return
-    {
-        track_keypoints
-        (
-            frames[0].cameras[0].pyramid,
-            frames[1].cameras[0].pyramid,
-            frames[0].cameras[0].keypoints,
-            options
-        ),
-
-        track_keypoints
-        (
-            frames[0].cameras[1].pyramid,
-            frames[1].cameras[1].pyramid,
-            frames[0].cameras[1].keypoints,
-            options
-        )
-    };
 }
 
 auto zenslam::utils::track_keylines
