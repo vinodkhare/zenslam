@@ -747,23 +747,37 @@ auto zenslam::utils::pre_process
     frame::processed processed = { };
 
     // Convert to grayscale
-    processed.images[0] = convert_color(sensor.images[0], cv::COLOR_BGR2GRAY);
-    processed.images[1] = convert_color(sensor.images[1], cv::COLOR_BGR2GRAY);
-
-    // Apply CLAHE if enabled
-    if (options.clahe_enabled)
+    std::jthread thread_0
     {
-        processed.images[0] = apply_clahe(processed.images[0], clahe);
-        processed.images[1] = apply_clahe(processed.images[1], clahe);
-    }
+        [&]()
+        {
+            processed.images[0] = convert_color(sensor.images[0], cv::COLOR_BGR2GRAY);
 
-    // Apply stereo rectification using pre-computed maps
-    processed.undistorted[0] = rectify(processed.images[0], calibration.map_x[0], calibration.map_y[0]);
-    processed.undistorted[1] = rectify(processed.images[1], calibration.map_x[1], calibration.map_y[1]);
+            if (options.clahe_enabled)
+            {
+                processed.images[0] = apply_clahe(processed.images[0], clahe);
+            }
 
-    // Build pyramids
-    processed.pyramids[0] = pyramid(processed.undistorted[0], options);
-    processed.pyramids[1] = pyramid(processed.undistorted[1], options);
+            processed.undistorted[0] = rectify(processed.images[0], calibration.map_x[0], calibration.map_y[0]);
+            processed.pyramids[0]    = pyramid(processed.undistorted[0], options);
+        }
+    };
+
+    std::jthread thread_1
+    {
+        [&]()
+        {
+            processed.images[1] = convert_color(sensor.images[1], cv::COLOR_BGR2GRAY);
+
+            if (options.clahe_enabled)
+            {
+                processed.images[1] = apply_clahe(processed.images[1], clahe);
+            }
+
+            processed.undistorted[1] = rectify(processed.images[1], calibration.map_x[1], calibration.map_y[1]);
+            processed.pyramids[1]    = pyramid(processed.undistorted[1], options);
+        }
+    };
 
     return processed;
 }
@@ -796,7 +810,7 @@ auto zenslam::utils::solve_pnp
 
 auto zenslam::utils::track
 (
-    const frame::slam&         frame_0,
+    const frame::tracked&      frame_0,
     const frame::processed&    frame_1,
     const calibration&         calibration,
     const class options::slam& options
@@ -808,18 +822,32 @@ auto zenslam::utils::track
     map<keypoint> keypoints_1 = { };
     point3d_cloud points3d    = { };
 
-    keypoints_0 += track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0], options, calibration.camera_matrix[0]);
-    keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1], options, calibration.camera_matrix[1]);
+    {
+        std::jthread thread_0
+        {
+            [&]()
+            {
+                keypoints_0 += track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0], options, calibration.camera_matrix[0]);
+                keypoints_0 += detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
+            }
+        };
 
-    keypoints_0 += detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
-    keypoints_1 += detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
+        std::jthread thread_1
+        {
+            [&]()
+            {
+                keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1], options, calibration.camera_matrix[1]);
+                keypoints_1 += detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
+            }
+        };
+    }
 
     keypoints_1 *= match_keypoints(keypoints_0, keypoints_1, calibration.fundamental_matrix[0], options.epipolar_threshold);
 
     points3d += triangulate_keypoints
     (
-        (keypoints_0),
-        (keypoints_1),
+        keypoints_0,
+        keypoints_1,
         calibration.projection_matrix[0],
         calibration.projection_matrix[1],
         options.triangulation_reprojection_threshold,

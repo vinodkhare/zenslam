@@ -58,7 +58,7 @@ namespace zenslam
 
     auto grid_detector::detect_keypoints
     (
-        const cv::Mat&               image,
+        const cv::Mat&       image,
         const map<keypoint>& keypoints_existing
     ) const -> std::vector<keypoint>
     {

@@ -154,7 +154,11 @@ void zenslam::slam_thread::loop()
             system.counts.print();
             system.durations.print();
 
-            writer.write(system);
+
+            {
+                time_this time_this { system.durations.matching };
+                writer.write(system);
+            }
 
             on_frame(system);
 
