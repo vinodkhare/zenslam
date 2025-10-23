@@ -41,6 +41,19 @@ namespace zenslam
         [[nodiscard]] std::vector<keypoint> detect_keypoints(const cv::Mat& image, const map<keypoint>& keypoints_existing) const;
 
         /**
+         * @brief Detect keypoints in the image using parallel grid-based detection
+         *
+         * This is a parallel version of detect_keypoints that processes grid cells concurrently
+         * using std::async. It provides better performance on multi-core systems when detecting
+         * features across many grid cells.
+         *
+         * @param image The input image in which to detect keypoints
+         * @param keypoints_existing A map to store detected keypoints with their indices
+         * @return A vector of detected keypoints
+         */
+        [[nodiscard]] std::vector<keypoint> detect_keypoints_par(const cv::Mat& image, const map<keypoint>& keypoints_existing) const;
+
+        /**
          * @brief Detect keylines in the image using grid-based detection
          *
          * @param image The input image in which to detect keylines
@@ -61,8 +74,6 @@ namespace zenslam
          * @return A vector of newly detected keylines
          */
         [[nodiscard]] std::vector<keyline> detect_keylines(const cv::Mat& image, const map<keyline>& keylines_map, int mask_margin = 10) const;
-
-        void detect_par(cv::InputArray image_array, std::map<size_t, keypoint>& keypoints_map) const;
 
     private:
         cv::Ptr<cv::Feature2D>                    _detector      = { }; // Underlying detector

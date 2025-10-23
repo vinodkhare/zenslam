@@ -18,7 +18,7 @@ namespace zenslam
     public:
         event<frame::sensor> on_frame = { };
 
-        explicit reader_thread(const class options::folder& options, size_t batch_size = 4, size_t num_threads = 4) :
+        explicit reader_thread(const class options::folder& options, size_t batch_size = 8, size_t num_threads = 4) :
             _options { options },
             _batch_size { batch_size },
             _num_threads { num_threads } {}

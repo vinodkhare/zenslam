@@ -828,7 +828,7 @@ auto zenslam::utils::track
             [&]()
             {
                 keypoints_0 += track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0], options, calibration.camera_matrix[0]);
-                keypoints_0 += detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
+                keypoints_0 += detector.detect_keypoints_par(frame_1.undistorted[0], keypoints_0);
             }
         };
 
@@ -837,7 +837,7 @@ auto zenslam::utils::track
             [&]()
             {
                 keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1], options, calibration.camera_matrix[1]);
-                keypoints_1 += detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
+                keypoints_1 += detector.detect_keypoints_par(frame_1.undistorted[1], keypoints_1);
             }
         };
     }
