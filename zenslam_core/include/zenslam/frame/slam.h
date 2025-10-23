@@ -3,7 +3,7 @@
 #include <array>
 #include <vector>
 
-#include "zenslam/point3d_cloud.h"
+#include "../types/point3d_cloud.h"
 #include "zenslam/frame/counts.h"
 #include "zenslam/frame/durations.h"
 #include "zenslam/frame/stereo.h"

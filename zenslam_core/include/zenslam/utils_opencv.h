@@ -7,7 +7,7 @@
 #include <opencv2/core/mat.hpp>
 
 #include "options.h"
-#include "point3d.h"
+#include "types/point3d.h"
 
 #include "frame/stereo.h"
 

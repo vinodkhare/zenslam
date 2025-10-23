@@ -1,4 +1,4 @@
-#include "point3d.h"
+#include "../../include/zenslam/types/point3d.h"
 
 #include <ranges>
 

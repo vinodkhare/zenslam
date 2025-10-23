@@ -4,9 +4,9 @@
 
 #include <opencv2/core.hpp>
 
-#include "zenslam/keyline.h"
-#include "zenslam/keypoint.h"
-#include "zenslam/map.h"
+#include "zenslam/types/keyline.h"
+#include "zenslam/types/keypoint.h"
+#include "zenslam/types/map.h"
 
 namespace zenslam::frame
 {

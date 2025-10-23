@@ -15,8 +15,8 @@
 #include <spdlog/spdlog.h>
 
 #include "calibration.h"
-#include "point3d.h"
-#include "point3d_cloud.h"
+#include "../include/zenslam/types/point3d.h"
+#include "../include/zenslam/types/point3d_cloud.h"
 
 #include "zenslam/pose_data.h"
 #include "zenslam/utils.h"

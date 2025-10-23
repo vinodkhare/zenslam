@@ -4,8 +4,8 @@
 
 #include <opencv2/core/affine.hpp>
 
-#include "zenslam/line3d.h"
-#include "zenslam/point3d.h"
+#include "../types/line3d.h"
+#include "../types/point3d.h"
 #include "zenslam/frame/camera.h"
 
 namespace zenslam::frame

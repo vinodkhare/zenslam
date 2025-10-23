@@ -2,7 +2,7 @@
 
 #include <thread>
 
-#include "event.h"
+#include "types/event.h"
 #include "options.h"
 #include "frame/slam.h"
 

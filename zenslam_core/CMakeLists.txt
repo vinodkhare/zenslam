@@ -40,20 +40,21 @@ add_library(${PROJECT_NAME}
         source/frame/slam.cpp
         source/frame/stereo.cpp
         source/frame/writer.cpp
+        source/types/event.cpp
+        source/types/keyline.cpp
+        source/types/keypoint.cpp
+        source/types/line3d.cpp
+        source/types/map.cpp
+        source/types/point3d.cpp
         source/calibration.cpp
         source/camera_calibration.cpp
-        source/event.cpp
         source/folder_options.cpp
         source/grid_detector.cpp
         source/groundtruth.cpp
         source/imu_calibration.cpp
-        source/keypoint.cpp
-        source/line3d.cpp
-        source/map.cpp
         source/mono_folder_reader.cpp
         source/motion.cpp
         source/options.cpp
-        source/point3d.cpp
         source/pose.cpp
         source/slam_thread.cpp
         source/stereo_folder_reader.cpp
@@ -63,7 +64,6 @@ add_library(${PROJECT_NAME}
         source/utils_slam.cpp
         source/utils_std.cpp
         source/verb.cpp
-        source/keyline.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include/zenslam ${RAPIDCSV_INCLUDE_DIRS} PUBLIC include)
@@ -85,15 +85,3 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         ${VTK_LIBRARIES}
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
-
-# Precompiled headers: speed up builds by precompiling commonly used header(s)
-# Requires CMake 3.16+; guarded to avoid breaking older environments
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-    # Precompile our lightweight umbrella header. It includes <concepts>, <cstddef>, <map>.
-    target_precompile_headers(${PROJECT_NAME}
-            PRIVATE
-            include/zenslam/map.h
-    )
-endif ()
-
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

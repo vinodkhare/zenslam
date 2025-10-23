@@ -10,8 +10,8 @@
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
 
-#include "keypoint.h"
-#include "point3d.h"
+#include "types/keypoint.h"
+#include "types/point3d.h"
 #include "utils_std.h"
 
 

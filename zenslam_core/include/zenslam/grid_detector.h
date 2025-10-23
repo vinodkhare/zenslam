@@ -6,10 +6,10 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/line_descriptor/descriptor.hpp>
 
-#include "keyline.h"
-#include "keypoint.h"
-#include "map.h"
 #include "options.h"
+#include "types/keyline.h"
+#include "types/keypoint.h"
+#include "types/map.h"
 
 namespace zenslam
 {
