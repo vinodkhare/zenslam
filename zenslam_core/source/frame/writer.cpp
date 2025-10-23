@@ -16,12 +16,12 @@ namespace zenslam::frame
                 "timestamp, t_preprocessing, t_tracking, t_detection, t_matching, t_estimation, t_total, n_keypoints_l, n_keypoints_r, n_tracked_l, n_tracked_r, n_matches, n_triangulated, n_3d3d, n_3d2d, n_3d3d_inliers, n_3d2d_inliers\n";
     }
 
-    auto writer::write(slam& frame) -> void
+    auto writer::write(system& frame) -> void
     {
         _file << std::format
                 (
                     "{:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}",
-                    frame.frames[1].cameras[0].timestamp,
+                    frame[1].timestamp,
                     std::chrono::duration<double>(frame.durations.preprocessing).count(),
                     std::chrono::duration<double>(frame.durations.tracking).count(),
                     std::chrono::duration<double>(frame.durations.detection).count(),

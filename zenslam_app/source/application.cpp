@@ -18,27 +18,27 @@ zenslam::application::application(options options) :
     _show_keypoints { _options.slam.show_keypoints },
     _show_keylines { _options.slam.show_keylines }
 {
-    _slam_thread.on_frame += [this](const frame::slam& slam)
+    _slam_thread.on_frame += [this](const frame::system& slam)
     {
         std::lock_guard lock { _mutex };
 
-        _slam = slam;
+        _system = slam;
     };
 }
 
 void zenslam::application::render()
 {
-    frame::slam slam { };
+    frame::system system { };
     {
         std::lock_guard lock { _mutex };
-        slam = _slam;
+        system = _system;
     }
 
-    if (slam.frames[1].cameras[0].keypoints.empty() || slam.frames[0].cameras[0].undistorted.empty() || slam.frames[1].cameras[0].undistorted.empty()) return;
+    if (system[1].keypoints[0].empty() || system[0].undistorted[0].empty() || system[1].undistorted[0].empty()) return;
 
     // display matches spatial
     {
-        const auto& matches_image = utils::draw_matches_spatial(slam.frames[1], slam.points3d);
+        const auto& matches_image = utils::draw_matches_spatial(system[1], system.points3d);
 
         cv::imshow("matches_spatial", matches_image);
         cv::setWindowTitle("matches_spatial", "matches spatial");
@@ -49,8 +49,8 @@ void zenslam::application::render()
     {
         const auto& image = utils::draw_matches_temporal
         (
-            slam.frames[0].cameras[0],
-            slam.frames[1].cameras[0],
+            system[0],
+            system[1],
             _options.slam
         );
 
@@ -69,7 +69,7 @@ void zenslam::application::render()
             _viewer->setBackgroundColor();
             _viewer->setWindowSize(cv::Size(1024, 1024));   // TODO: make this configurable
         }
-        else if (!slam.points3d.empty())
+        else if (!system.points3d.empty())
         {
             _viewer->removeAllWidgets();
 
@@ -78,31 +78,31 @@ void zenslam::application::render()
             cv::viz::WCameraPosition camera_position
             (
                 cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 },
-                slam.frames[1].cameras[0].undistorted
+                system[1].undistorted[0]
             );
 
             camera_position.setColor(cv::viz::Color::red());
             _viewer->showWidget("camera", camera_position);     // TODO: fix camera size
-            _viewer->setWidgetPose("camera", slam.frames[1].pose);
+            _viewer->setWidgetPose("camera", system[1].pose);
 
             cv::viz::WCameraPosition camera_gt
             (
                 cv::Vec2d { std::numbers::pi / 2, std::numbers::pi / 2 },
-                slam.frames[1].cameras[0].undistorted
+                system[1].undistorted[0]
             );
 
             camera_gt.setColor(cv::viz::Color::bluberry());
             _viewer->showWidget("camera_gt", camera_gt);
-            _viewer->setWidgetPose("camera_gt", slam.frames[1].pose_gt);
+            _viewer->setWidgetPose("camera_gt", system[1].pose_gt);
 
-            const auto& points = slam.points3d.values_cast<cv::Point3d>() | std::ranges::to<std::vector>();
+            const auto& points = system.points3d.values_cast<cv::Point3d>() | std::ranges::to<std::vector>();
 
             _viewer->showWidget("cloud", cv::viz::WCloud(points));
             _viewer->setRenderingProperty("cloud", cv::viz::POINT_SIZE, 4.0);
 
             if (_options.slam.show_keylines)
             {
-                for (const auto& line: slam.lines3d | std::views::values)
+                for (const auto& line: system.lines3d | std::views::values)
                 {
                     if (!_line_indices.contains(line.index))
                     {

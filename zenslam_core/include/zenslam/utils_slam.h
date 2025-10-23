@@ -5,16 +5,19 @@
 
 #include <opencv2/imgproc.hpp>
 
-#include "calibration.h"
-#include "options.h"
-#include "pose_data.h"
+#include "frame/slam.h"
 
-#include "frame/stereo.h"
-
-#include "types/keypoint.h"
-#include "types/line3d.h"
-#include "types/point3d.h"
-#include "types/point3d_cloud.h"
+#include "zenslam/calibration.h"
+#include "zenslam/options.h"
+#include "zenslam/pose_data.h"
+#include "zenslam/frame/processed.h"
+#include "zenslam/frame/sensor.h"
+#include "zenslam/frame/stereo.h"
+#include "zenslam/frame/tracked.h"
+#include "zenslam/types/keypoint.h"
+#include "zenslam/types/line3d.h"
+#include "zenslam/types/point3d.h"
+#include "zenslam/types/point3d_cloud.h"
 
 inline auto operator-(const std::vector<cv::Point2d>& lhs, const std::vector<cv::Point2f>& rhs) -> std::vector<cv::Point2d>
 {
@@ -132,8 +135,8 @@ namespace zenslam::utils
 
     auto match_keypoints
     (
-        const map<keypoint>& map_keypoints_l,
-        const map<keypoint>& map_keypoints_r,
+        const map<keypoint>& keypoints_0,
+        const map<keypoint>& keypoints_1,
         const cv::Matx33d&   fundamental,
         double               epipolar_threshold
     ) -> std::vector<cv::DMatch>;
@@ -186,20 +189,21 @@ namespace zenslam::utils
         double                            threshold
     ) -> std::vector<cv::DMatch>;
 
-    /** Pre-process a camera frame by converting to grayscale, applying CLAHE, and building an image pyramid.
+    /** Pre-process a sensor frame by converting to grayscale, applying CLAHE, and building an image pyramid.
      *
-     * @param frame The input stereo frame containing the image to be processed.
+     * @param sensor The input sensor frame containing the image to be processed.
      * @param calibration The camera calibration parameters.
      * @param options SLAM options that may include CLAHE settings and pyramid levels.
      * @return The pre-processed frame.
      */
     auto pre_process
     (
-        const frame::stereo&        frame,
-        const zenslam::calibration& calibration,
-        const class options::slam&  options,
-        const cv::Ptr<cv::CLAHE>&   clahe
-    ) -> frame::stereo;
+        const frame::sensor&       sensor,
+        const calibration&         calibration,
+        const class options::slam& options,
+        const cv::Ptr<cv::CLAHE>&  clahe
+    ) -> frame::processed;
+
 
     /** Solve the PnP problem to estimate camera pose from 3D-2D point correspondences.
      *
@@ -215,6 +219,17 @@ namespace zenslam::utils
         const std::vector<cv::Point2d>& points2d,
         cv::Affine3d&                   pose
     ) -> void;
+
+    /** Track keypoints and keylines between frames.
+     *
+     * @param frame_0 The previous SLAM frame containing keypoints and keylines.
+     * @param frame_1 The processed frame containing image pyramids.
+     * @param calibration The camera calibration parameters.
+     * @param options SLAM options that may include KLT parameters.
+     * @return The tracked frame with updated keypoints and keylines.
+     */
+    auto track
+    (const frame::slam& frame_0, const frame::processed& frame_1, const calibration& calibration, const class options::slam& options) -> frame::tracked;
 
     /** Track keypoints from frame_0 to frame_1 using KLT optical flow.
      *
@@ -232,7 +247,7 @@ namespace zenslam::utils
         const std::vector<cv::Mat>&     pyramid_1,
         const map<keypoint>&            keypoints_map_0,
         const class options::slam&      options,
-            const cv::Matx33d&              camera_matrix,
+        const cv::Matx33d&              camera_matrix,
         const std::vector<cv::Point2f>& points_1_predicted = { }
     ) -> std::vector<keypoint>;
 

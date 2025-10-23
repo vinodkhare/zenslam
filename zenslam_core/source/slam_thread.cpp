@@ -24,6 +24,7 @@
 #include "utils_std.h"
 #include "frame/durations.h"
 #include "frame/slam.h"
+#include "frame/system.h"
 #include "frame/writer.h"
 
 zenslam::slam_thread::slam_thread(options options) :
@@ -52,186 +53,54 @@ void zenslam::slam_thread::loop()
 
     calibration.print();
 
-    frame::slam slam { };
+    frame::system system { };
 
-    for (auto f: stereo_reader)
+    for (auto stereo: stereo_reader)
     {
         {
-            slam.frames[0] = std::move(slam.frames[1]);
-            slam.frames[1] = std::move(f);
+            system[0] = std::move(system[1]);
 
-            time_this t { slam.durations.total };
+            auto sensor = frame::sensor { 0, stereo.cameras[0].timestamp, { stereo.cameras[0].image, stereo.cameras[1].image } };
 
-            const auto& dt = isnan(slam.frames[0].cameras[0].timestamp)
-                                 ? 0.0
-                                 : slam.frames[1].cameras[0].timestamp - slam.frames[0].cameras[0].timestamp;
-            const auto& slerp                    = groundtruth.slerp(slam.frames[1].cameras[0].timestamp);
-            const auto& pose_gt_of_imu0_in_world = cv::Affine3d { slerp.quaternion.toRotMat3x3(), slerp.translation };
+            time_this t { system.durations.total };
 
-            slam.frames[1].pose_gt = pose_gt_of_imu0_in_world * calibration.cameras[0].pose_in_imu0;
-            slam.frames[0].pose    = isnan(slam.frames[0].cameras[0].timestamp) ? slam.frames[1].pose_gt : slam.frames[0].pose;
-            slam.frames[1].pose    = motion.predict(slam.frames[0].pose, dt);
+            const auto& dt = isnan(system[0].timestamp) ? 0.0 : sensor.timestamp - system[0].timestamp;
+
+            // slam.frames[1].pose_gt = pose_gt_of_imu0_in_world * calibration.cameras[0].pose_in_imu0;
+            // slam.frames[0].pose    = isnan(slam[0].timestamp) ? pose_gt_of_imu0_in_world * calibration.cameras[0].pose_in_imu0 : slam[0].pose;
+            // slam.frames[1].pose    = motion.predict(slam[0].pose, dt);
 
             // PREPROCESS
+            frame::processed processed = { };
             {
-                time_this time_this { slam.durations.preprocessing };
+                time_this time_this { system.durations.preprocessing };
 
-                slam.frames[1] = utils::pre_process(slam.frames[1], calibration, _options.slam, clahe);
+                processed = utils::pre_process(sensor, calibration, _options.slam, clahe);
             }
 
             // TODO: separate keyline and keypoints pipelines
             // TRACK
+            frame::tracked tracked = { };
             {
-                time_this time_this { slam.durations.tracking };
+                time_this time_this { system.durations.tracking };
 
-                slam.frames[1].cameras[0].keypoints += utils::track_keypoints
-                (
-                    slam.frames[0].cameras[0].pyramid,
-                    slam.frames[1].cameras[0].pyramid,
-                    slam.frames[0].cameras[0].keypoints,
-                    _options.slam,
-                    calibration.camera_matrix[0]
-                );
-
-                slam.frames[1].cameras[1].keypoints += utils::track_keypoints
-                (
-                    slam.frames[0].cameras[1].pyramid,
-                    slam.frames[1].cameras[1].pyramid,
-                    slam.frames[0].cameras[1].keypoints,
-                    _options.slam,
-                    calibration.camera_matrix[1]
-                );
-
-                slam.frames[1].cameras[0].keylines += utils::track_keylines
-                (
-                    slam.frames[0].cameras[0].pyramid,
-                    slam.frames[1].cameras[0].pyramid,
-                    slam.frames[0].cameras[0].keylines,
-                    _options.slam
-                );
-
-                slam.frames[1].cameras[1].keylines += utils::track_keylines
-                (
-                    slam.frames[0].cameras[1].pyramid,
-                    slam.frames[1].cameras[1].pyramid,
-                    slam.frames[0].cameras[1].keylines,
-                    _options.slam
-                );
-            }
-
-            slam.counts.keypoints_l_tracked = slam.frames[1].cameras[0].keypoints.size();
-            slam.counts.keypoints_r_tracked = slam.frames[1].cameras[1].keypoints.size();
-
-            // DETECT
-            {
-                time_this time_this { slam.durations.detection };
-
-                slam.frames[1].cameras[0].keypoints += detector.detect_keypoints
-                        (slam.frames[1].cameras[0].undistorted, slam.frames[1].cameras[0].keypoints);
-
-                slam.frames[1].cameras[1].keypoints += detector.detect_keypoints
-                        (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keypoints);
-
-                slam.frames[1].cameras[0].keylines += detector.detect_keylines
-                        (slam.frames[1].cameras[0].undistorted, slam.frames[1].cameras[0].keylines);
-
-                slam.frames[1].cameras[1].keylines += detector.detect_keylines
-                        (slam.frames[1].cameras[1].undistorted, slam.frames[1].cameras[1].keylines);
-            }
-
-            slam.counts.keypoints_l = slam.frames[1].cameras[0].keypoints.size();
-            slam.counts.keypoints_r = slam.frames[1].cameras[1].keypoints.size();
-
-            // MATCH & TRIANGULATE
-            {
-                time_this time_this { slam.durations.matching };
-
-                // find keypoints that are not triangulated
-                // {
-                //     const auto& matches3d = utils::match_keypoints3d
-                //     (
-                //         slam.points3d,
-                //         slam.frames[1].cameras[0].keypoints,
-                //         slam.frames[1].pose,
-                //         calibration.cameras[0].projection(slam.frames[1].pose),
-                //         _options.slam.triangulation_max_depth,
-                //         _options.slam.triangulation_reprojection_threshold
-                //     );
-                //
-                //     slam.frames[1].cameras[0].keypoints *= matches3d;
-                // }
-                //
-                // {
-                //     const auto& matches3d = utils::match_keypoints3d
-                //     (
-                //         slam.points3d,
-                //         slam.frames[1].cameras[1].keypoints,
-                //         slam.frames[1].pose,
-                //         calibration.cameras[0].projection(slam.frames[1].pose),
-                //         _options.slam.triangulation_max_depth,
-                //         _options.slam.triangulation_reprojection_threshold
-                //     );
-                //
-                //     slam.frames[1].cameras[1].keypoints *= matches3d;
-                // }
-
-
-                auto matches = utils::match_keypoints
-                (
-                    slam.frames[1].cameras[0].keypoints,
-                    slam.frames[1].cameras[1].keypoints,
-                    calibration.fundamental_matrix[0],
-                    _options.slam.epipolar_threshold
-                );
-
-                slam.frames[1].cameras[1].keypoints *= matches;
-
-                slam.counts.matches = matches.size();
-
-                slam.frames[1].points3d += utils::triangulate_keypoints
-                (
-                    slam.frames[1].cameras[0].keypoints,
-                    slam.frames[1].cameras[1].keypoints,
-                    calibration.projection_matrix[0],
-                    calibration.projection_matrix[1],
-                    _options.slam.triangulation_reprojection_threshold,
-                    calibration.cameras[1].pose_in_cam0.translation()
-                );
-
-                slam.counts.maches_triangulated = slam.frames[1].points3d.size();
-
-                slam.frames[1].cameras[1].keylines *= utils::match_keylines
-                (
-                    slam.frames[1].cameras[0].keylines,
-                    slam.frames[1].cameras[1].keylines,
-                    calibration.fundamental_matrix[0],
-                    _options.slam.epipolar_threshold
-                );
-
-                slam.frames[1].lines3d += utils::triangulate_keylines
-                (
-                    slam.frames[1].cameras[0].keylines,
-                    slam.frames[1].cameras[1].keylines,
-                    calibration.projection_matrix[0],
-                    calibration.projection_matrix[1],
-                    _options.slam,
-                    calibration.cameras[1].pose_in_cam0.translation()
-                );
+                tracked = utils::track(system[0], processed, calibration, _options.slam);
             }
 
             auto pose_data_3d3d = pose_data { };
             auto pose_data_3d2d = pose_data { };
 
             // ESTIMATE
+            frame::slam slam_frame = { };
             {
-                time_this time_this { slam.durations.estimation };
+                time_this time_this { system.durations.estimation };
 
                 try
                 {
                     pose_data_3d3d = utils::estimate_pose_3d3d
                     (
-                        slam.frames[0].points3d,
-                        slam.frames[1].points3d,
+                        system[0].points3d,
+                        tracked.points3d,
                         _options.slam.threshold_3d3d
                     );
                 }
@@ -244,8 +113,8 @@ void zenslam::slam_thread::loop()
                 {
                     pose_data_3d2d = utils::estimate_pose_3d2d
                     (
-                        slam.frames[0].points3d,
-                        slam.frames[1].cameras[0].keypoints,
+                        system[0].points3d,
+                        tracked.keypoints[0],
                         calibration.camera_matrix[0],
                         _options.slam.threshold_3d2d
                     );
@@ -256,42 +125,38 @@ void zenslam::slam_thread::loop()
                 }
             }
 
-            slam.counts.correspondences_3d2d         = pose_data_3d2d.indices.size();
-            slam.counts.correspondences_3d3d         = pose_data_3d3d.indices.size();
-            slam.counts.correspondences_3d2d_inliers = pose_data_3d2d.inliers.size();
-            slam.counts.correspondences_3d3d_inliers = pose_data_3d3d.inliers.size();
+            system.counts.correspondences_3d2d         = pose_data_3d2d.indices.size();
+            system.counts.correspondences_3d3d         = pose_data_3d3d.indices.size();
+            system.counts.correspondences_3d2d_inliers = pose_data_3d2d.inliers.size();
+            system.counts.correspondences_3d3d_inliers = pose_data_3d3d.inliers.size();
 
             const auto err3d3d_mean = utils::mean(pose_data_3d3d.errors);
             const auto err3d2d_mean = utils::mean(pose_data_3d2d.errors);
             SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
             SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
 
-            const auto& pose =
-                    pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;
+            const auto& pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;
 
-            SPDLOG_INFO("");
-            SPDLOG_INFO("Predicted pose:   {}", slam.frames[1].pose);
+            system[1] = frame::slam { tracked, system[0].pose * pose.inv()};
 
-            slam.frames[1].pose = slam.frames[0].pose * pose.inv();
+            SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
+            SPDLOG_INFO("Groundtruth pose: {}", system[1].pose_gt);
 
-            SPDLOG_INFO("Estimated pose:   {}", slam.frames[1].pose);
-            SPDLOG_INFO("Groundtruth pose: {}", slam.frames[1].pose_gt);
+            system.points3d += system[1].pose * system[1].points3d;
+            system.lines3d += system[1].pose * system[1].lines3d;
 
-            slam.points3d += slam.frames[1].pose * slam.frames[1].points3d;
-            slam.lines3d += slam.frames[1].pose * slam.frames[1].lines3d;
+            system.points3d.buildIndex();
 
-            slam.points3d.buildIndex();
+            system.counts.points = system.points3d.size();
 
-            slam.counts.points = slam.points3d.size();
+            motion.update(system[0].pose, system[1].pose, dt);
 
-            motion.update(slam.frames[0].pose, slam.frames[1].pose, dt);
+            system.counts.print();
+            system.durations.print();
 
-            slam.counts.print();
-            slam.durations.print();
+            writer.write(system);
 
-            writer.write(slam);
-
-            on_frame(slam);
+            on_frame(system);
 
             if (_stop_token.stop_requested())
             {

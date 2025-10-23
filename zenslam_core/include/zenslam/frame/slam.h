@@ -1,23 +1,12 @@
 #pragma once
 
-#include <array>
-#include <vector>
-
-#include "../types/point3d_cloud.h"
-#include "zenslam/frame/counts.h"
-#include "zenslam/frame/durations.h"
-#include "zenslam/frame/stereo.h"
+#include "zenslam/frame/tracked.h"
 
 namespace zenslam::frame
 {
-    class slam
+    struct slam : tracked
     {
-    public:
-        std::array<stereo, 2>  frames    = { };
-        point3d_cloud          points3d  = { };
-        map<line3d>            lines3d   = { };
-        std::vector<cv::Vec3b> colors    = { };
-        durations              durations = { };
-        counts                 counts    = { };
+        cv::Affine3d pose = { };
+        cv::Affine3d pose_gt = { };
     };
 }

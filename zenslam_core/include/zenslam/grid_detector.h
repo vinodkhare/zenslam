@@ -35,10 +35,10 @@ namespace zenslam
          * @brief Detect keypoints in the image using grid-based detection
          *
          * @param image The input image in which to detect keypoints
-         * @param keypoints_map A map to store detected keypoints with their indices
+         * @param keypoints_existing A map to store detected keypoints with their indices
          * @return A vector of detected keypoints
          */
-        [[nodiscard]] std::vector<keypoint> detect_keypoints(const cv::Mat& image, const map<keypoint>& keypoints_map) const;
+        [[nodiscard]] std::vector<keypoint> detect_keypoints(const cv::Mat& image, const map<keypoint>& keypoints_existing) const;
 
         /**
          * @brief Detect keylines in the image using grid-based detection

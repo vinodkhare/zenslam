@@ -15,12 +15,12 @@ namespace zenslam
         void render();
 
     private:
-        std::mutex  _mutex { };
-        frame::slam _slam { };
+        std::mutex    _mutex  = { };
+        frame::system _system = { };
 
-        options                         _options { };
-        slam_thread                     _slam_thread { _options };
-        std::unique_ptr<cv::viz::Viz3d> _viewer { };
+        options                         _options      = { };
+        slam_thread                     _slam_thread  = slam_thread { _options };
+        std::unique_ptr<cv::viz::Viz3d> _viewer       = { };
         cv::viz::WWidgetMerger          _merger       = { };
         std::set<size_t>                _line_indices = { };
 

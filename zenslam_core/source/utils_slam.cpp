@@ -15,13 +15,17 @@
 #include <spdlog/spdlog.h>
 
 #include "calibration.h"
+#include "grid_detector.h"
+
 #include "../include/zenslam/types/point3d.h"
 #include "../include/zenslam/types/point3d_cloud.h"
+
+#include "frame/processed.h"
 
 #include "zenslam/pose_data.h"
 #include "zenslam/utils.h"
 #include "zenslam/utils_opencv.h"
-#include "zenslam/frame/stereo.h"
+#include "zenslam/utils_std.h"
 
 void zenslam::utils::correspondences_3d2d
 (
@@ -360,8 +364,8 @@ auto zenslam::utils::filter
 
 auto zenslam::utils::match_keypoints
 (
-    const map<keypoint>& map_keypoints_l,
-    const map<keypoint>& map_keypoints_r,
+    const map<keypoint>& keypoints_0,
+    const map<keypoint>& keypoints_1,
     const cv::Matx33d&   fundamental,
     double               epipolar_threshold
 ) -> std::vector<cv::DMatch>
@@ -372,9 +376,9 @@ auto zenslam::utils::match_keypoints
     std::vector<keypoint>   unmatched_r { };
     std::vector<cv::DMatch> matches_new { };
 
-    for (const auto& keypoint_l: map_keypoints_l | std::views::values)
+    for (const auto& keypoint_l: keypoints_0 | std::views::values)
     {
-        if (map_keypoints_r.contains(keypoint_l.index)) continue;
+        if (keypoints_1.contains(keypoint_l.index)) continue;
 
         unmatched_l.emplace_back(keypoint_l);
 
@@ -388,9 +392,9 @@ auto zenslam::utils::match_keypoints
         }
     }
 
-    for (const auto& keypoint_r: map_keypoints_r | std::views::values)
+    for (const auto& keypoint_r: keypoints_1 | std::views::values)
     {
-        if (map_keypoints_l.contains(keypoint_r.index)) continue;
+        if (keypoints_0.contains(keypoint_r.index)) continue;
 
         unmatched_r.emplace_back(keypoint_r);
 
@@ -734,34 +738,34 @@ auto zenslam::utils::match_temporal
 
 auto zenslam::utils::pre_process
 (
-    const frame::stereo&       frame,
+    const frame::sensor&       sensor,
     const calibration&         calibration,
     const class options::slam& options,
     const cv::Ptr<cv::CLAHE>&  clahe
-) -> frame::stereo
+) -> frame::processed
 {
-    auto result = frame;
+    frame::processed processed = { };
 
     // Convert to grayscale
-    result.cameras[0].image = convert_color(result.cameras[0].image, cv::COLOR_BGR2GRAY);
-    result.cameras[1].image = convert_color(result.cameras[1].image, cv::COLOR_BGR2GRAY);
+    processed.images[0] = convert_color(sensor.images[0], cv::COLOR_BGR2GRAY);
+    processed.images[1] = convert_color(sensor.images[1], cv::COLOR_BGR2GRAY);
 
     // Apply CLAHE if enabled
     if (options.clahe_enabled)
     {
-        result.cameras[0].image = apply_clahe(result.cameras[0].image, clahe);
-        result.cameras[1].image = apply_clahe(result.cameras[1].image, clahe);
+        processed.images[0] = apply_clahe(processed.images[0], clahe);
+        processed.images[1] = apply_clahe(processed.images[1], clahe);
     }
 
     // Apply stereo rectification using pre-computed maps
-    result.cameras[0].undistorted = rectify(result.cameras[0].image, calibration.map_x[0], calibration.map_y[0]);
-    result.cameras[1].undistorted = rectify(result.cameras[1].image, calibration.map_x[1], calibration.map_y[1]);
+    processed.undistorted[0] = rectify(processed.images[0], calibration.map_x[0], calibration.map_y[0]);
+    processed.undistorted[1] = rectify(processed.images[1], calibration.map_x[1], calibration.map_y[1]);
 
     // Build pyramids
-    result.cameras[0].pyramid = pyramid(result.cameras[0].undistorted, options);
-    result.cameras[1].pyramid = pyramid(result.cameras[1].undistorted, options);
+    processed.pyramids[0] = pyramid(processed.undistorted[0], options);
+    processed.pyramids[1] = pyramid(processed.undistorted[1], options);
 
-    return result;
+    return processed;
 }
 
 auto zenslam::utils::solve_pnp
@@ -788,6 +792,41 @@ auto zenslam::utils::solve_pnp
         SPDLOG_WARN("SolvePnP failed");
         throw std::runtime_error("SolvePnP failed");
     }
+}
+
+auto zenslam::utils::track
+(
+    const frame::slam&         frame_0,
+    const frame::processed&    frame_1,
+    const calibration&         calibration,
+    const class options::slam& options
+) -> frame::tracked
+{
+    const auto& detector = grid_detector::create(options);
+
+    map<keypoint> keypoints_0 = { };
+    map<keypoint> keypoints_1 = { };
+    point3d_cloud points3d    = { };
+
+    keypoints_0 += track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0], options, calibration.camera_matrix[0]);
+    keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1], options, calibration.camera_matrix[1]);
+
+    keypoints_0 += detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
+    keypoints_1 += detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
+
+    keypoints_1 *= match_keypoints(keypoints_0, keypoints_1, calibration.fundamental_matrix[0], options.epipolar_threshold);
+
+    points3d += triangulate_keypoints
+    (
+        (keypoints_0),
+        (keypoints_1),
+        calibration.projection_matrix[0],
+        calibration.projection_matrix[1],
+        options.triangulation_reprojection_threshold,
+        calibration.cameras[1].pose_in_cam0.translation()
+    );
+
+    return { frame_1, keypoints_0, keypoints_1, { }, points3d };
 }
 
 auto zenslam::utils::track_keypoints

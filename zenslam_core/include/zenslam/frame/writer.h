@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "zenslam/frame/slam.h"
+#include "zenslam/frame/system.h"
 
 namespace zenslam::frame
 {
@@ -11,7 +11,7 @@ namespace zenslam::frame
     {
     public:
         explicit writer(const std::filesystem::path& path);
-        auto     write(slam& frame) -> void;
+        auto     write(system& frame) -> void;
 
     private:
         std::ofstream _file { "frames.csv" };

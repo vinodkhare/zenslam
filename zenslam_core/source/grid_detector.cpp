@@ -58,8 +58,8 @@ namespace zenslam
 
     auto grid_detector::detect_keypoints
     (
-        const cv::Mat&       image,
-        const map<keypoint>& keypoints_map
+        const cv::Mat&               image,
+        const map<keypoint>& keypoints_existing
     ) const -> std::vector<keypoint>
     {
         // Calculate grid dimensions
@@ -69,7 +69,7 @@ namespace zenslam
         std::vector occupied(grid_size.width, std::vector(grid_size.height, false));
 
         // loop over all existing keypoints and update occupancy
-        for (const auto& keypoint: keypoints_map | std::views::values)
+        for (const auto& keypoint: keypoints_existing | std::views::values)
         {
             // Calculate which grid cell this keypoint falls into
             const auto& grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
@@ -190,8 +190,8 @@ namespace zenslam
         _line_detector->detect(image, keylines_cv, 2.0f, 1);
 
         // Compute descriptors for detected keylines
-        const auto    bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
-        cv::Mat descriptors;
+        const auto bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
+        cv::Mat    descriptors;
         if (!keylines_cv.empty())
         {
             bd->compute(image, keylines_cv, descriptors);
@@ -238,8 +238,8 @@ namespace zenslam
         _line_detector->detect(image, keylines_cv, 2.0f, 1, mask);
 
         // Compute descriptors for detected keylines
-        const auto&    bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
-        cv::Mat descriptors {};
+        const auto& bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
+        cv::Mat     descriptors { };
         if (!keylines_cv.empty())
         {
             bd->compute(image, keylines_cv, descriptors);
@@ -313,8 +313,8 @@ namespace zenslam
         // Process cells in parallel using async
         struct cell_result
         {
-            keypoint keypoint = {};
-            bool     valid = {};
+            keypoint keypoint = { };
+            bool     valid    = { };
         };
 
         // Launch async tasks for each cell

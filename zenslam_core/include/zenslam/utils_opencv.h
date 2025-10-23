@@ -7,6 +7,9 @@
 #include <opencv2/core/mat.hpp>
 
 #include "options.h"
+
+#include "frame/slam.h"
+
 #include "types/point3d.h"
 
 #include "frame/stereo.h"
@@ -66,11 +69,11 @@ namespace zenslam::utils
         int                                              thickness
     );
 
-    auto draw_matches_spatial(const frame::stereo& frame, const map<point3d>& points) -> cv::Mat;
+    auto draw_matches_spatial(const frame::slam& frame, const map<point3d>& points) -> cv::Mat;
     auto draw_matches_temporal
     (
-        const frame::camera&       frame_0,
-        const frame::camera&       frame_1,
+        const frame::slam&         frame_0,
+        const frame::slam&         frame_1,
         const class options::slam& options
     ) -> cv::Mat;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;

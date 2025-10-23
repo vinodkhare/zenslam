@@ -76,3 +76,10 @@ namespace zenslam::utils
     auto to_string(const std::vector<double>& values, const std::string& delimiter = ", ") -> std::string;
     auto to_string_epoch(double epoch_seconds) -> std::string;
 }
+
+template <typename T>
+auto operator+=(std::vector<T>& vec, const std::vector<T>& other) -> std::vector<T>&
+{
+    vec.insert(vec.end(), other.begin(), other.end());
+    return vec;
+}

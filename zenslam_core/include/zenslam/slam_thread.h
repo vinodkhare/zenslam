@@ -2,16 +2,16 @@
 
 #include <thread>
 
-#include "types/event.h"
-#include "options.h"
-#include "frame/slam.h"
+#include "zenslam/options.h"
+#include "zenslam/frame/system.h"
+#include "zenslam/types/event.h"
 
 namespace zenslam
 {
     class slam_thread
     {
     public:
-        event<frame::slam> on_frame;
+        event<frame::system> on_frame;
 
         explicit slam_thread(options options);
         ~slam_thread();
