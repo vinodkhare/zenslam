@@ -11,15 +11,32 @@ namespace zenslam
     {
     public:
         point3d_cloud() :
-            KDTreeSingleIndexAdaptor { 3, *this } {}
+            KDTreeSingleIndexAdaptor
+            {
+                3,
+                *this,
+                nanoflann::KDTreeSingleIndexAdaptorParams
+                {
+                    10,
+                    nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex
+                }
+            } {}
 
         point3d_cloud(const point3d_cloud& other) :
             map(other),
-            KDTreeSingleIndexAdaptor { 3, *this } {}
+            KDTreeSingleIndexAdaptor
+            {
+                3,
+                *this,
+                nanoflann::KDTreeSingleIndexAdaptorParams
+                {
+                    10,
+                    nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex
+                }
+            } {}
 
         auto operator=(const point3d_cloud& other) -> point3d_cloud&
         {
-            // copy
             map::operator=(other);
             return *this;
         }

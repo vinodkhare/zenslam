@@ -14,10 +14,7 @@
 #include <vtk-9.3/vtkLogger.h>
 
 #include "calibration.h"
-#include "grid_detector.h"
 #include "groundtruth.h"
-#include "motion.h"
-#include "stereo_folder_reader.h"
 #include "time_this.h"
 #include "utils.h"
 #include "utils_slam.h"
@@ -37,12 +34,17 @@ zenslam::slam_thread::slam_thread(options options) :
 zenslam::slam_thread::~slam_thread()
 {
     _stop_source.request_stop();
+    // Wake the worker if it's waiting
+    _cv.notify_all();
 }
 
 void zenslam::slam_thread::enqueue(const frame::sensor& frame)
 {
-    std::lock_guard lock { _mutex };
-    _queue.push(frame);
+    {
+        std::lock_guard lock { _mutex };
+        _queue.push(frame);
+    }
+    _cv.notify_one();
 }
 
 
@@ -64,20 +66,30 @@ void zenslam::slam_thread::loop()
 
             frame::sensor sensor { };
             {
-                std::lock_guard lock { _mutex };
+                time_this time_this { system.durations.detection };
 
-                if (_queue.empty()) // TODO: use condition variable or similar to avoid busy waiting
+                std::unique_lock lock { _mutex };
+                _cv.wait
+                (
+                    lock,
+                    [this]
+                    {
+                        return !_queue.empty() || _stop_token.stop_requested();
+                    }
+                );
+
+                if (_stop_token.stop_requested() && _queue.empty())
                 {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                    continue;
+                    break;
                 }
 
                 sensor = _queue.front();
-
                 _queue.pop();
+
             }
 
-            system[0] = std::move(system[1]);
+                            system[0] = std::move(system[1]);
+
 
             // PREPROCESS
             frame::processed processed { };

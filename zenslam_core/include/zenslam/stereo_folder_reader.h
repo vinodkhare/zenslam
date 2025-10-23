@@ -5,6 +5,8 @@
 #include "mono_folder_reader.h"
 #include "options.h"
 #include "random_access_iterator.h"
+
+#include "frame/sensor.h"
 #include "frame/stereo.h"
 
 namespace zenslam
@@ -34,9 +36,18 @@ namespace zenslam
             return size() == 0;
         }
 
-        frame::stereo operator[](const std::size_t idx) const
+        frame::sensor operator[](const std::size_t idx) const
         {
-            return frame::stereo { _left[idx], _right[idx] };
+            frame::sensor frame = { };
+
+            const auto camera = _left[idx];
+
+            frame.timestamp = camera.timestamp;
+            frame.images[0] = camera.image;
+            frame.images[1] = _right[idx].image;
+            frame.index     = frame::sensor::count++;
+
+            return frame;
         }
 
         [[nodiscard]] iterator begin() const

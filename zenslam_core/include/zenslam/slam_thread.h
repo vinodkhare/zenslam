@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <thread>
+#include <condition_variable>
 
 #include <concurrentqueue/moodycamel/concurrentqueue.h>
 
@@ -26,6 +27,7 @@ namespace zenslam
 
         options                   _options = { };
         std::mutex                _mutex   = { };
+    std::condition_variable   _cv      = { };
         std::queue<frame::sensor> _queue   = { };
 
         std::stop_source _stop_source = { };

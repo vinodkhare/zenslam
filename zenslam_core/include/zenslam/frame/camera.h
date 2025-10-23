@@ -20,11 +20,5 @@ namespace zenslam::frame
         std::vector<cv::Mat> pyramid     = { };
         map<keypoint>        keypoints   = { };
         map<keyline>         keylines    = { };
-
-        camera() = default;
-
-        camera(const double timestamp, cv::Mat image) :
-            timestamp(timestamp),
-            image(std::move(image)) {}
     };
 } // namespace zenslam::frame
