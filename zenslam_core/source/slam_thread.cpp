@@ -39,43 +39,52 @@ zenslam::slam_thread::~slam_thread()
     _stop_source.request_stop();
 }
 
+void zenslam::slam_thread::enqueue(const frame::sensor& frame)
+{
+    std::lock_guard lock { _mutex };
+    _queue.push(frame);
+}
+
 
 void zenslam::slam_thread::loop()
 {
-    const auto& calibration   = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file, _options.slam.stereo_rectify);
-    const auto& stereo_reader = stereo_folder_reader(_options.folder);
-    const auto& clahe         = cv::createCLAHE(4.0); // TODO: make configurable
-    const auto& detector      = grid_detector::create(_options.slam);
+    const auto& calibration = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file, _options.slam.stereo_rectify);
+    const auto& clahe       = cv::createCLAHE(4.0); // TODO: make configurable
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
-    auto motion      = zenslam::motion();
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");
 
     calibration.print();
 
     frame::system system { };
-
-    for (auto stereo: stereo_reader)
+    while (!_stop_token.stop_requested())
     {
         {
-            system[0] = std::move(system[1]);
-
-            auto sensor = frame::sensor { 0, stereo.cameras[0].timestamp, { stereo.cameras[0].image, stereo.cameras[1].image } };
-
             time_this t { system.durations.total };
 
-            const auto& dt = isnan(system[0].timestamp) ? 0.0 : sensor.timestamp - system[0].timestamp;
+            frame::sensor sensor { };
+            {
+                std::lock_guard lock { _mutex };
 
-            // slam.frames[1].pose_gt = pose_gt_of_imu0_in_world * calibration.cameras[0].pose_in_imu0;
-            // slam.frames[0].pose    = isnan(slam[0].timestamp) ? pose_gt_of_imu0_in_world * calibration.cameras[0].pose_in_imu0 : slam[0].pose;
-            // slam.frames[1].pose    = motion.predict(slam[0].pose, dt);
+                if (_queue.empty()) // TODO: use condition variable or similar to avoid busy waiting
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    continue;
+                }
+
+                sensor = _queue.front();
+
+                _queue.pop();
+            }
+
+            system[0] = std::move(system[1]);
 
             // PREPROCESS
-            frame::processed processed = { };
+            frame::processed processed { };
             {
-                time_this time_this { system.durations.preprocessing };
+                time_this time_this { system.durations.processing };
 
-                processed = utils::pre_process(sensor, calibration, _options.slam, clahe);
+                processed = utils::process(sensor, calibration, _options.slam, clahe);
             }
 
             // TODO: separate keyline and keypoints pipelines
@@ -123,49 +132,41 @@ void zenslam::slam_thread::loop()
                 {
                     SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
                 }
-            }
 
-            system.counts.correspondences_3d2d         = pose_data_3d2d.indices.size();
-            system.counts.correspondences_3d3d         = pose_data_3d3d.indices.size();
-            system.counts.correspondences_3d2d_inliers = pose_data_3d2d.inliers.size();
-            system.counts.correspondences_3d3d_inliers = pose_data_3d3d.inliers.size();
+                system.counts.correspondences_3d2d         = pose_data_3d2d.indices.size();
+                system.counts.correspondences_3d3d         = pose_data_3d3d.indices.size();
+                system.counts.correspondences_3d2d_inliers = pose_data_3d2d.inliers.size();
+                system.counts.correspondences_3d3d_inliers = pose_data_3d3d.inliers.size();
 
-            const auto err3d3d_mean = utils::mean(pose_data_3d3d.errors);
-            const auto err3d2d_mean = utils::mean(pose_data_3d2d.errors);
-            SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
-            SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
+                const auto err3d3d_mean = utils::mean(pose_data_3d3d.errors);
+                const auto err3d2d_mean = utils::mean(pose_data_3d2d.errors);
 
-            const auto& pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;
+                SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
+                SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
 
-            system[1] = frame::slam { tracked, system[0].pose * pose.inv()};
+                const auto& pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;
 
-            SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
-            SPDLOG_INFO("Groundtruth pose: {}", system[1].pose_gt);
+                system[1] = frame::slam { tracked, system[0].pose * pose.inv() };
 
-            system.points3d += system[1].pose * system[1].points3d;
-            system.lines3d += system[1].pose * system[1].lines3d;
+                SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
+                SPDLOG_INFO("Groundtruth pose: {}", system[1].pose_gt);
 
-            system.points3d.buildIndex();
+                system.points3d += system[1].pose * system[1].points3d;
+                system.lines3d += system[1].pose * system[1].lines3d;
 
-            system.counts.points = system.points3d.size();
+                // system.points3d.buildIndex();
+                // system.lines3d.buildIndex();
 
-            motion.update(system[0].pose, system[1].pose, dt);
+                system.counts.points = system.points3d.size();
+                system.counts.lines  = system.lines3d.size();
 
-            system.counts.print();
-            system.durations.print();
-
-
-            {
-                time_this time_this { system.durations.matching };
                 writer.write(system);
-            }
 
-            on_frame(system);
-
-            if (_stop_token.stop_requested())
-            {
-                break;
+                on_frame(system);
             }
         }
+
+        system.counts.print();
+        system.durations.print();
     }
 }

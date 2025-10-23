@@ -37,6 +37,7 @@ add_library(${PROJECT_NAME}
         source/frame/camera.cpp
         source/frame/counts.cpp
         source/frame/durations.cpp
+        source/frame/sensor.cpp
         source/frame/slam.cpp
         source/frame/stereo.cpp
         source/frame/writer.cpp

@@ -736,7 +736,7 @@ auto zenslam::utils::match_temporal
     return matches_new;
 }
 
-auto zenslam::utils::pre_process
+auto zenslam::utils::process
 (
     const frame::sensor&       sensor,
     const calibration&         calibration,

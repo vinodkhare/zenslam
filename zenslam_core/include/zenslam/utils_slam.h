@@ -196,7 +196,7 @@ namespace zenslam::utils
      * @param options SLAM options that may include CLAHE settings and pyramid levels.
      * @return The pre-processed frame.
      */
-    auto pre_process
+    auto process
     (
         const frame::sensor&       sensor,
         const calibration&         calibration,

@@ -7,7 +7,7 @@ namespace zenslam::frame
     {
         SPDLOG_INFO("");
         SPDLOG_INFO("Frame durations:");
-        SPDLOG_INFO("  Preprocessing: {:+.4f} s", std::chrono::duration<double>(preprocessing).count());
+        SPDLOG_INFO("  Preprocessing: {:+.4f} s", std::chrono::duration<double>(processing).count());
         SPDLOG_INFO("  Tracking:      {:+.4f} s", std::chrono::duration<double>(tracking).count());
         SPDLOG_INFO("  Detection:     {:+.4f} s", std::chrono::duration<double>(detection).count());
         SPDLOG_INFO("  Matching:      {:+.4f} s", std::chrono::duration<double>(matching).count());

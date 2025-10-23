@@ -1,6 +1,9 @@
 #pragma once
 
+#include <queue>
 #include <thread>
+
+#include <concurrentqueue/moodycamel/concurrentqueue.h>
 
 #include "zenslam/options.h"
 #include "zenslam/frame/system.h"
@@ -16,12 +19,18 @@ namespace zenslam
         explicit slam_thread(options options);
         ~slam_thread();
 
-    private:
-        options _options { };
+        void enqueue(const frame::sensor& frame);
 
-        std::stop_source _stop_source { };
-        std::stop_token  _stop_token { _stop_source.get_token() };
-        std::jthread     _thread { &slam_thread::loop, this };
+    private:
+        using concurrent_queue = moodycamel::ConcurrentQueue<frame::sensor>;
+
+        options                   _options = { };
+        std::mutex                _mutex   = { };
+        std::queue<frame::sensor> _queue   = { };
+
+        std::stop_source _stop_source = { };
+        std::stop_token  _stop_token  = { _stop_source.get_token() };
+        std::jthread     _thread      = std::jthread { &slam_thread::loop, this };
 
         void loop();
     };

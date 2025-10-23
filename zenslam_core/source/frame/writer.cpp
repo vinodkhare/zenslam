@@ -22,7 +22,7 @@ namespace zenslam::frame
                 (
                     "{:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}, {:+.3f}",
                     frame[1].timestamp,
-                    std::chrono::duration<double>(frame.durations.preprocessing).count(),
+                    std::chrono::duration<double>(frame.durations.processing).count(),
                     std::chrono::duration<double>(frame.durations.tracking).count(),
                     std::chrono::duration<double>(frame.durations.detection).count(),
                     std::chrono::duration<double>(frame.durations.matching).count(),
