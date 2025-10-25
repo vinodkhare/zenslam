@@ -115,6 +115,12 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COM
 cmake --build build -j
 ```
 
+Build times:
+
+| Date       | Debug        | Release      |
+| ---------- | ------------ | ------------ |
+| 2025-10-23 | 00:01:55.546 | 00:00:24.286 |
+
 Run the app:
 
 ```bash

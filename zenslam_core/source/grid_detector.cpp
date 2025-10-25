@@ -241,7 +241,7 @@ namespace zenslam
                     [this, &image, x, y]()
                     {
                         // Calculate cell boundaries, making sure not to exceed image dimensions
-                        cv::Rect cell_rect
+                        const cv::Rect cell_rect
                         (
                             x * _cell_size.width,
                             y * _cell_size.height,
@@ -250,7 +250,7 @@ namespace zenslam
                         );
 
                         // Extract the region of interest for this cell
-                        auto cell_image = image(cell_rect);
+                        const auto cell_image = image(cell_rect);
 
                         // Detect features in this cell
                         std::vector<cv::KeyPoint> cell_keypoints;
@@ -341,30 +341,6 @@ namespace zenslam
         }
 
         return keypoints;
-    }
-
-    auto grid_detector::detect(const cv::Mat& image) const -> std::vector<keyline>
-    {
-        std::vector<cv::line_descriptor::KeyLine> keylines_cv { };
-        _line_detector->detect(image, keylines_cv, 2.0f, 1);
-
-        // Compute descriptors for detected keylines
-        const auto bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
-        cv::Mat    descriptors;
-        if (!keylines_cv.empty())
-        {
-            bd->compute(image, keylines_cv, descriptors);
-        }
-
-        std::vector<keyline> keylines { };
-        for (size_t i = 0; i < keylines_cv.size(); ++i)
-        {
-            keylines.emplace_back(keylines_cv[i], keyline::index_next);
-            if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows)) keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
-            keyline::index_next++;
-        }
-
-        return keylines;
     }
 
     auto grid_detector::detect_keylines(const cv::Mat& image, const map<keyline>& keylines_map, const int mask_margin) const -> std::vector<keyline>

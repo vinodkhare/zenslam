@@ -54,14 +54,6 @@ namespace zenslam
         [[nodiscard]] std::vector<keypoint> detect_keypoints_par(const cv::Mat& image, const map<keypoint>& keypoints_existing) const;
 
         /**
-         * @brief Detect keylines in the image using grid-based detection
-         *
-         * @param image The input image in which to detect keylines
-         * @return A vector of detected keylines
-         */
-        [[nodiscard]] std::vector<keyline> detect(const cv::Mat& image) const;
-
-        /**
          * @brief Detect keylines in the image, avoiding areas where keylines already exist
          *
          * This overload creates a mask to prevent detection in regions occupied by existing
