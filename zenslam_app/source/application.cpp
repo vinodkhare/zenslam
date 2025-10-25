@@ -34,9 +34,7 @@
 #include <vtkCaptionActor2D.h>
 
 zenslam::application::application(options options) :
-    _options{std::move(options)},
-    _show_keypoints{_options.slam.show_keypoints},
-    _show_keylines{_options.slam.show_keylines}
+    _options{std::move(options)}
 {
     _slam_thread.on_frame += [this](const frame::system& frame)
     {

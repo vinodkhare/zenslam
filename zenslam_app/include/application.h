@@ -38,9 +38,5 @@ namespace zenslam
         slam_thread     _slam_thread   = slam_thread { _options };
         reader_thread   _reader_thread = reader_thread { _options.folder };
         std::set<size_t> _line_indices = { };
-
-        // UI state for checkboxes
-        bool _show_keypoints { true };
-        bool _show_keylines { true };
     };
 }
