@@ -205,6 +205,23 @@ The test suite includes Catch2 benchmarks comparing `cv::Mat` (CPU) vs `cv::UMat
 
 ---
 
+## Parallel detector toggle
+
+You can choose between the sequential and parallel grid detectors at runtime.
+
+- CLI: pass `--use-parallel-detector` (on) or `--no-use-parallel-detector` (off). The default is on.
+
+- YAML (`options.yaml`):
+
+```yaml
+slam:
+  use_parallel_detector: true  # or false
+```
+
+When enabled, keypoints are detected per-grid-cell using a parallel implementation that processes cells concurrently. On multi-core CPUs this often improves throughput; for very small images or light workloads, the sequential version can avoid threading overhead.
+
+---
+
 ## Core Features (Implemented So Far)
 
 * YAML stereo calibration parsing (Kalibr-style) with fundamental & projection matrix helpers.

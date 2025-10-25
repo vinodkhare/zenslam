@@ -19,6 +19,7 @@ slam:
   feature:    "FAST"
   descriptor: "ORB"
   fast_threshold: 1
+  use_parallel_detector: true
   klt_window_size: [ 15, 15 ]
   klt_max_level: 3
   klt_threshold: 1.0

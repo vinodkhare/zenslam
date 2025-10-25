@@ -54,6 +54,7 @@ namespace zenslam
 
             bool            clahe_enabled   = { false };
             bool            stereo_rectify  = { false };
+            bool            use_parallel_detector = { true }; // Use parallel grid detector
             cv::Size        cell_size       = { 16, 16 };
             feature_type    feature         = { feature_type::FAST };
             descriptor_type descriptor      = { descriptor_type::ORB };
