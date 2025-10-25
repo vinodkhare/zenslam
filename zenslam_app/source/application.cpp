@@ -27,6 +27,11 @@
 #include <vtkCellArray.h>
 #include <vtkLine.h>
 #include <vtkInteractorStyleTrackballCamera.h>
+#include <vtkPlaneSource.h>
+#include <vtkTexture.h>
+#include <vtkImageData.h>
+#include <vtkImageImport.h>
+#include <vtkCaptionActor2D.h>
 
 zenslam::application::application(options options) :
     _options{std::move(options)},
@@ -131,6 +136,13 @@ struct zenslam::application::SceneVTK
     // Axes for camera poses
     vtkSmartPointer<vtkAxesActor> axesCam;
     vtkSmartPointer<vtkAxesActor> axesCamGt;
+
+    // Camera frustum for current pose
+    vtkSmartPointer<vtkPlaneSource> frustumPlane;
+    vtkSmartPointer<vtkPolyDataMapper> frustumMapper;
+    vtkSmartPointer<vtkActor> frustumActor;
+    vtkSmartPointer<vtkTexture> frustumTexture;
+    vtkSmartPointer<vtkImageImport> frustumImage;
 };
 
 // Ensure unique_ptr<SceneVTK> destruction sees a complete type
@@ -170,8 +182,31 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         S.axesCamGt = vtkSmartPointer<vtkAxesActor>::New();
         S.axesCam->SetTotalLength(0.2, 0.2, 0.2);
         S.axesCamGt->SetTotalLength(0.2, 0.2, 0.2);
+        // Turn off XYZ axis labels
+        S.axesCam->SetAxisLabels(0);
+        S.axesCamGt->SetAxisLabels(0);
         S.renderer->AddActor(S.axesCam);
         S.renderer->AddActor(S.axesCamGt);
+
+        // Camera frustum with image texture
+        S.frustumPlane = vtkSmartPointer<vtkPlaneSource>::New();
+        S.frustumPlane->SetOrigin(-0.1, -0.1, 0.2);  // Image plane at z=0.2 in camera frame
+        S.frustumPlane->SetPoint1(0.1, -0.1, 0.2);   // Width ~0.2
+        S.frustumPlane->SetPoint2(-0.1, 0.1, 0.2);   // Height ~0.2
+        S.frustumPlane->Update();
+
+        S.frustumMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        S.frustumMapper->SetInputConnection(S.frustumPlane->GetOutputPort());
+
+        S.frustumActor = vtkSmartPointer<vtkActor>::New();
+        S.frustumActor->SetMapper(S.frustumMapper);
+
+        S.frustumImage = vtkSmartPointer<vtkImageImport>::New();
+        S.frustumTexture = vtkSmartPointer<vtkTexture>::New();
+        S.frustumTexture->SetInputConnection(S.frustumImage->GetOutputPort());
+        S.frustumActor->SetTexture(S.frustumTexture);
+
+        S.renderer->AddActor(S.frustumActor);
 
         // Points pipeline
         S.points = vtkSmartPointer<vtkPoints>::New();
@@ -211,10 +246,32 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         const vtkNew<vtkTransform> tCam;
         tCam->SetMatrix(toVtkMatrix(system[1].pose));
         S.axesCam->SetUserTransform(tCam);
+        S.frustumActor->SetUserTransform(tCam);
 
         const vtkNew<vtkTransform> tCamGt;
         tCamGt->SetMatrix(toVtkMatrix(system[1].pose_gt));
         S.axesCamGt->SetUserTransform(tCamGt);
+    }
+
+    // Update frustum texture with current undistorted image
+    {
+        const auto& img = system[1].undistorted[0];
+        if (!img.empty() && img.type() == CV_8UC1)
+        {
+            // Convert grayscale to RGB for VTK
+            cv::Mat imgRGB;
+            cv::cvtColor(img, imgRGB, cv::COLOR_GRAY2RGB);
+
+            S.frustumImage->SetDataSpacing(1, 1, 1);
+            S.frustumImage->SetDataOrigin(0, 0, 0);
+            S.frustumImage->SetWholeExtent(0, imgRGB.cols - 1, 0, imgRGB.rows - 1, 0, 0);
+            S.frustumImage->SetDataExtentToWholeExtent();
+            S.frustumImage->SetDataScalarTypeToUnsignedChar();
+            S.frustumImage->SetNumberOfScalarComponents(3);
+            S.frustumImage->SetImportVoidPointer(imgRGB.data, 1);  // 1 = do not copy, use existing buffer
+            S.frustumImage->Update();
+            S.frustumTexture->Modified();
+        }
     }
 
     // Update point cloud
