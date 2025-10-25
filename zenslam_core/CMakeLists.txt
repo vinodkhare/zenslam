@@ -53,7 +53,6 @@ add_library(${PROJECT_NAME}
         source/grid_detector.cpp
         source/groundtruth.cpp
         source/imu_calibration.cpp
-        source/mono_folder_reader.cpp
         source/motion.cpp
         source/options.cpp
         source/pose.cpp
