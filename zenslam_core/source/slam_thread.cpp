@@ -66,7 +66,7 @@ void zenslam::slam_thread::loop()
 
             frame::sensor sensor { };
             {
-                time_this time_this { system.durations.detection };
+                time_this time_this { system.durations.wait };
 
                 std::unique_lock lock { _mutex };
                 _cv.wait
@@ -86,10 +86,8 @@ void zenslam::slam_thread::loop()
                 sensor = _queue.front();
                 _queue.pop();
 
+                system[0] = std::move(system[1]);
             }
-
-                            system[0] = std::move(system[1]);
-
 
             // PREPROCESS
             frame::processed processed { };

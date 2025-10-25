@@ -229,7 +229,12 @@ namespace zenslam::utils
      * @return The tracked frame with updated keypoints and keylines.
      */
     auto track
-    (const frame::tracked& frame_0, const frame::processed& frame_1, const zenslam::calibration& calibration, const class options::slam& options) -> frame::tracked;
+    (
+        const frame::tracked&      frame_0,
+        const frame::processed&    frame_1,
+        const calibration&         calibration,
+        const class options::slam& options
+    ) -> frame::tracked;
 
     /** Track keypoints from frame_0 to frame_1 using KLT optical flow.
      *

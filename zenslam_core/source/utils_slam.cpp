@@ -820,7 +820,7 @@ auto zenslam::utils::track
 
     map<keypoint> keypoints_0 = { };
     map<keypoint> keypoints_1 = { };
-    point3d_cloud points3d    = { };
+    map<point3d>  points3d    = { };
 
     {
         std::jthread thread_0
@@ -828,6 +828,7 @@ auto zenslam::utils::track
             [&]()
             {
                 keypoints_0 += track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0], options, calibration.camera_matrix[0]);
+
                 if (options.use_parallel_detector)
                 {
                     keypoints_0 += detector.detect_keypoints_par(frame_1.undistorted[0], keypoints_0);
@@ -844,6 +845,7 @@ auto zenslam::utils::track
             [&]()
             {
                 keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1], options, calibration.camera_matrix[1]);
+
                 if (options.use_parallel_detector)
                 {
                     keypoints_1 += detector.detect_keypoints_par(frame_1.undistorted[1], keypoints_1);
