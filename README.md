@@ -168,6 +168,9 @@ The test suite includes Catch2 benchmarks comparing `cv::Mat` (CPU) vs `cv::UMat
 
 # Feature matching pipeline benchmark
 ./build/zenslam_tests/hello_test "[benchmark]" -c "cv::Mat vs cv::UMat Feature Matching"
+
+# Grid detector sequential vs parallel benchmark
+./build/zenslam_tests/hello_test "[benchmark]" -c "grid_detector::detect_keypoints vs detect_keypoints_par"
 ```
 
 **Benchmark output options:**
@@ -183,10 +186,16 @@ The test suite includes Catch2 benchmarks comparing `cv::Mat` (CPU) vs `cv::UMat
 ```
 
 **Notes:**
-- UMat benchmarks require OpenCL support (check with `cv::ocl::haveOpenCL()`)
-- First UMat run may be slower due to OpenCL initialization and kernel compilation
-- Performance varies by GPU/driver; integrated GPUs may not show speedup for small images
-- Use larger images or more iterations to see GPU benefits (adjust benchmark parameters in code)
+- **UMat benchmarks** require OpenCL support (check with `cv::ocl::haveOpenCL()`)
+  - First UMat run may be slower due to OpenCL initialization and kernel compilation
+  - Performance varies by GPU/driver; integrated GPUs may not show speedup for small images
+  - Use larger images or more iterations to see GPU benefits (adjust benchmark parameters in code)
+- **Grid detector benchmarks** compare sequential vs parallel grid-based feature detection
+  - `detect_keypoints`: Processes grid cells sequentially (original implementation)
+  - `detect_keypoints_par`: Processes grid cells in parallel using `std::async`
+  - Tests include empty grid (all new detections) and 50% occupancy scenarios
+  - Expected speedup on multi-core systems: ~2-4× depending on grid size and CPU cores
+  - Larger grid sizes (smaller cells) benefit more from parallelization
 
 **Interpreting results:**
 - **Mean time**: Average execution time per iteration

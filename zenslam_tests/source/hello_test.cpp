@@ -7,6 +7,9 @@
 #include <opencv2/core/ocl.hpp>
 #include <opencv2/core/types.hpp>
 
+#include "zenslam/grid_detector.h"
+#include "zenslam/options.h"
+
 TEST_CASE (
 "Hello World Test"
 )
@@ -136,6 +139,87 @@ TEST_CASE("cv::Mat vs cv::UMat Feature Matching Benchmark", "[benchmark]")
             matcher->match(desc1, desc2, matches);
             
             return matches.size();
+        };
+    }
+}
+
+TEST_CASE("grid_detector::detect_keypoints vs detect_keypoints_par Benchmark", "[benchmark]")
+{
+    // Create a realistic test image (1920x1080, grayscale)
+    const cv::Size image_size(1920, 1080);
+    cv::Mat test_image(image_size, CV_8UC1);
+    cv::randu(test_image, 0, 255);
+    
+    // Add realistic scene features (corners, circles, lines)
+    for (int i = 0; i < 200; ++i)
+    {
+        cv::Point center(rand() % image_size.width, rand() % image_size.height);
+        int radius = 3 + rand() % 8;
+        cv::circle(test_image, center, radius, cv::Scalar(255), -1);
+    }
+    
+    // Add some line features
+    for (int i = 0; i < 50; ++i)
+    {
+        cv::Point pt1(rand() % image_size.width, rand() % image_size.height);
+        cv::Point pt2(rand() % image_size.width, rand() % image_size.height);
+        cv::line(test_image, pt1, pt2, cv::Scalar(128), 2);
+    }
+    
+    // Create grid_detector with typical SLAM settings
+    zenslam::options opts;
+    opts.slam.feature = zenslam::feature_type::FAST;
+    opts.slam.descriptor = zenslam::descriptor_type::ORB;
+    opts.slam.fast_threshold = 10;
+    opts.slam.cell_size = cv::Size(64, 64);  // ~30x17 grid cells for 1920x1080
+    
+    auto detector = zenslam::grid_detector::create(opts.slam);
+    
+    // Empty existing keypoints map (detecting all new keypoints)
+    zenslam::map<zenslam::keypoint> existing_keypoints;
+    
+    SECTION("Benchmark Sequential detect_keypoints")
+    {
+        BENCHMARK("grid_detector::detect_keypoints (sequential)")
+        {
+            auto keypoints = detector.detect_keypoints(test_image, existing_keypoints);
+            return keypoints.size();
+        };
+    }
+    
+    SECTION("Benchmark Parallel detect_keypoints_par")
+    {
+        BENCHMARK("grid_detector::detect_keypoints_par (parallel)")
+        {
+            auto keypoints = detector.detect_keypoints_par(test_image, existing_keypoints);
+            return keypoints.size();
+        };
+    }
+    
+    SECTION("Benchmark with Pre-existing Keypoints (Partial Occupancy)")
+    {
+        // Simulate scenario where 50% of grid cells already have keypoints
+        zenslam::map<zenslam::keypoint> partial_keypoints;
+        
+        // Detect once to get real keypoints
+        auto initial_keypoints = detector.detect_keypoints(test_image, existing_keypoints);
+        
+        // Add half of them to "existing" map using operator+=
+        for (size_t i = 0; i < initial_keypoints.size() / 2; ++i)
+        {
+            partial_keypoints += initial_keypoints[i];
+        }
+        
+        BENCHMARK("Sequential with 50% occupancy")
+        {
+            auto keypoints = detector.detect_keypoints(test_image, partial_keypoints);
+            return keypoints.size();
+        };
+        
+        BENCHMARK("Parallel with 50% occupancy")
+        {
+            auto keypoints = detector.detect_keypoints_par(test_image, partial_keypoints);
+            return keypoints.size();
         };
     }
 }
