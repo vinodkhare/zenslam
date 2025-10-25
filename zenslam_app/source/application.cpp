@@ -1,6 +1,7 @@
 #include "application.h"
 
 #include <imgui.h>
+#include <implot.h>
 
 #include <opencv2/highgui.hpp>
 
@@ -11,41 +12,46 @@
 #include "zenslam/utils_opencv.h"
 
 // VTK includes (kept in .cpp)
-#include <vtkSmartPointer.h>
-#include <vtkRenderer.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderWindowInteractor.h>
+#include <vtkActor.h>
 #include <vtkAxesActor.h>
-#include <vtkTransform.h>
+#include <vtkCaptionActor2D.h>
+#include <vtkCellArray.h>
+#include <vtkImageImport.h>
+#include <vtkInteractorStyleTrackballCamera.h>
+#include <vtkLine.h>
 #include <vtkMatrix4x4.h>
+#include <vtkPlaneSource.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
-#include <vtkVertexGlyphFilter.h>
 #include <vtkPolyDataMapper.h>
-#include <vtkActor.h>
 #include <vtkProperty.h>
-#include <vtkCellArray.h>
-#include <vtkLine.h>
-#include <vtkInteractorStyleTrackballCamera.h>
-#include <vtkPlaneSource.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
+#include <vtkSmartPointer.h>
 #include <vtkTexture.h>
-#include <vtkImageData.h>
-#include <vtkImageImport.h>
-#include <vtkCaptionActor2D.h>
+#include <vtkTransform.h>
+#include <vtkVertexGlyphFilter.h>
 
-zenslam::application::application(options options) :
-    _options{std::move(options)}
+zenslam::application::application(options options) : _options{std::move(options)}
 {
     _slam_thread.on_frame += [this](const frame::system& frame)
     {
         std::lock_guard lock{_mutex};
         _system = frame;
+
+        // Update timing history for plots
+        {
+            _time_history.push_back(_system[1].timestamp);
+            _wait_history.push_back(std::chrono::duration<double>(_system.durations.wait).count());
+            _processing_history.push_back(std::chrono::duration<double>(_system.durations.processing).count());
+            _tracking_history.push_back(std::chrono::duration<double>(_system.durations.tracking).count());
+            _estimation_history.push_back(std::chrono::duration<double>(_system.durations.estimation).count());
+            _total_history.push_back(std::chrono::duration<double>(_system.durations.total).count());
+        }
     };
 
-    _reader_thread.on_frame += [this](const frame::sensor& frame)
-    {
-        _slam_thread.enqueue(frame);
-    };
+    _reader_thread.on_frame += [this](const frame::sensor& frame) { _slam_thread.enqueue(frame); };
 }
 
 void zenslam::application::render()
@@ -75,9 +81,7 @@ void zenslam::application::render()
 bool zenslam::application::is_renderable(const frame::system& system)
 {
     // Require undistorted images and some keypoints to render informative views
-    return !system[0].undistorted[0].empty() &&
-        !system[1].undistorted[0].empty() &&
-        !system[1].keypoints[0].empty();
+    return !system[0].undistorted[0].empty() && !system[1].undistorted[0].empty() && !system[1].keypoints[0].empty();
 }
 
 void zenslam::application::draw_spatial_matches(const frame::system& system)
@@ -102,45 +106,45 @@ namespace
     vtkSmartPointer<vtkMatrix4x4> toVtkMatrix(const cv::Affine3d& pose)
     {
         vtkNew<vtkMatrix4x4> m;
-        const auto& P = pose.matrix; // 4x4 double
+        const auto&          P = pose.matrix; // 4x4 double
         for (int r = 0; r < 4; ++r)
             for (int c = 0; c < 4; ++c)
                 m->SetElement(r, c, P(r, c));
         return m;
     }
-}
+} // namespace
 
 // Local VTK scene container
 struct zenslam::application::SceneVTK
 {
-    vtkSmartPointer<vtkRenderer> renderer;
-    vtkSmartPointer<vtkRenderWindow> window;
+    vtkSmartPointer<vtkRenderer>               renderer;
+    vtkSmartPointer<vtkRenderWindow>           window;
     vtkSmartPointer<vtkRenderWindowInteractor> interactor;
 
     // Point cloud
-    vtkSmartPointer<vtkPoints> points;
-    vtkSmartPointer<vtkPolyData> pointsPoly;
+    vtkSmartPointer<vtkPoints>            points;
+    vtkSmartPointer<vtkPolyData>          pointsPoly;
     vtkSmartPointer<vtkVertexGlyphFilter> pointsGlyph;
-    vtkSmartPointer<vtkPolyDataMapper> pointsMapper;
-    vtkSmartPointer<vtkActor> pointsActor;
+    vtkSmartPointer<vtkPolyDataMapper>    pointsMapper;
+    vtkSmartPointer<vtkActor>             pointsActor;
 
     // Lines
-    vtkSmartPointer<vtkPoints> linePoints;
-    vtkSmartPointer<vtkCellArray> lineCells;
-    vtkSmartPointer<vtkPolyData> linesPoly;
+    vtkSmartPointer<vtkPoints>         linePoints;
+    vtkSmartPointer<vtkCellArray>      lineCells;
+    vtkSmartPointer<vtkPolyData>       linesPoly;
     vtkSmartPointer<vtkPolyDataMapper> linesMapper;
-    vtkSmartPointer<vtkActor> linesActor;
+    vtkSmartPointer<vtkActor>          linesActor;
 
     // Axes for camera poses
     vtkSmartPointer<vtkAxesActor> axesCam;
     vtkSmartPointer<vtkAxesActor> axesCamGt;
 
     // Camera frustum for current pose
-    vtkSmartPointer<vtkPlaneSource> frustumPlane;
+    vtkSmartPointer<vtkPlaneSource>    frustumPlane;
     vtkSmartPointer<vtkPolyDataMapper> frustumMapper;
-    vtkSmartPointer<vtkActor> frustumActor;
-    vtkSmartPointer<vtkTexture> frustumTexture;
-    vtkSmartPointer<vtkImageImport> frustumImage;
+    vtkSmartPointer<vtkActor>          frustumActor;
+    vtkSmartPointer<vtkTexture>        frustumTexture;
+    vtkSmartPointer<vtkImageImport>    frustumImage;
 };
 
 // Ensure unique_ptr<SceneVTK> destruction sees a complete type
@@ -160,8 +164,8 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         _vtk.reset(new SceneVTK());
         auto& S = *_vtk;
 
-        S.renderer = vtkSmartPointer<vtkRenderer>::New();
-        S.window = vtkSmartPointer<vtkRenderWindow>::New();
+        S.renderer   = vtkSmartPointer<vtkRenderer>::New();
+        S.window     = vtkSmartPointer<vtkRenderWindow>::New();
         S.interactor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
 
         S.window->AddRenderer(S.renderer);
@@ -176,7 +180,7 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         // Background and basic axes
         S.renderer->SetBackground(0.1, 0.1, 0.12);
 
-        S.axesCam = vtkSmartPointer<vtkAxesActor>::New();
+        S.axesCam   = vtkSmartPointer<vtkAxesActor>::New();
         S.axesCamGt = vtkSmartPointer<vtkAxesActor>::New();
         S.axesCam->SetTotalLength(0.2, 0.2, 0.2);
         S.axesCamGt->SetTotalLength(0.2, 0.2, 0.2);
@@ -188,9 +192,9 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
 
         // Camera frustum with image texture
         S.frustumPlane = vtkSmartPointer<vtkPlaneSource>::New();
-        S.frustumPlane->SetOrigin(-0.1, -0.1, 0.2);  // Image plane at z=0.2 in camera frame
-        S.frustumPlane->SetPoint1(0.1, -0.1, 0.2);   // Width ~0.2
-        S.frustumPlane->SetPoint2(-0.1, 0.1, 0.2);   // Height ~0.2
+        S.frustumPlane->SetOrigin(-0.1, -0.1, 0.2); // Image plane at z=0.2 in camera frame
+        S.frustumPlane->SetPoint1(0.1, -0.1, 0.2);  // Width ~0.2
+        S.frustumPlane->SetPoint2(-0.1, 0.1, 0.2);  // Height ~0.2
         S.frustumPlane->Update();
 
         S.frustumMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -199,7 +203,7 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         S.frustumActor = vtkSmartPointer<vtkActor>::New();
         S.frustumActor->SetMapper(S.frustumMapper);
 
-        S.frustumImage = vtkSmartPointer<vtkImageImport>::New();
+        S.frustumImage   = vtkSmartPointer<vtkImageImport>::New();
         S.frustumTexture = vtkSmartPointer<vtkTexture>::New();
         S.frustumTexture->SetInputConnection(S.frustumImage->GetOutputPort());
         S.frustumActor->SetTexture(S.frustumTexture);
@@ -207,11 +211,11 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         S.renderer->AddActor(S.frustumActor);
 
         // Points pipeline
-        S.points = vtkSmartPointer<vtkPoints>::New();
-        S.pointsPoly = vtkSmartPointer<vtkPolyData>::New();
-        S.pointsGlyph = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+        S.points       = vtkSmartPointer<vtkPoints>::New();
+        S.pointsPoly   = vtkSmartPointer<vtkPolyData>::New();
+        S.pointsGlyph  = vtkSmartPointer<vtkVertexGlyphFilter>::New();
         S.pointsMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-        S.pointsActor = vtkSmartPointer<vtkActor>::New();
+        S.pointsActor  = vtkSmartPointer<vtkActor>::New();
 
         S.pointsPoly->SetPoints(S.points);
         S.pointsGlyph->SetInputData(S.pointsPoly);
@@ -222,11 +226,11 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         S.renderer->AddActor(S.pointsActor);
 
         // Lines pipeline
-        S.linePoints = vtkSmartPointer<vtkPoints>::New();
-        S.lineCells = vtkSmartPointer<vtkCellArray>::New();
-        S.linesPoly = vtkSmartPointer<vtkPolyData>::New();
+        S.linePoints  = vtkSmartPointer<vtkPoints>::New();
+        S.lineCells   = vtkSmartPointer<vtkCellArray>::New();
+        S.linesPoly   = vtkSmartPointer<vtkPolyData>::New();
         S.linesMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-        S.linesActor = vtkSmartPointer<vtkActor>::New();
+        S.linesActor  = vtkSmartPointer<vtkActor>::New();
 
         S.linesPoly->SetPoints(S.linePoints);
         S.linesPoly->SetLines(S.lineCells);
@@ -266,7 +270,7 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
             S.frustumImage->SetDataExtentToWholeExtent();
             S.frustumImage->SetDataScalarTypeToUnsignedChar();
             S.frustumImage->SetNumberOfScalarComponents(3);
-            S.frustumImage->SetImportVoidPointer(imgRGB.data, 1);  // 1 = do not copy, use existing buffer
+            S.frustumImage->SetImportVoidPointer(imgRGB.data, 1); // 1 = do not copy, use existing buffer
             S.frustumImage->Update();
             S.frustumTexture->Modified();
         }
@@ -328,21 +332,63 @@ void zenslam::application::draw_viz_controls()
 
     // Color picker for keylines (single keyline color)
     const auto& s = _options.slam.keyline_single_color; // B, G, R
-    ImVec4 color_rgba(
-        static_cast<float>(s[2]) / 255.0f, // R
-        static_cast<float>(s[1]) / 255.0f, // G
-        static_cast<float>(s[0]) / 255.0f, // B
-        1.0f
-        );
+    ImVec4      color_rgba(static_cast<float>(s[2]) / 255.0f,
+                      // R
+                      static_cast<float>(s[1]) / 255.0f,
+                      // G
+                      static_cast<float>(s[0]) / 255.0f,
+                      // B
+                      1.0f);
 
     if (ImGui::ColorEdit3("Keyline Color", reinterpret_cast<float*>(&color_rgba)))
     {
-        const auto r = static_cast<int>(std::round(color_rgba.x * 255.0f));
-        const auto g = static_cast<int>(std::round(color_rgba.y * 255.0f));
-        const auto b = static_cast<int>(std::round(color_rgba.z * 255.0f));
+        const auto r                       = static_cast<int>(std::round(color_rgba.x * 255.0f));
+        const auto g                       = static_cast<int>(std::round(color_rgba.y * 255.0f));
+        const auto b                       = static_cast<int>(std::round(color_rgba.z * 255.0f));
         _options.slam.keyline_single_color = cv::Scalar(b, g, r);
     }
 
     ImGui::EndChild();
     ImGui::PopStyleVar(2);
+
+    // Frame Duration Plots
+    ImGui::Separator();
+    ImGui::Text("Frame Durations");
+    ImGui::Spacing();
+
+    ImPlot::CreateContext();
+
+    if (!_time_history.empty() && ImPlot::BeginPlot("Processing Times", ImVec2(-1, 300)))
+    {
+        ImPlot::SetupAxes("Time (s)", "Duration (s)");
+        ImPlot::SetupAxisLimits(ImAxis_X1, _time_history.front(), _time_history.back(), ImGuiCond_Always);
+        ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 0.1, ImGuiCond_Once);
+        ImPlot::SetupLegend(ImPlotLocation_NorthEast);
+        ImPlot::SetupAxisFormat(ImAxis_X1, "%.2f");
+        ImPlot::SetupAxisFormat(ImAxis_Y1, "%.4f");
+
+        // Enable grid
+        ImPlot::SetupAxes("Time (s)", "Duration (s)", ImPlotAxisFlags_None, ImPlotAxisFlags_None);
+
+        ImPlot::PlotLine("Wait", _time_history.data(), _wait_history.data(), static_cast<int>(_time_history.size()));
+
+        ImPlot::PlotLine("Processing",
+                         _time_history.data(),
+                         _processing_history.data(),
+                         static_cast<int>(_time_history.size()));
+
+        ImPlot::PlotLine("Tracking",
+                         _time_history.data(),
+                         _tracking_history.data(),
+                         static_cast<int>(_time_history.size()));
+
+        ImPlot::PlotLine("Estimation",
+                         _time_history.data(),
+                         _estimation_history.data(),
+                         static_cast<int>(_time_history.size()));
+
+        ImPlot::PlotLine("Total", _time_history.data(), _total_history.data(), static_cast<int>(_time_history.size()));
+
+        ImPlot::EndPlot();
+    }
 }

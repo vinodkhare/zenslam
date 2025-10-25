@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <future>
+#include <utility>
 #include <vector>
 
 #include "time_this.h"
@@ -18,8 +19,8 @@ namespace zenslam
     public:
         event<frame::sensor> on_frame = { };
 
-        explicit reader_thread(const class options::folder& options, size_t batch_size = 8, size_t num_threads = 4) :
-            _options { options },
+        explicit reader_thread(class options::folder  options, size_t batch_size = 8, size_t num_threads = 4) :
+            _options {std::move( options )},
             _batch_size { batch_size },
             _num_threads { num_threads } {}
 

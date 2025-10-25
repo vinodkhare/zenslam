@@ -31,6 +31,9 @@ message(STATUS "Found concurrentqueue: " ${concurrentqueue_VERSION})
 find_package(hello-imgui CONFIG REQUIRED)
 message(STATUS "Found hello-imgui: " ${hello-imgui_VERSION})
 
+find_package(implot CONFIG REQUIRED)
+message(STATUS "Found implot: " ${implot_VERSION})
+
 find_package(magic_enum CONFIG REQUIRED)
 message(STATUS "Found magic_enum: " ${magic_enum_VERSION})
 
@@ -47,13 +50,13 @@ hello_imgui_add_app(zenslam_app source/main.cpp
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 target_link_libraries(${PROJECT_NAME} PRIVATE
         concurrentqueue::concurrentqueue
+        implot::implot
         magic_enum::magic_enum
         opencv_highgui
         opencv_calib3d
         opencv_core
         opencv_features2d
         opencv_imgproc
-        # Removed opencv_viz in favor of native VTK rendering
         spdlog::spdlog
         yaml-cpp::yaml-cpp
         zenslam_core
