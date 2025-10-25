@@ -1,20 +1,12 @@
 ---
 Language: Cpp
-BasedOnStyle: LLVM
+BasedOnStyle: Microsoft
 AccessModifierOffset: -4
-AlignAfterOpenBracket: AlwaysBreak
-AlignConsecutiveAssignments: true
-AlignConsecutiveDeclarations: true
-AlignOperands: true
-AlignTrailingComments: true
-AllowShortBlocksOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
-AllowShortIfStatementsOnASingleLine: true
-AllowShortLoopsOnASingleLine: true
-AlwaysBreakAfterDefinitionReturnType: false
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: false
+AlignTrailingComments: false
 AlwaysBreakTemplateDeclarations: Yes
-BinPackArguments: false
-BinPackParameters: false
 BraceWrapping: 
   AfterCaseLabel: true
   AfterClass: true
@@ -24,23 +16,17 @@ BraceWrapping:
   AfterNamespace: true
   AfterStruct: true
   AfterUnion: true
-  AfterExternBlock: true
+  AfterExternBlock: false
   BeforeCatch: true
   BeforeElse: true
   BeforeLambdaBody: true
   BeforeWhile: true
-  IndentBraces: false
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  SplitEmptyNamespace: false
-BreakBeforeBraces: Custom
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
 BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false
-ColumnLimit: 160
-CompactNamespaces: true
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
-ContinuationIndentWidth: 8
-Cpp11BracedListStyle: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
 IncludeCategories: 
   - Regex: '^<.*'
     Priority: 1
@@ -49,20 +35,16 @@ IncludeCategories:
   - Regex: '.*'
     Priority: 3
 IncludeIsMainRegex: '([-_](test|unittest))?$'
-IndentCaseLabels: true
-IndentWidth: 4
+IndentCaseBlocks: true
 InsertNewlineAtEOF: true
 MacroBlockBegin: ''
 MacroBlockEnd: ''
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: All
 PointerAlignment: Left
-SpaceAfterCStyleCast: true
-SpaceBeforeRangeBasedForLoopColon: false
 SpaceInEmptyParentheses: false
 SpacesInAngles: false
 SpacesInConditionalStatement: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
-TabWidth: 4
 ...

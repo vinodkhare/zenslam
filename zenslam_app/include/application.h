@@ -16,6 +16,13 @@ namespace zenslam
         void render();
 
     private:
+        // Render helpers (split from render for clarity)
+        bool is_renderable(const frame::system& system) const;
+        void draw_spatial_matches(const frame::system& system) const;
+        void draw_temporal_matches(const frame::system& system) const;
+        void draw_scene_viz3d(const frame::system& system);
+        void draw_viz_controls();
+
         std::mutex    _mutex  = { };
         frame::system _system = { };
 
