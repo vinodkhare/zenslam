@@ -1,9 +1,9 @@
 #pragma once
 
 #include <thread>
-#include <future>
 #include <utility>
-#include <vector>
+
+#include <spdlog/spdlog.h>
 
 #include "time_this.h"
 
@@ -17,12 +17,14 @@ namespace zenslam
     class reader_thread
     {
     public:
-        event<frame::sensor> on_frame = { };
+        event<frame::sensor> on_frame = {};
 
-        explicit reader_thread(class options::folder  options, size_t batch_size = 8, size_t num_threads = 4) :
-            _options {std::move( options )},
-            _batch_size { batch_size },
-            _num_threads { num_threads } {}
+        explicit reader_thread(class options::folder options, size_t batch_size = 8, size_t num_threads = 4) :
+            _options{std::move(options)},
+            _batch_size{batch_size},
+            _num_threads{num_threads}
+        {
+        }
 
         ~reader_thread()
         {
@@ -30,61 +32,32 @@ namespace zenslam
         }
 
     private:
-        class options::folder _options      = { };
-        size_t                _batch_size   = 4;
-        size_t                _num_threads  = 4;
+        class options::folder _options     = {};
+        size_t                _batch_size  = 4;
+        size_t                _num_threads = 4;
 
-        std::stop_source _stop_source = { };
-        std::stop_token  _stop_token  = { _stop_source.get_token() };
-        std::jthread     _thread      = std::jthread { &reader_thread::loop, this };
+        std::stop_source _stop_source = {};
+        std::stop_token  _stop_token  = {_stop_source.get_token()};
+        std::jthread     _thread      = std::jthread{&reader_thread::loop, this};
 
         void loop()
         {
-            const auto reader = stereo_folder_reader(_options);
+            auto       reader = stereo_folder_reader(_options);
             const auto total  = reader.size();
 
-            for (size_t batch_start = 0; batch_start < total; batch_start += _batch_size)
+
+            std::chrono::system_clock::duration batch_time = {};
             {
-                if (_stop_token.stop_requested()) break;
+                time_this time_this{batch_time};
 
-                const size_t batch_end = std::min(batch_start + _batch_size, total);
-                const size_t batch_count = batch_end - batch_start;
-
-                std::chrono::system_clock::duration batch_time = { };
+                // Read frames sequentially for this batch
+                for (size_t i = 0; i < total; ++i)
                 {
-                    time_this time_this { batch_time };
+                    if (_stop_token.stop_requested()) break;
 
-                    // Launch parallel reads for this batch
-                    std::vector<std::future<frame::sensor>> futures;
-                    futures.reserve(batch_count);
-
-                    for (size_t i = batch_start; i < batch_end; ++i)
-                    {
-                        futures.push_back
-                        (
-                            std::async
-                            (
-                                std::launch::async,
-                                [&reader, i]()
-                                {
-                                    return reader[i];
-                                }
-                            )
-                        );
-                    }
-
-                    // Collect results in order and publish
-                    for (auto& future : futures)
-                    {
-                        if (_stop_token.stop_requested()) break;
-
-                        on_frame(future.get());
-                    }
+                    auto frame = reader.read();
+                    on_frame(std::move(frame));
                 }
-
-                const double batch_time_s = std::chrono::duration<double>(batch_time).count();
-                const double per_frame_s = batch_time_s / batch_count;
-                SPDLOG_INFO("batch read: {} frames in {:.4f} s ({:.4f} s/frame)", batch_count, batch_time_s, per_frame_s);
             }
         }
     };

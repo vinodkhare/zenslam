@@ -4,9 +4,10 @@ BasedOnStyle: Microsoft
 AccessModifierOffset: -4
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
-AlignOperands: true
+AlignOperands: false
 AlignTrailingComments: true
 AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: false
 BraceWrapping: 
   AfterCaseLabel: true
   AfterClass: true
@@ -27,6 +28,7 @@ BraceWrapping:
 BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
+Cpp11BracedListStyle: false
 IncludeCategories: 
   - Regex: '^<.*'
     Priority: 1

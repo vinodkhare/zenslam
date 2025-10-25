@@ -1,20 +1,16 @@
 #pragma once
 
-#include <algorithm>
+#include <filesystem>
+#include <vector>
 
-#include "mono_folder_reader.h"
 #include "options.h"
-#include "random_access_iterator.h"
-
 #include "frame/sensor.h"
-#include "frame/stereo.h"
 
 namespace zenslam
 {
     class stereo_folder_reader
     {
     public:
-        using iterator  = random_access_iterator<stereo_folder_reader, frame::stereo>;
         using path_type = std::filesystem::path;
 
         stereo_folder_reader
@@ -28,50 +24,37 @@ namespace zenslam
 
         [[nodiscard]] std::size_t size() const noexcept
         {
-            return std::min(_left.size(), _right.size());
+            return _count;
         }
 
         [[nodiscard]] bool empty() const noexcept
         {
-            return size() == 0;
+            return _count == 0;
         }
 
-        frame::sensor operator[](const std::size_t idx) const
+        // Read next frame and return it
+        frame::sensor read();
+
+        // Check if more frames are available
+        [[nodiscard]] bool has_more() const noexcept
         {
-            frame::sensor frame = { };
-
-            const auto camera = _left[idx];
-
-            frame.timestamp = camera.timestamp;
-            frame.images[0] = camera.image;
-            frame.images[1] = _right[idx].image;
-            frame.index     = frame::sensor::count++;
-
-            return frame;
+            return _current_index < _count;
         }
 
-        [[nodiscard]] iterator begin() const
+        // Reset to beginning
+        void reset() noexcept
         {
-            return iterator { this, 0 };
-        }
-
-        [[nodiscard]] iterator end() const
-        {
-            return iterator { this, size() };
-        }
-
-        [[nodiscard]] const mono_folder_reader& left() const noexcept
-        {
-            return _left;
-        }
-
-        [[nodiscard]] const mono_folder_reader& right() const noexcept
-        {
-            return _right;
+            _current_index = 0;
         }
 
     private:
-        mono_folder_reader _left;
-        mono_folder_reader _right;
+        void scan_directories(const path_type& left_dir, const path_type& right_dir);
+        static bool is_image_file(const path_type& p);
+
+        std::vector<path_type> _left_files;
+        std::vector<path_type> _right_files;
+        double                 _timescale = 1E-9;
+        std::size_t            _count = 0;
+        std::size_t            _current_index = 0;
     };
 } // namespace zenslam
