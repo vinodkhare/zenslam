@@ -13,6 +13,18 @@ message(STATUS "Found Microsoft.GSL: " ${Microsoft.GSL_VERSION})
 find_package(OpenCV CONFIG REQUIRED)
 message(STATUS "Found OpenCV: " ${OpenCV_VERSION})
 
+# Native VTK rendering (replace OpenCV viz for 3D scene)
+find_package(VTK COMPONENTS
+    CommonCore
+    CommonDataModel
+    FiltersCore
+    InteractionStyle
+    RenderingCore
+    RenderingOpenGL2
+    OPTIONAL_COMPONENTS CommonColor
+    REQUIRED)
+message(STATUS "Found VTK: ${VTK_VERSION}")
+
 find_package(concurrentqueue CONFIG REQUIRED)
 message(STATUS "Found concurrentqueue: " ${concurrentqueue_VERSION})
 
@@ -41,12 +53,24 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         opencv_core
         opencv_features2d
         opencv_imgproc
-        opencv_viz
+        # Removed opencv_viz in favor of native VTK rendering
         spdlog::spdlog
         yaml-cpp::yaml-cpp
         zenslam_core
         Boost::program_options
         Microsoft.GSL::GSL
+        VTK::CommonCore
+        VTK::CommonDataModel
+        VTK::FiltersCore
+        VTK::InteractionStyle
+        VTK::RenderingCore
+        VTK::RenderingOpenGL2
+)
+
+# VTK module auto-init for correct factory registration
+vtk_module_autoinit(
+  TARGETS ${PROJECT_NAME}
+  MODULES VTK::CommonCore VTK::CommonDataModel VTK::FiltersCore VTK::InteractionStyle VTK::RenderingCore VTK::RenderingOpenGL2
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
