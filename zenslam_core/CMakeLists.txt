@@ -57,7 +57,7 @@ add_library(${PROJECT_NAME}
         source/options.cpp
         source/pose.cpp
         source/slam_thread.cpp
-        source/stereo_folder_reader.cpp
+        source/folder_reader.cpp
         source/time_this.cpp
         source/utils.cpp
         source/utils_opencv.cpp

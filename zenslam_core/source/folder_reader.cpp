@@ -1,4 +1,4 @@
-#include "stereo_folder_reader.h"
+#include "folder_reader.h"
 
 #include <algorithm>
 #include <opencv2/imgcodecs.hpp>
@@ -18,7 +18,7 @@ namespace zenslam
         }
     }
 
-    bool stereo_folder_reader::is_image_file(const path_type& p)
+    bool folder_reader::is_image_file(const path_type& p)
     {
         static const char* extensions[] = {
             ".png", ".jpg", ".jpeg",
@@ -37,7 +37,7 @@ namespace zenslam
         );
     }
 
-    void stereo_folder_reader::scan_directories(const path_type& left_dir, const path_type& right_dir)
+    void folder_reader::scan_directories(const path_type& left_dir, const path_type& right_dir)
     {
         _left_files.clear();
         _right_files.clear();
@@ -71,7 +71,7 @@ namespace zenslam
         _count = std::min(_left_files.size(), _right_files.size());
     }
 
-    stereo_folder_reader::stereo_folder_reader
+    folder_reader::folder_reader
     (
         const path_type& left_dir,
         const path_type& right_dir,
@@ -82,13 +82,13 @@ namespace zenslam
         scan_directories(left_dir, right_dir);
     }
 
-    stereo_folder_reader::stereo_folder_reader(const class options::folder& options) :
+    folder_reader::folder_reader(const class options::folder& options) :
         _timescale(options.timescale)
     {
         scan_directories(options.root / options.left, options.root / options.right);
     }
 
-    frame::sensor stereo_folder_reader::read()
+    frame::sensor folder_reader::read()
     {
         if (_current_index >= _count)
         {

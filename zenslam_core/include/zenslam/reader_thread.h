@@ -8,7 +8,7 @@
 #include "time_this.h"
 
 #include "zenslam/options.h"
-#include "zenslam/stereo_folder_reader.h"
+#include "zenslam/folder_reader.h"
 #include "zenslam/frame/sensor.h"
 #include "zenslam/types/event.h"
 
@@ -42,7 +42,7 @@ namespace zenslam
 
         void loop()
         {
-            auto       reader = stereo_folder_reader(_options);
+            auto       reader = folder_reader(_options);
             const auto total  = reader.size();
 
 

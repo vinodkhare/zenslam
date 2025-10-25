@@ -8,19 +8,19 @@
 
 namespace zenslam
 {
-    class stereo_folder_reader
+    class folder_reader
     {
     public:
         using path_type = std::filesystem::path;
 
-        stereo_folder_reader
+        folder_reader
         (
             const path_type& left_dir,
             const path_type& right_dir,
             double           timescale = 1E-9
         );
 
-        explicit stereo_folder_reader(const class options::folder& options);
+        explicit folder_reader(const class options::folder& options);
 
         [[nodiscard]] std::size_t size() const noexcept
         {
