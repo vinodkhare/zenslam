@@ -152,6 +152,48 @@ Run tests:
 ctest --test-dir build -j --output-on-failure
 ```
 
+### Running Benchmarks
+
+The test suite includes Catch2 benchmarks comparing `cv::Mat` (CPU) vs `cv::UMat` (OpenCL) performance for feature detection and matching.
+
+**Run all benchmarks:**
+```bash
+./build/zenslam_tests/hello_test "[benchmark]"
+```
+
+**Run specific benchmark:**
+```bash
+# Keypoint detection benchmark only
+./build/zenslam_tests/hello_test "[benchmark]" -c "cv::Mat vs cv::UMat Keypoint Detection"
+
+# Feature matching pipeline benchmark
+./build/zenslam_tests/hello_test "[benchmark]" -c "cv::Mat vs cv::UMat Feature Matching"
+```
+
+**Benchmark output options:**
+```bash
+# Detailed statistics with confidence intervals
+./build/zenslam_tests/hello_test "[benchmark]" --benchmark-samples 100
+
+# JSON output for analysis
+./build/zenslam_tests/hello_test "[benchmark]" --reporter JSON::out=benchmark_results.json
+
+# Minimal output
+./build/zenslam_tests/hello_test "[benchmark]" --benchmark-no-analysis
+```
+
+**Notes:**
+- UMat benchmarks require OpenCL support (check with `cv::ocl::haveOpenCL()`)
+- First UMat run may be slower due to OpenCL initialization and kernel compilation
+- Performance varies by GPU/driver; integrated GPUs may not show speedup for small images
+- Use larger images or more iterations to see GPU benefits (adjust benchmark parameters in code)
+
+**Interpreting results:**
+- **Mean time**: Average execution time per iteration
+- **Low/High mean**: 95% confidence interval for the mean
+- **Std dev**: Standard deviation of measurements
+- Lower times indicate better performance; compare CPU vs GPU mean times to see speedup
+
 ---
 
 ## Core Features (Implemented So Far)
