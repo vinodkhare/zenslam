@@ -11,7 +11,7 @@
 #include <opencv2/video/tracking.hpp>
 
 #include "zenslam/utils_std.h"
-#include "zenslam/frame/slam.h"
+#include "zenslam/frame/estimated.h"
 
 auto zenslam::utils::apply_clahe(const cv::Mat& image, const cv::Ptr<cv::CLAHE>& clahe) -> cv::Mat
 {
@@ -205,7 +205,7 @@ void zenslam::utils::draw_keylines
     }
 }
 
-auto zenslam::utils::draw_matches_spatial(const frame::slam& frame, const map<point3d>& points) -> cv::Mat
+auto zenslam::utils::draw_matches_spatial(const frame::estimated& frame, const map<point3d>& points) -> cv::Mat
 {
     cv::Mat matches_image { };
 
@@ -276,7 +276,7 @@ auto zenslam::utils::draw_matches_spatial(const frame::slam& frame, const map<po
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches_temporal(const frame::slam& frame_0, const frame::slam& frame_1, const class options::slam& options) -> cv::Mat
+auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, const frame::estimated& frame_1, const class options::slam& options) -> cv::Mat
 {
     // Prepare images with keylines
     auto image_0 = frame_0.undistorted[0].clone();

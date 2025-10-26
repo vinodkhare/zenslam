@@ -19,7 +19,7 @@
 #include "zenslam/utils_slam.h"
 #include "zenslam/utils_std.h"
 #include "zenslam/frame/durations.h"
-#include "zenslam/frame/slam.h"
+#include "zenslam/frame/estimated.h"
 #include "zenslam/frame/system.h"
 #include "zenslam/frame/writer.h"
 
@@ -132,7 +132,7 @@ void zenslam::slam_thread::loop()
             auto pose_data_3d2d = pose_data { };
 
             // ESTIMATE
-            frame::slam slam_frame = { };
+            frame::estimated slam_frame = { };
             {
                 time_this time_this { system.durations.estimation };
 
@@ -178,7 +178,7 @@ void zenslam::slam_thread::loop()
                                        ? pose_data_3d3d.pose
                                        : pose_data_3d2d.pose;
 
-                system[1] = frame::slam { tracked, system[0].pose * pose.inv() };
+                system[1] = frame::estimated { tracked, system[0].pose * pose.inv() };
 
                 SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
                 SPDLOG_INFO("Groundtruth pose: {}", system[1].pose_gt);

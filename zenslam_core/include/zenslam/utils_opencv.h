@@ -8,7 +8,7 @@
 
 #include "options.h"
 
-#include "frame/slam.h"
+#include "frame/estimated.h"
 
 #include "types/point3d.h"
 
@@ -67,11 +67,11 @@ namespace zenslam::utils
         int                                              thickness
     );
 
-    auto draw_matches_spatial(const frame::slam& frame, const map<point3d>& points) -> cv::Mat;
+    auto draw_matches_spatial(const frame::estimated& frame, const map<point3d>& points) -> cv::Mat;
     auto draw_matches_temporal
     (
-        const frame::slam&         frame_0,
-        const frame::slam&         frame_1,
+        const frame::estimated&         frame_0,
+        const frame::estimated&         frame_1,
         const class options::slam& options
     ) -> cv::Mat;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;
