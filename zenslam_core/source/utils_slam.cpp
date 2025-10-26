@@ -464,7 +464,7 @@ auto zenslam::utils::match_keypoints
         return matches_new;
 
     std::vector<cv::DMatch> matches = { };
-    const bool use_ratio_test = (options.matcher == matcher_type::KNN || options.matcher == matcher_type::FLANN);
+    const bool use_ratio_test = options.matcher == matcher_type::KNN || options.matcher == matcher_type::FLANN;
 
     if (use_ratio_test)
     {
@@ -526,6 +526,7 @@ auto zenslam::utils::match_keypoints
                 filtered_matches.push_back(matches[i]);
             }
         }
+        
         matches = filtered_matches;
     }
 

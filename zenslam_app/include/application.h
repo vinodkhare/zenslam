@@ -4,6 +4,8 @@
 #include "zenslam/reader_thread.h"
 #include "zenslam/slam_thread.h"
 
+#include <opencv2/core.hpp>
+
 #include <memory>
 #include <mutex>
 #include <set>
@@ -64,5 +66,9 @@ namespace zenslam
     std::vector<double> _matches_history       = {};
     std::vector<double> _triangulated_history  = {};
     std::vector<double> _map_points_history    = {};
+
+    // Trajectory history for visualization
+    std::vector<cv::Point3d> _trajectory_estimated = {};
+    std::vector<cv::Point3d> _trajectory_gt        = {};
     };
 } // namespace zenslam

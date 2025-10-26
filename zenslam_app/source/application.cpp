@@ -21,6 +21,7 @@
 #include <vtkLine.h>
 #include <vtkMatrix4x4.h>
 #include <vtkPlaneSource.h>
+#include <vtkPolyLine.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
@@ -60,6 +61,15 @@ zenslam::application::application(options options) : _options { std::move(option
             _matches_history.push_back(static_cast<double>(_system.counts.matches));
             _triangulated_history.push_back(static_cast<double>(_system.counts.matches_triangulated));
             _map_points_history.push_back(static_cast<double>(_system.counts.points));
+        }
+
+        // Update trajectory history
+        {
+            const auto& pos = _system[1].pose.translation();
+            _trajectory_estimated.emplace_back(pos[0], pos[1], pos[2]);
+
+            const auto& pos_gt = _system[1].pose_gt.translation();
+            _trajectory_gt.emplace_back(pos_gt[0], pos_gt[1], pos_gt[2]);
         }
     };
 
@@ -157,6 +167,19 @@ struct zenslam::application::SceneVTK
     vtkSmartPointer<vtkActor>          frustumActor;
     vtkSmartPointer<vtkTexture>        frustumTexture;
     vtkSmartPointer<vtkImageImport>    frustumImage;
+
+    // Trajectory paths
+    vtkSmartPointer<vtkPoints>         trajectoryPoints;
+    vtkSmartPointer<vtkCellArray>      trajectoryCells;
+    vtkSmartPointer<vtkPolyData>       trajectoryPoly;
+    vtkSmartPointer<vtkPolyDataMapper> trajectoryMapper;
+    vtkSmartPointer<vtkActor>          trajectoryActor;
+
+    vtkSmartPointer<vtkPoints>         trajectoryGtPoints;
+    vtkSmartPointer<vtkCellArray>      trajectoryGtCells;
+    vtkSmartPointer<vtkPolyData>       trajectoryGtPoly;
+    vtkSmartPointer<vtkPolyDataMapper> trajectoryGtMapper;
+    vtkSmartPointer<vtkActor>          trajectoryGtActor;
 };
 
 // Ensure unique_ptr<SceneVTK> destruction sees a complete type
@@ -251,6 +274,36 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         S.linesActor->GetProperty()->SetColor(0.0, 1.0, 0.0); // green
         S.linesActor->GetProperty()->SetLineWidth(1.0);
         S.renderer->AddActor(S.linesActor);
+
+        // Trajectory pipeline (estimated)
+        S.trajectoryPoints  = vtkSmartPointer<vtkPoints>::New();
+        S.trajectoryCells   = vtkSmartPointer<vtkCellArray>::New();
+        S.trajectoryPoly    = vtkSmartPointer<vtkPolyData>::New();
+        S.trajectoryMapper  = vtkSmartPointer<vtkPolyDataMapper>::New();
+        S.trajectoryActor   = vtkSmartPointer<vtkActor>::New();
+
+        S.trajectoryPoly->SetPoints(S.trajectoryPoints);
+        S.trajectoryPoly->SetLines(S.trajectoryCells);
+        S.trajectoryMapper->SetInputData(S.trajectoryPoly);
+        S.trajectoryActor->SetMapper(S.trajectoryMapper);
+        S.trajectoryActor->GetProperty()->SetColor(1.0, 0.0, 0.0); // red for estimated
+        S.trajectoryActor->GetProperty()->SetLineWidth(3.0);
+        S.renderer->AddActor(S.trajectoryActor);
+
+        // Trajectory pipeline (ground truth)
+        S.trajectoryGtPoints  = vtkSmartPointer<vtkPoints>::New();
+        S.trajectoryGtCells   = vtkSmartPointer<vtkCellArray>::New();
+        S.trajectoryGtPoly    = vtkSmartPointer<vtkPolyData>::New();
+        S.trajectoryGtMapper  = vtkSmartPointer<vtkPolyDataMapper>::New();
+        S.trajectoryGtActor   = vtkSmartPointer<vtkActor>::New();
+
+        S.trajectoryGtPoly->SetPoints(S.trajectoryGtPoints);
+        S.trajectoryGtPoly->SetLines(S.trajectoryGtCells);
+        S.trajectoryGtMapper->SetInputData(S.trajectoryGtPoly);
+        S.trajectoryGtActor->SetMapper(S.trajectoryGtMapper);
+        S.trajectoryGtActor->GetProperty()->SetColor(0.0, 1.0, 1.0); // cyan for ground truth
+        S.trajectoryGtActor->GetProperty()->SetLineWidth(2.0);
+        S.renderer->AddActor(S.trajectoryGtActor);
     }
 
     const auto& S = *_vtk;
@@ -322,6 +375,62 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
     else
     {
         S.linesActor->SetVisibility(0);
+    }
+
+    // Update estimated trajectory
+    {
+        S.trajectoryPoints->Reset();
+        S.trajectoryCells->Reset();
+
+        if (_trajectory_estimated.size() >= 2)
+        {
+            // Add all points
+            for (const auto& pt : _trajectory_estimated)
+            {
+                S.trajectoryPoints->InsertNextPoint(pt.x, pt.y, pt.z);
+            }
+
+            // Create polyline connecting all points
+            vtkNew<vtkPolyLine> polyLine;
+            polyLine->GetPointIds()->SetNumberOfIds(_trajectory_estimated.size());
+            for (size_t i = 0; i < _trajectory_estimated.size(); ++i)
+            {
+                polyLine->GetPointIds()->SetId(i, i);
+            }
+            S.trajectoryCells->InsertNextCell(polyLine);
+        }
+
+        S.trajectoryPoints->Modified();
+        S.trajectoryCells->Modified();
+        S.trajectoryPoly->Modified();
+    }
+
+    // Update ground truth trajectory
+    {
+        S.trajectoryGtPoints->Reset();
+        S.trajectoryGtCells->Reset();
+
+        if (_trajectory_gt.size() >= 2)
+        {
+            // Add all points
+            for (const auto& pt : _trajectory_gt)
+            {
+                S.trajectoryGtPoints->InsertNextPoint(pt.x, pt.y, pt.z);
+            }
+
+            // Create polyline connecting all points
+            vtkNew<vtkPolyLine> polyLine;
+            polyLine->GetPointIds()->SetNumberOfIds(_trajectory_gt.size());
+            for (size_t i = 0; i < _trajectory_gt.size(); ++i)
+            {
+                polyLine->GetPointIds()->SetId(i, i);
+            }
+            S.trajectoryGtCells->InsertNextCell(polyLine);
+        }
+
+        S.trajectoryGtPoints->Modified();
+        S.trajectoryGtCells->Modified();
+        S.trajectoryGtPoly->Modified();
     }
 
     // Render one frame; process user events without blocking
