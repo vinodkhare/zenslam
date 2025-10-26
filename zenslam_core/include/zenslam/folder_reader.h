@@ -48,13 +48,13 @@ namespace zenslam
         }
 
     private:
-        void scan_directories(const path_type& left_dir, const path_type& right_dir);
+        void        scan_directories(const path_type& left_dir, const path_type& right_dir);
         static bool is_image_file(const path_type& p);
 
         std::vector<path_type> _left_files;
         std::vector<path_type> _right_files;
-        double                 _timescale = 1E-9;
-        std::size_t            _count = 0;
+        double                 _timescale     = 1E-9;
+        std::size_t            _count         = 0;
         std::size_t            _current_index = 0;
     };
 } // namespace zenslam

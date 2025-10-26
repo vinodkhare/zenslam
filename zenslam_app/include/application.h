@@ -45,12 +45,24 @@ namespace zenslam
         reader_thread    _reader_thread = reader_thread{_options.folder};
         std::set<size_t> _line_indices  = {};
 
-        // Frame timing history for plots
-        std::vector<double> _time_history       = {};
-        std::vector<double> _wait_history       = {};
-        std::vector<double> _processing_history = {};
-        std::vector<double> _tracking_history   = {};
-        std::vector<double> _estimation_history = {};
-        std::vector<double> _total_history      = {};
+    // Frame timing history for plots
+    std::vector<double> _time_history       = {};
+    std::vector<double> _wait_history       = {};
+    std::vector<double> _processing_history = {};
+    std::vector<double> _tracking_history   = {};
+    std::vector<double> _estimation_history = {};
+    std::vector<double> _total_history      = {};
+
+    // Frame counts history for plots
+    std::vector<double> _kp_l_history          = {};
+    std::vector<double> _kp_r_history          = {};
+    std::vector<double> _kp_tracked_l_history  = {};
+    std::vector<double> _kp_tracked_r_history  = {};
+    std::vector<double> _kp_new_l_history      = {};
+    std::vector<double> _kp_new_r_history      = {};
+    std::vector<double> _kp_total_history      = {};
+    std::vector<double> _matches_history       = {};
+    std::vector<double> _triangulated_history  = {};
+    std::vector<double> _map_points_history    = {};
     };
 } // namespace zenslam

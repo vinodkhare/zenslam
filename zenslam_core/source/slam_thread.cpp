@@ -50,8 +50,10 @@ void zenslam::slam_thread::enqueue(const frame::sensor& frame)
 
 void zenslam::slam_thread::loop()
 {
-    const auto& calibration = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file, _options.slam.stereo_rectify);
-    const auto& clahe       = cv::createCLAHE(4.0); // TODO: make configurable
+    const auto& calibration = calibration::parse(_options.folder.calibration_file,
+                                                 _options.folder.imu_calibration_file,
+                                                 _options.slam.stereo_rectify);
+    const auto& clahe = cv::createCLAHE(4.0); // TODO: make configurable
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");
@@ -69,8 +71,7 @@ void zenslam::slam_thread::loop()
                 time_this time_this { system.durations.wait };
 
                 std::unique_lock lock { _mutex };
-                _cv.wait
-                (
+                _cv.wait(
                     lock,
                     [this]
                     {
@@ -104,6 +105,22 @@ void zenslam::slam_thread::loop()
                 time_this time_this { system.durations.tracking };
 
                 tracked = utils::track(system[0], processed, calibration, _options.slam);
+
+                // Update counts related to keypoints and matches
+                const auto& kp0_prev = system[0].keypoints[0];
+                const auto& kp1_prev = system[0].keypoints[1];
+                const auto& kp0_cur  = tracked.keypoints[0];
+                const auto& kp1_cur  = tracked.keypoints[1];
+
+                system.counts.keypoints_l          = kp0_cur.size();
+                system.counts.keypoints_r          = kp1_cur.size();
+                system.counts.keypoints_l_tracked  = kp0_cur.keys_matched(kp0_prev).size();
+                system.counts.keypoints_r_tracked  = kp1_cur.keys_matched(kp1_prev).size();
+                system.counts.keypoints_l_new      = system.counts.keypoints_l - system.counts.keypoints_l_tracked;
+                system.counts.keypoints_r_new      = system.counts.keypoints_r - system.counts.keypoints_r_tracked;
+                system.counts.keypoints_total      = system.counts.keypoints_l + system.counts.keypoints_r;
+                system.counts.matches              = kp0_cur.keys_matched(kp1_cur).size();
+                system.counts.matches_triangulated = tracked.points3d.size();
             }
 
             auto pose_data_3d3d = pose_data { };
@@ -116,8 +133,7 @@ void zenslam::slam_thread::loop()
 
                 try
                 {
-                    pose_data_3d3d = utils::estimate_pose_3d3d
-                    (
+                    pose_data_3d3d = utils::estimate_pose_3d3d(
                         system[0].points3d,
                         tracked.points3d,
                         _options.slam.threshold_3d3d
@@ -130,8 +146,7 @@ void zenslam::slam_thread::loop()
 
                 try
                 {
-                    pose_data_3d2d = utils::estimate_pose_3d2d
-                    (
+                    pose_data_3d2d = utils::estimate_pose_3d2d(
                         system[0].points3d,
                         tracked.keypoints[0],
                         calibration.camera_matrix[0],
@@ -154,7 +169,9 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
                 SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
 
-                const auto& pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size() ? pose_data_3d3d.pose : pose_data_3d2d.pose;
+                const auto& pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size()
+                                       ? pose_data_3d3d.pose
+                                       : pose_data_3d2d.pose;
 
                 system[1] = frame::slam { tracked, system[0].pose * pose.inv() };
 

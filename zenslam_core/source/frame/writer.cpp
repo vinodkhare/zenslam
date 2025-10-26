@@ -35,7 +35,7 @@ namespace zenslam::frame
                     frame.counts.keypoints_l_tracked,
                     frame.counts.keypoints_r_tracked,
                     frame.counts.matches,
-                    frame.counts.maches_triangulated,
+                    frame.counts.matches_triangulated,
                     frame.counts.correspondences_3d3d,
                     frame.counts.correspondences_3d2d,
                     frame.counts.correspondences_3d3d_inliers,

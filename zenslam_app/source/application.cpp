@@ -33,11 +33,11 @@
 #include <vtkTransform.h>
 #include <vtkVertexGlyphFilter.h>
 
-zenslam::application::application(options options) : _options{std::move(options)}
+zenslam::application::application(options options) : _options { std::move(options) }
 {
     _slam_thread.on_frame += [this](const frame::system& frame)
     {
-        std::lock_guard lock{_mutex};
+        std::lock_guard lock { _mutex };
         _system = frame;
 
         // Update timing history for plots
@@ -48,6 +48,18 @@ zenslam::application::application(options options) : _options{std::move(options)
             _tracking_history.push_back(std::chrono::duration<double>(_system.durations.tracking).count());
             _estimation_history.push_back(std::chrono::duration<double>(_system.durations.estimation).count());
             _total_history.push_back(std::chrono::duration<double>(_system.durations.total).count());
+
+            // Update counts history for plots
+            _kp_l_history.push_back(static_cast<double>(_system.counts.keypoints_l));
+            _kp_r_history.push_back(static_cast<double>(_system.counts.keypoints_r));
+            _kp_tracked_l_history.push_back(static_cast<double>(_system.counts.keypoints_l_tracked));
+            _kp_tracked_r_history.push_back(static_cast<double>(_system.counts.keypoints_r_tracked));
+            _kp_new_l_history.push_back(static_cast<double>(_system.counts.keypoints_l_new));
+            _kp_new_r_history.push_back(static_cast<double>(_system.counts.keypoints_r_new));
+            _kp_total_history.push_back(static_cast<double>(_system.counts.keypoints_total));
+            _matches_history.push_back(static_cast<double>(_system.counts.matches));
+            _triangulated_history.push_back(static_cast<double>(_system.counts.matches_triangulated));
+            _map_points_history.push_back(static_cast<double>(_system.counts.points));
         }
     };
 
@@ -56,9 +68,9 @@ zenslam::application::application(options options) : _options{std::move(options)
 
 void zenslam::application::render()
 {
-    frame::system system{};
+    frame::system system { };
     {
-        std::lock_guard lock{_mutex};
+        std::lock_guard lock { _mutex };
         system = _system;
     }
 
@@ -333,12 +345,12 @@ void zenslam::application::draw_viz_controls()
     // Color picker for keylines (single keyline color)
     const auto& s = _options.slam.keyline_single_color; // B, G, R
     ImVec4      color_rgba(static_cast<float>(s[2]) / 255.0f,
-                      // R
-                      static_cast<float>(s[1]) / 255.0f,
-                      // G
-                      static_cast<float>(s[0]) / 255.0f,
-                      // B
-                      1.0f);
+                           // R
+                           static_cast<float>(s[1]) / 255.0f,
+                           // G
+                           static_cast<float>(s[0]) / 255.0f,
+                           // B
+                           1.0f);
 
     if (ImGui::ColorEdit3("Keyline Color", reinterpret_cast<float*>(&color_rgba)))
     {
@@ -360,7 +372,7 @@ void zenslam::application::draw_viz_controls()
 
     constexpr auto interval = 10; // seconds
 
-    if (!_time_history.empty() && ImPlot::BeginPlot("Processing Times", ImVec2(-1, 300)))
+    if (!_time_history.empty() && ImPlot::BeginPlot("Processing Times", ImVec2(-1, 240)))
     {
         // Lock Y axis to disable zooming/panning on Y
         ImPlot::SetupAxes("Time (s)", "Duration (s)", ImPlotAxisFlags_None, ImPlotAxisFlags_Lock);
@@ -385,6 +397,55 @@ void zenslam::application::draw_viz_controls()
                          _estimation_history.data(),
                          static_cast<int>(_time_history.size()));
         ImPlot::PlotLine("Total", _time_history.data(), _total_history.data(), static_cast<int>(_time_history.size()));
+
+        ImPlot::EndPlot();
+    }
+
+    // Frame Counts Plot
+    if (!_time_history.empty() && ImPlot::BeginPlot("Frame Counts", ImVec2(-1, 320)))
+    {
+        ImPlot::SetupAxes("Time (s)", "Count", ImPlotAxisFlags_None, ImPlotAxisFlags_None);
+        ImPlot::SetupAxisLimits(ImAxis_X1, _time_history.back() - interval, _time_history.back(), ImGuiCond_Always);
+        ImPlot::SetupLegend(ImPlotLocation_NorthEast);
+        ImPlot::SetupAxisFormat(ImAxis_X1, "%.2f");
+
+        // Keypoints
+        ImPlot::PlotLine("KP L", _time_history.data(), _kp_l_history.data(), static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("KP R", _time_history.data(), _kp_r_history.data(), static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("Tracked L",
+                         _time_history.data(),
+                         _kp_tracked_l_history.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("Tracked R",
+                         _time_history.data(),
+                         _kp_tracked_r_history.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("New L",
+                         _time_history.data(),
+                         _kp_new_l_history.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("New R",
+                         _time_history.data(),
+                         _kp_new_r_history.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("KP Total",
+                         _time_history.data(),
+                         _kp_total_history.data(),
+                         static_cast<int>(_time_history.size()));
+
+        // Matches & 3D
+        ImPlot::PlotLine("Matches",
+                         _time_history.data(),
+                         _matches_history.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("Triangulated",
+                         _time_history.data(),
+                         _triangulated_history.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("Map Points",
+                         _time_history.data(),
+                         _map_points_history.data(),
+                         static_cast<int>(_time_history.size()));
 
         ImPlot::EndPlot();
     }

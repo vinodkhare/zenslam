@@ -11,8 +11,11 @@ namespace zenslam::frame
         SPDLOG_INFO("  Keypoints R:           {:4}", keypoints_r);
         SPDLOG_INFO("  Keypoints L Tracked:   {:4}", keypoints_l_tracked);
         SPDLOG_INFO("  Keypoints R Tracked:   {:4}", keypoints_r_tracked);
+        SPDLOG_INFO("  Keypoints L New:       {:4}", keypoints_l_new);
+        SPDLOG_INFO("  Keypoints R New:       {:4}", keypoints_r_new);
+        SPDLOG_INFO("  Keypoints Total:       {:4}", keypoints_total);
         SPDLOG_INFO("  Matches:               {:4}", matches);
-        SPDLOG_INFO("  Matches Triangulated:  {:4}", maches_triangulated);
+        SPDLOG_INFO("  Matches Triangulated:  {:4}", matches_triangulated);
         SPDLOG_INFO("  3D-3D Correspondences: {:4}", correspondences_3d3d);
         SPDLOG_INFO("  3D-2D Correspondences: {:4}", correspondences_3d2d);
         SPDLOG_INFO("  3D-3D Inliers:         {:4}", correspondences_3d3d_inliers);

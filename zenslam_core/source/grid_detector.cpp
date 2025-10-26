@@ -144,25 +144,13 @@ namespace zenslam
             }
         }
 
-        auto points_cv = keypoints_cv | std::views::transform
+        const auto points_cv = keypoints_cv | std::views::transform
                          (
                              [](const auto& keypoint)
                              {
                                  return keypoint.pt;
                              }
                          ) | std::ranges::to<std::vector>();
-
-        if (!points_cv.empty())
-        {
-            cv::cornerSubPix
-            (
-                image,
-                points_cv,
-                cv::Size(5, 5),
-                cv::Size(-1, -1),
-                cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01)
-            );
-        }
 
         for (auto i = 0; i < points_cv.size(); ++i)
         {
