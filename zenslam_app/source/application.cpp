@@ -484,9 +484,9 @@ void zenslam::application::draw_viz_controls()
         
         ImGui::Text("IMU Data (%zu samples):", system[1].imu_data.size());
         ImGui::Text("  Angular Vel [wx, wy, wz]: [%.3f, %.3f, %.3f] rad/s",
-                    imu.omega_x, imu.omega_y, imu.omega_z);
+                    imu.gyr[0], imu.gyr[1], imu.gyr[2]);
         ImGui::Text("  Linear Acc  [ax, ay, az]: [%.3f, %.3f, %.3f] m/s\u00b2",
-                    imu.alpha_x, imu.alpha_y, imu.alpha_z);
+                    imu.acc[0], imu.acc[1], imu.acc[2]);
     }
     else
     {

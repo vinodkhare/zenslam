@@ -23,17 +23,17 @@ namespace zenslam
     {
     }
 
-    void preint::set_overlap_factor(int factor)
+    void preint::set_overlap_factor(const int factor)
     {
         _overlap_factor = factor;
     }
 
-    void preint::set_state_frequency(double freq)
+    void preint::set_state_frequency(const double freq)
     {
         _state_freq = freq;
     }
 
-    void preint::set_correlate(bool enable)
+    void preint::set_correlate(const bool enable)
     {
         _correlate = enable;
     }
@@ -50,190 +50,50 @@ namespace zenslam
             _gyr_bias = gyr_bias;
     }
 
-    auto preint::to_ugpm_data(const std::vector<frame::imu_measurement>& measurements) const -> ugpm::ImuData
+    auto preint::integrate(const std::vector<frame::imu>& measurements, const double start, const double end) -> ugpm::PreintMeas
     {
-        ugpm::ImuData imu_data;
-
-        // Set noise variances from calibration (variance = density^2)
-        imu_data.acc_var = _imu_calib.accelerometer_noise_density *
-            _imu_calib.accelerometer_noise_density;
-        imu_data.gyr_var = _imu_calib.gyroscope_noise_density *
-            _imu_calib.gyroscope_noise_density;
-
-        imu_data.acc.reserve(measurements.size());
-        imu_data.gyr.reserve(measurements.size());
-
+        // first add all new measurements to _measurements
         for (const auto& m : measurements)
         {
-            ugpm::ImuSample acc_s { };
-            acc_s.t       = m.timestamp;
-            acc_s.data[0] = m.alpha_x;
-            acc_s.data[1] = m.alpha_y;
-            acc_s.data[2] = m.alpha_z;
-            imu_data.acc.push_back(acc_s);
-
-            ugpm::ImuSample gyr_s { };
-            gyr_s.t       = m.timestamp;
-            gyr_s.data[0] = m.omega_x;
-            gyr_s.data[1] = m.omega_y;
-            gyr_s.data[2] = m.omega_z;
-            imu_data.gyr.push_back(gyr_s);
+            _measurements.emplace_back(m);
         }
 
-        return imu_data;
-    }
+        constexpr int overlap_factor = 8;
+        const auto    overlap_period = (end - start) * overlap_factor; // 8 times of period as advised
 
-    auto preint::integrate
-    (
-        const std::vector<frame::imu_measurement>& measurements,
-        double                                     start_time,
-        double                                     end_time
-    ) -> std::optional<ugpm::PreintMeas>
-    {
-        if (measurements.empty())
+        std::vector<frame::imu> to_integrate = { };
+        for (const auto& m : _measurements)
         {
-            SPDLOG_DEBUG("No IMU measurements to integrate");
-            return identity();
-        }
-
-        if (end_time <= start_time)
-        {
-            SPDLOG_WARN
-            (
-                "Invalid integration interval: end_time ({}) <= start_time ({})",
-                end_time,
-                start_time
-            );
-            return identity();
-        }
-
-        try
-        {
-            // Convert measurements to ugpm format
-            auto imu_data = to_ugpm_data(measurements);
-
-            // Setup preintegration options
-            ugpm::PreintOption opt;
-            opt.type       = (_method == method::ugpm) ? ugpm::UGPM : ugpm::LPM;
-            opt.state_freq = _state_freq;
-            opt.correlate  = _correlate;
-            opt.quantum    = -1; // Disable per-chunk mode
-
-            // Setup prior biases
-            ugpm::PreintPrior prior;
-            prior.acc_bias = _acc_bias;
-            prior.gyr_bias = _gyr_bias;
-
-            // Compute overlap value for UGPM
-            const int overlap = _overlap_factor; // ugpm uses this internally
-
-            // Perform preintegration
-            ugpm::ImuPreintegration preintegrator
-            (
-                imu_data,
-                start_time,
-                end_time,
-                opt,
-                prior,
-                false,
-                // rot_only = false (compute full preintegration)
-                overlap // overlap factor for optimal UGPM performance
-            );
-
-            auto result = preintegrator.get();
-
-            SPDLOG_DEBUG
-            (
-                "IMU preintegration completed: dt={:.4f}s, |delta_v|={:.4f}m/s, |delta_p|={:.4f}m",
-                result.dt,
-                result.delta_v.norm(),
-                result.delta_p.norm()
-            );
-
-            return result;
-        }
-        catch (const std::exception& e)
-        {
-            SPDLOG_ERROR("IMU preintegration failed: {}", e.what());
-            return std::nullopt;
-        }
-    }
-
-    auto preint::integrate_with_overlap
-    (
-        const std::vector<frame::imu_measurement>& measurements,
-        double                                     start_time,
-        double                                     end_time
-    ) -> std::optional<ugpm::PreintMeas>
-    {
-        if (measurements.empty())
-        {
-            return identity();
-        }
-
-        // Compute overlap duration
-        const double overlap_duration = _overlap_factor / _state_freq;
-        const double overlap_start    = std::max(0.0, start_time - overlap_duration);
-
-        // Combine previous overlap data with current measurements
-        std::vector<frame::imu_measurement> combined_measurements;
-
-        // Add overlap data from previous window
-        for (const auto& prev_m : _prev_measurements)
-        {
-            if (prev_m.timestamp >= overlap_start && prev_m.timestamp < start_time)
+            if (start - overlap_period <= m.timestamp && m.timestamp <= end)
             {
-                combined_measurements.push_back(prev_m);
+                to_integrate.push_back(m);
             }
         }
 
-        // Add current measurements
-        combined_measurements.insert
-        (
-            combined_measurements.end(),
-            measurements.begin(),
-            measurements.end()
-        );
+        erase_if(_measurements, [&](auto& m){ return m.timestamp < start - overlap_period; });
 
-        SPDLOG_DEBUG
-        (
-            "Integrating with overlap: {} overlap + {} current = {} total measurements",
-            combined_measurements.size() - measurements.size(),
-            measurements.size(),
-            combined_measurements.size()
-        );
+        ugpm::ImuData imu_data = { };
+        imu_data.acc.reserve(to_integrate.size());
+        imu_data.gyr.reserve(to_integrate.size());
 
-        // Integrate with combined data
-        auto result = integrate(combined_measurements, start_time, end_time);
+        for (const auto& m : to_integrate)
+        {
+            imu_data.acc.emplace_back(ugpm::ImuSample { m.timestamp, m.acc[0], m.acc[1], m.acc[2] });
+            imu_data.gyr.emplace_back(ugpm::ImuSample { m.timestamp, m.gyr[0], m.gyr[1], m.gyr[2] });
+        }
 
-        // Store current measurements for next overlap
-        _prev_measurements = measurements;
-        _prev_end_time     = end_time;
+        // Setup preintegration options
+        ugpm::PreintOption options = { };
+        options.type               = _method == method::ugpm ? ugpm::UGPM : ugpm::LPM;
+        options.state_freq         = _state_freq;
+        options.correlate          = _correlate;
+        options.quantum            = -1; // Disable per-chunk mode
 
-        return result;
-    }
+        ugpm::ImuPreintegration integration = { imu_data, start, end, options, _prior, false, overlap_factor };
 
-    auto preint::identity() -> ugpm::PreintMeas
-    {
-        ugpm::PreintMeas result;
-        result.delta_R    = ugpm::Mat3::Identity();
-        result.delta_v    = ugpm::Vec3::Zero();
-        result.delta_p    = ugpm::Vec3::Zero();
-        result.dt         = 0.0;
-        result.dt_sq_half = 0.0;
-        result.cov.setZero();
+        _prior = integration.getPrior();
 
-        // Initialize Jacobians to zero/identity
-        result.d_delta_R_d_bw = ugpm::Mat3::Zero();
-        result.d_delta_R_d_t  = ugpm::Vec3::Zero();
-        result.d_delta_v_d_bw = ugpm::Mat3::Zero();
-        result.d_delta_v_d_bf = ugpm::Mat3::Zero();
-        result.d_delta_v_d_t  = ugpm::Vec3::Zero();
-        result.d_delta_p_d_bw = ugpm::Mat3::Zero();
-        result.d_delta_p_d_bf = ugpm::Mat3::Zero();
-        result.d_delta_p_d_t  = ugpm::Vec3::Zero();
-
-        return result;
+        return integration.get();
     }
 
     auto preint::predict_pose

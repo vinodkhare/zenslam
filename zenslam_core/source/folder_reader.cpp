@@ -11,7 +11,8 @@ namespace zenslam
     {
         bool is_equals(const std::string& a, const std::string& b)
         {
-            if (a.size() != b.size()) return false;
+            if (a.size() != b.size())
+                return false;
             for (size_t i = 0; i < a.size(); ++i)
                 if (std::tolower(static_cast<unsigned char>(a[i])) !=
                     std::tolower(static_cast<unsigned char>(b[i])))
@@ -23,8 +24,12 @@ namespace zenslam
     bool folder_reader::is_image_file(const path_type& p)
     {
         static const char* extensions[] = {
-            ".png", ".jpg", ".jpeg",
-            ".bmp", ".tif", ".tiff"
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".bmp",
+            ".tif",
+            ".tiff"
         };
 
         const auto ext = p.extension().string();
@@ -111,29 +116,34 @@ namespace zenslam
         {
             // Read CSV file with rapidcsv
             // TUM-VI format: timestamp[ns],omega_x[rad/s],omega_y,omega_z,alpha_x[m/s^2],alpha_y,alpha_z
-            rapidcsv::Document doc(imu_file.string(), rapidcsv::LabelParams(0, -1));
+            const rapidcsv::Document doc(imu_file.string(), rapidcsv::LabelParams(0, -1));
 
             const size_t row_count = doc.GetRowCount();
             _imu_measurements.reserve(row_count);
 
             for (size_t i = 0; i < row_count; ++i)
             {
-                frame::imu_measurement imu;
-                
+                frame::imu imu;
+
                 // Column 0: timestamp in nanoseconds
-                const double timestamp_ns = doc.GetCell<double>(0, i);
-                imu.timestamp = timestamp_ns * _timescale;
-                
+                const auto timestamp_ns = doc.GetCell<double>(0, i);
+                imu.timestamp             = timestamp_ns * _timescale;
+
                 // Columns 1-3: angular velocity (rad/s)
-                imu.omega_x = doc.GetCell<double>(1, i);
-                imu.omega_y = doc.GetCell<double>(2, i);
-                imu.omega_z = doc.GetCell<double>(3, i);
-                
-                // Columns 4-6: linear acceleration (m/s²)
-                imu.alpha_x = doc.GetCell<double>(4, i);
-                imu.alpha_y = doc.GetCell<double>(5, i);
-                imu.alpha_z = doc.GetCell<double>(6, i);
-                
+                imu.gyr = cv::Vec3d
+                (
+                    doc.GetCell<double>(1, i),
+                    doc.GetCell<double>(2, i),
+                    doc.GetCell<double>(3, i)
+                );
+
+                imu.acc = cv::Vec3d
+                (
+                    doc.GetCell<double>(4, i),
+                    doc.GetCell<double>(5, i),
+                    doc.GetCell<double>(6, i)
+                );
+
                 _imu_measurements.push_back(imu);
             }
 
@@ -149,14 +159,14 @@ namespace zenslam
     {
         if (_current_index >= _count)
         {
-            return {}; // Return empty frame if no more data
+            return { }; // Return empty frame if no more data
         }
 
-        frame::sensor frame = {};
+        frame::sensor frame = { };
 
         // Extract timestamp from filename (assumed to be in nanoseconds)
         const auto timestamp_ns = std::stod(_left_files[_current_index].stem().string());
-        frame.timestamp = timestamp_ns * _timescale;
+        frame.timestamp         = timestamp_ns * _timescale;
 
         // Load images
         frame.images[0] = cv::imread(_left_files[_current_index].string());
@@ -169,20 +179,18 @@ namespace zenslam
         if (!_imu_measurements.empty())
         {
             // Get previous frame timestamp (or 0 for first frame)
-            const double prev_timestamp = (_current_index > 0) 
-                ? std::stod(_left_files[_current_index - 1].stem().string()) * _timescale
-                : 0.0;
+            const double prev_timestamp = (_current_index > 0)
+                                              ? std::stod(_left_files[_current_index - 1].stem().string()) * _timescale
+                                              : 0.0;
 
             // Find all IMU measurements in the interval (prev_timestamp, frame.timestamp]
-            while (_imu_index < _imu_measurements.size() && 
-                   _imu_measurements[_imu_index].timestamp <= prev_timestamp)
+            while (_imu_index < _imu_measurements.size() && _imu_measurements[_imu_index].timestamp <= prev_timestamp)
             {
                 ++_imu_index;
             }
 
             // Collect IMU measurements in the current interval
-            while (_imu_index < _imu_measurements.size() && 
-                   _imu_measurements[_imu_index].timestamp <= frame.timestamp)
+            while (_imu_index < _imu_measurements.size() && _imu_measurements[_imu_index].timestamp <= frame.timestamp)
             {
                 frame.imu_data.push_back(_imu_measurements[_imu_index]);
                 ++_imu_index;
