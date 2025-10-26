@@ -6,9 +6,7 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include "zenslam/calibration.h"
 #include "zenslam/options.h"
-#include "zenslam/pose_data.h"
 #include "zenslam/frame/sensor.h"
 #include "zenslam/frame/tracked.h"
 #include "zenslam/types/keypoint.h"
@@ -57,13 +55,6 @@ inline auto operator*
 
 namespace zenslam::utils
 {
-    // Encapsulated pose estimation result (3D-3D and 3D-2D)
-    struct estimate_pose_result
-    {
-        pose_data    pose_3d3d;   // Result of 3D-3D estimation (maybe empty if failed)
-        pose_data    pose_3d2d;   // Result of 3D-2D estimation (maybe empty if failed)
-        cv::Affine3d chosen_pose; // Chosen pose based on inlier counts (or identity if both failed)
-    };
 
     auto correspondences_3d2d
     (
@@ -83,33 +74,6 @@ namespace zenslam::utils
         std::vector<cv::Point3d>&        points3d_1,
         std::vector<size_t>&             indexes
     );
-
-    auto estimate_pose_3d2d
-    (
-        const std::map<size_t, point3d>&  map_points_0,
-        const std::map<size_t, keypoint>& map_keypoints_1,
-        const cv::Matx33d&                camera_matrix,
-        const double&                     threshold
-    ) -> pose_data;
-
-    auto estimate_pose_3d3d
-    (
-        const std::map<size_t, point3d>& map_points_0,
-        const std::map<size_t, point3d>& map_points_1,
-        const double&                    threshold
-    ) -> pose_data;
-
-    // Encapsulate both 3D-3D and 3D-2D pose estimation and select the best
-    auto estimate_pose
-    (
-        const std::map<size_t, point3d>& map_points_prev,
-        // Previous map points (world)
-        const frame::tracked& current,
-        // Current tracked frame
-        const calibration& calibration,
-        // Calibration (camera intrinsics)
-        const class options::slam& options // SLAM options (thresholds)
-    ) -> estimate_pose_result;
 
     /** Estimate rigid transformation (R, t) between two sets of 3D points.
      *

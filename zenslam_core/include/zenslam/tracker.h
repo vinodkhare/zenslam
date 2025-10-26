@@ -29,11 +29,11 @@ namespace zenslam
         [[nodiscard]] auto track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> frame::tracked;
 
     private:
-        calibration         _calibration = { };
-        class options::slam _options     = { };
-    matcher             _matcher     = { _options, false };
-    triangulator        _triangulator;
-        detector            _detector    = { };
+        calibration         _calibration  = { };
+        class options::slam _options      = { };
+        matcher             _matcher      = { _options, false };
+        triangulator        _triangulator = { _calibration, _options };
+        detector            _detector     = { };
 
         /** Track keypoints from pyramid_0 to pyramid_1 using KLT optical flow.
          *

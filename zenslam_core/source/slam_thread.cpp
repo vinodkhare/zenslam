@@ -16,6 +16,7 @@
 #include "zenslam/processor.h"
 #include "zenslam/time_this.h"
 #include "zenslam/utils.h"
+#include "zenslam/estimator.h"
 #include "zenslam/utils_slam.h"
 #include "zenslam/tracker.h"
 #include "zenslam/utils_std.h"
@@ -53,8 +54,9 @@ void zenslam::slam_thread::loop()
     const auto& calibration = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file, _options.slam.stereo_rectify);
 
     // Create tracker (owns descriptor matcher configured from options)
-    processor processor { _options.slam, calibration };
-    tracker   tracker { calibration, _options.slam };
+    processor       processor { _options.slam, calibration };
+    tracker         tracker { calibration, _options.slam };
+    const estimator estimator { calibration, _options.slam };
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");
@@ -130,29 +132,23 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { system.durations.estimation };
 
-                const auto est = utils::estimate_pose
-                (
-                    system[0].points3d,
-                    tracked,
-                    calibration,
-                    _options.slam
-                );
+                const auto [pose_3d3d, pose_3d2d, chosen_pose] = estimator.estimate_pose(system[0].points3d, tracked);
 
                 // Update counts
-                system.counts.correspondences_3d2d         = est.pose_3d2d.indices.size();
-                system.counts.correspondences_3d3d         = est.pose_3d3d.indices.size();
-                system.counts.correspondences_3d2d_inliers = est.pose_3d2d.inliers.size();
-                system.counts.correspondences_3d3d_inliers = est.pose_3d3d.inliers.size();
+                system.counts.correspondences_3d2d         = pose_3d2d.indices.size();
+                system.counts.correspondences_3d3d         = pose_3d3d.indices.size();
+                system.counts.correspondences_3d2d_inliers = pose_3d2d.inliers.size();
+                system.counts.correspondences_3d3d_inliers = pose_3d3d.inliers.size();
 
                 // Logging
-                const auto err3d3d_mean = utils::mean(est.pose_3d3d.errors);
-                const auto err3d2d_mean = utils::mean(est.pose_3d2d.errors);
+                const auto err3d3d_mean = utils::mean(pose_3d3d.errors);
+                const auto err3d2d_mean = utils::mean(pose_3d2d.errors);
 
                 SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
                 SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
 
                 // Apply pose update (estimate is relative camera pose between frames)
-                system[1] = frame::estimated { tracked, system[0].pose * est.chosen_pose.inv() };
+                system[1] = frame::estimated { tracked, system[0].pose * chosen_pose.inv() };
 
                 SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
                 SPDLOG_INFO("Groundtruth pose: {}", system[1].pose_gt);
