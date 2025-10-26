@@ -55,6 +55,12 @@ void zenslam::slam_thread::loop()
                                                  _options.slam.stereo_rectify);
     const auto& clahe = cv::createCLAHE(4.0); // TODO: make configurable
 
+    // Create matcher once for efficiency (instead of per-frame)
+    // Binary descriptors: ORB, FREAK; Float descriptors: SIFT
+    const bool is_binary = (_options.slam.descriptor == descriptor_type::ORB ||
+                           _options.slam.descriptor == descriptor_type::FREAK);
+    const auto matcher = utils::create_matcher(_options.slam, is_binary);
+
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");
 
@@ -104,7 +110,7 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { system.durations.tracking };
 
-                tracked = utils::track(system[0], processed, calibration, _options.slam);
+                tracked = utils::track(system[0], processed, calibration, _options.slam, matcher);
 
                 // Update counts related to keypoints and matches
                 const auto& kp0_prev = system[0].keypoints[0];

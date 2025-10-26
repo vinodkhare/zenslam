@@ -359,13 +359,52 @@ auto zenslam::utils::filter
     return filtered;
 }
 
+auto zenslam::utils::create_matcher
+(
+    const class options::slam& options,
+    bool                       is_binary
+) -> cv::Ptr<cv::DescriptorMatcher>
+{
+    const auto norm_type = is_binary ? cv::NORM_HAMMING : cv::NORM_L2;
+
+    if (options.matcher == matcher_type::KNN)
+    {
+        // kNN matching with ratio test using BFMatcher
+        return cv::makePtr<cv::BFMatcher>(norm_type, false);
+    }
+    else if (options.matcher == matcher_type::FLANN)
+    {
+        // FLANN-based matching with ratio test
+        if (is_binary)
+        {
+            // LSH (Locality Sensitive Hashing) for binary descriptors
+            return cv::makePtr<cv::FlannBasedMatcher>(
+                cv::makePtr<cv::flann::LshIndexParams>(12, 20, 2)
+            );
+        }
+        else
+        {
+            // KDTree for float descriptors (SIFT, SURF, etc.)
+            return cv::makePtr<cv::FlannBasedMatcher>(
+                cv::makePtr<cv::flann::KDTreeIndexParams>(4)
+            );
+        }
+    }
+    else // BRUTE
+    {
+        // Brute-force matching with cross-check
+        return cv::makePtr<cv::BFMatcher>(norm_type, true);
+    }
+}
+
 auto zenslam::utils::match_keypoints
 (
-    const map<keypoint>&       keypoints_0,
-    const map<keypoint>&       keypoints_1,
-    const cv::Matx33d&         fundamental,
-    double                     epipolar_threshold,
-    const class options::slam& options
+    const map<keypoint>&                   keypoints_0,
+    const map<keypoint>&                   keypoints_1,
+    const cv::Matx33d&                     fundamental,
+    double                                 epipolar_threshold,
+    const cv::Ptr<cv::DescriptorMatcher>&  matcher,
+    const class options::slam&             options
 ) -> std::vector<cv::DMatch>
 {
     cv::Mat                 descriptors_l { };
@@ -408,45 +447,13 @@ auto zenslam::utils::match_keypoints
 
     if (descriptors_l.empty() || descriptors_r.empty()) return matches_new;
 
-    const auto norm_type = descriptors_l.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2;
     std::vector<cv::DMatch> matches;
+    const bool use_ratio_test = (options.matcher == matcher_type::KNN ||
+                                 options.matcher == matcher_type::FLANN);
 
-    if (options.matcher == matcher_type::KNN)
+    if (use_ratio_test)
     {
-        // kNN matching with ratio test
-        cv::BFMatcher matcher { norm_type, false }; // cross-check disabled for kNN
-        std::vector<std::vector<cv::DMatch>> knn_matches;
-        matcher.knnMatch(descriptors_l, descriptors_r, knn_matches, 2);
-
-        // Apply Lowe's ratio test
-        for (const auto& knn : knn_matches)
-        {
-            if (knn.size() == 2 && knn[0].distance < options.matcher_ratio * knn[1].distance)
-            {
-                matches.push_back(knn[0]);
-            }
-        }
-    }
-    else if (options.matcher == matcher_type::FLANN)
-    {
-        // FLANN-based matching with ratio test
-        cv::Ptr<cv::FlannBasedMatcher> matcher;
-        
-        if (descriptors_l.depth() == CV_8U)
-        {
-            // LSH (Locality Sensitive Hashing) for binary descriptors
-            matcher = cv::makePtr<cv::FlannBasedMatcher>(
-                cv::makePtr<cv::flann::LshIndexParams>(12, 20, 2)
-            );
-        }
-        else
-        {
-            // KDTree for float descriptors (SIFT, SURF, etc.)
-            matcher = cv::makePtr<cv::FlannBasedMatcher>(
-                cv::makePtr<cv::flann::KDTreeIndexParams>(4)
-            );
-        }
-
+        // kNN matching with ratio test (for KNN and FLANN modes)
         std::vector<std::vector<cv::DMatch>> knn_matches;
         matcher->knnMatch(descriptors_l, descriptors_r, knn_matches, 2);
 
@@ -461,9 +468,8 @@ auto zenslam::utils::match_keypoints
     }
     else
     {
-        // Brute-force matching with cross-check
-        cv::BFMatcher matcher { norm_type, true };
-        matcher.match(descriptors_l, descriptors_r, matches);
+        // Brute-force matching with cross-check (1-NN)
+        matcher->match(descriptors_l, descriptors_r, matches);
     }
 
     matches =
@@ -853,10 +859,11 @@ auto zenslam::utils::solve_pnp
 
 auto zenslam::utils::track
 (
-    const frame::tracked&      frame_0,
-    const frame::processed&    frame_1,
-    const calibration&         calibration,
-    const class options::slam& options
+    const frame::tracked&                  frame_0,
+    const frame::processed&                frame_1,
+    const calibration&                     calibration,
+    const class options::slam&             options,
+    const cv::Ptr<cv::DescriptorMatcher>&  matcher
 ) -> frame::tracked
 {
     const auto& detector = grid_detector::create(options);
@@ -913,6 +920,7 @@ auto zenslam::utils::track
                                    keypoints_1,
                                    calibration.fundamental_matrix[0],
                                    options.epipolar_threshold,
+                                   matcher,
                                    options);
 
     points3d += triangulate_keypoints(

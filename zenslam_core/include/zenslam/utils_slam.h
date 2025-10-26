@@ -3,6 +3,7 @@
 #include <map>
 #include <ranges>
 
+#include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
 
 #include "frame/slam.h"
@@ -133,13 +134,29 @@ namespace zenslam::utils
         double                           epipolar_threshold
     ) -> std::vector<cv::DMatch>;
 
+    /**
+     * Create a descriptor matcher based on options.
+     * Creates the appropriate matcher (BFMatcher or FlannBasedMatcher) depending on
+     * matcher type and descriptor type (binary vs float).
+     *
+     * @param options SLAM options containing matcher configuration
+     * @param is_binary True for binary descriptors (ORB, BRISK), false for float (SIFT, SURF)
+     * @return Pointer to the created matcher
+     */
+    auto create_matcher
+    (
+        const class options::slam& options,
+        bool                       is_binary
+    ) -> cv::Ptr<cv::DescriptorMatcher>;
+
     auto match_keypoints
     (
-        const map<keypoint>&       keypoints_0,
-        const map<keypoint>&       keypoints_1,
-        const cv::Matx33d&         fundamental,
-        double                     epipolar_threshold,
-        const class options::slam& options
+        const map<keypoint>&                   keypoints_0,
+        const map<keypoint>&                   keypoints_1,
+        const cv::Matx33d&                     fundamental,
+        double                                 epipolar_threshold,
+        const cv::Ptr<cv::DescriptorMatcher>&  matcher,
+        const class options::slam&             options
     ) -> std::vector<cv::DMatch>;
 
     /**
@@ -227,14 +244,18 @@ namespace zenslam::utils
      * @param frame_1 The processed frame containing image pyramids.
      * @param calibration The camera calibration parameters.
      * @param options SLAM options that may include KLT parameters.
+     * @param matcher Pre-created descriptor matcher (created once for efficiency)
+     * @param matcher_ratio Ratio test threshold for kNN/FLANN matchers
+     * @param use_ratio_test Whether to use ratio test (true for KNN/FLANN, false for BRUTE)
      * @return The tracked frame with updated keypoints and keylines.
      */
     auto track
     (
-        const frame::tracked&      frame_0,
-        const frame::processed&    frame_1,
-        const calibration&         calibration,
-        const class options::slam& options
+        const frame::tracked&                  frame_0,
+        const frame::processed&                frame_1,
+        const calibration&                     calibration,
+        const class options::slam&             options,
+        const cv::Ptr<cv::DescriptorMatcher>&  matcher
     ) -> frame::tracked;
 
     /** Track keypoints from frame_0 to frame_1 using KLT optical flow.
