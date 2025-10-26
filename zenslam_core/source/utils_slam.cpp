@@ -163,6 +163,65 @@ auto zenslam::utils::estimate_pose_3d3d
     throw std::runtime_error("Not enough 3D-3D correspondences to compute pose (need > 3)");
 }
 
+auto zenslam::utils::estimate_pose
+(
+    const std::map<size_t, point3d>& map_points_prev,
+    const frame::tracked&             current,
+    const calibration&                calibration,
+    const class options::slam&        options
+) -> estimate_pose_result
+{
+    estimate_pose_result result { };
+
+    // Attempt 3D-3D
+    try
+    {
+        result.pose_3d3d = estimate_pose_3d3d(
+            map_points_prev,
+            current.points3d,
+            options.threshold_3d3d
+        );
+    }
+    catch (const std::runtime_error& e)
+    {
+        SPDLOG_WARN("3D-3D pose estimation failed: {}", e.what());
+    }
+
+    // Attempt 3D-2D (left camera)
+    try
+    {
+        result.pose_3d2d = estimate_pose_3d2d(
+            map_points_prev,
+            current.keypoints[0],
+            calibration.camera_matrix[0],
+            options.threshold_3d2d
+        );
+    }
+    catch (const std::runtime_error& e)
+    {
+        SPDLOG_WARN("3D-2D pose estimation failed: {}", e.what());
+    }
+
+    // Choose the pose with more inliers; if tie, prefer 3D-3D; if both invalid, identity
+    const auto inliers_3d3d = result.pose_3d3d.inliers.size();
+    const auto inliers_3d2d = result.pose_3d2d.inliers.size();
+
+    if (inliers_3d3d == 0 && inliers_3d2d == 0)
+    {
+        result.chosen_pose = cv::Affine3d::Identity();
+    }
+    else if (inliers_3d3d >= inliers_3d2d)
+    {
+        result.chosen_pose = result.pose_3d3d.pose;
+    }
+    else
+    {
+        result.chosen_pose = result.pose_3d2d.pose;
+    }
+
+    return result;
+}
+
 bool zenslam::utils::estimate_rigid
 (
     const std::vector<cv::Point3d>& points3d_0,

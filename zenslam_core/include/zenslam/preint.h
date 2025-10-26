@@ -59,7 +59,7 @@ namespace zenslam
          */
         explicit preint
         (
-            const imu_calibration& imu_calib,
+            imu_calibration  imu_calib,
             method                 preint_method = method::ugpm
         );
 
@@ -193,7 +193,7 @@ namespace zenslam
         auto to_ugpm_data
         (
             const std::vector<frame::imu_measurement>& measurements
-        ) -> ugpm::ImuData;
+        ) const const -> ugpm::ImuData;
 
         imu_calibration _imu_calib;
         method          _method;

@@ -59,6 +59,14 @@ inline auto operator*
 
 namespace zenslam::utils
 {
+    // Encapsulated pose estimation result (3D-3D and 3D-2D)
+    struct estimate_pose_result
+    {
+        pose_data   pose_3d3d;      // Result of 3D-3D estimation (may be empty if failed)
+        pose_data   pose_3d2d;      // Result of 3D-2D estimation (may be empty if failed)
+        cv::Affine3d chosen_pose;   // Chosen pose based on inlier counts (or identity if both failed)
+    };
+
     auto correspondences_3d2d
     (
         const std::map<size_t, point3d>&  points,
@@ -92,6 +100,15 @@ namespace zenslam::utils
         const std::map<size_t, point3d>& map_points_1,
         const double&                    threshold
     ) -> pose_data;
+
+    // Encapsulate both 3D-3D and 3D-2D pose estimation and select the best
+    auto estimate_pose
+    (
+        const std::map<size_t, point3d>& map_points_prev,   // Previous map points (world)
+        const frame::tracked&             current,           // Current tracked frame
+        const calibration&                calibration,       // Calibration (camera intrinsics)
+        const class options::slam&        options            // SLAM options (thresholds)
+    ) -> estimate_pose_result;
 
     /** Predict pose from IMU pre-integration.
      *

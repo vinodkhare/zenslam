@@ -49,16 +49,18 @@ void zenslam::slam_thread::enqueue(const frame::sensor& frame)
 
 void zenslam::slam_thread::loop()
 {
-    const auto& calibration = calibration::parse(_options.folder.calibration_file,
-                                                 _options.folder.imu_calibration_file,
-                                                 _options.slam.stereo_rectify);
+    const auto& calibration = calibration::parse
+    (
+        _options.folder.calibration_file,
+        _options.folder.imu_calibration_file,
+        _options.slam.stereo_rectify
+    );
     const auto& clahe = cv::createCLAHE(4.0); // TODO: make configurable
 
     // Create matcher once for efficiency (instead of per-frame)
     // Binary descriptors: ORB, FREAK; Float descriptors: SIFT
-    const bool is_binary = (_options.slam.descriptor == descriptor_type::ORB ||
-                           _options.slam.descriptor == descriptor_type::FREAK);
-    const auto matcher = utils::create_matcher(_options.slam, is_binary);
+    const bool is_binary = _options.slam.descriptor == descriptor_type::ORB || _options.slam.descriptor == descriptor_type::FREAK;
+    const auto matcher   = utils::create_matcher(_options.slam, is_binary);
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");
@@ -76,7 +78,8 @@ void zenslam::slam_thread::loop()
                 time_this time_this { system.durations.wait };
 
                 std::unique_lock lock { _mutex };
-                _cv.wait(
+                _cv.wait
+                (
                     lock,
                     [this]
                     {
@@ -128,57 +131,34 @@ void zenslam::slam_thread::loop()
                 system.counts.matches_triangulated = tracked.points3d.size();
             }
 
-            auto pose_data_3d3d = pose_data { };
-            auto pose_data_3d2d = pose_data { };
-
             // ESTIMATE
             frame::estimated slam_frame = { };
             {
                 time_this time_this { system.durations.estimation };
 
-                try
-                {
-                    pose_data_3d3d = utils::estimate_pose_3d3d(
-                        system[0].points3d,
-                        tracked.points3d,
-                        _options.slam.threshold_3d3d
-                    );
-                }
-                catch (const std::runtime_error& error)
-                {
-                    SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
-                }
+                const auto est = utils::estimate_pose
+                (
+                    system[0].points3d,
+                    tracked,
+                    calibration,
+                    _options.slam
+                );
 
-                try
-                {
-                    pose_data_3d2d = utils::estimate_pose_3d2d(
-                        system[0].points3d,
-                        tracked.keypoints[0],
-                        calibration.camera_matrix[0],
-                        _options.slam.threshold_3d2d
-                    );
-                }
-                catch (const std::runtime_error& error)
-                {
-                    SPDLOG_WARN("Unable to estimate pose because: {}", error.what());
-                }
+                // Update counts
+                system.counts.correspondences_3d2d         = est.pose_3d2d.indices.size();
+                system.counts.correspondences_3d3d         = est.pose_3d3d.indices.size();
+                system.counts.correspondences_3d2d_inliers = est.pose_3d2d.inliers.size();
+                system.counts.correspondences_3d3d_inliers = est.pose_3d3d.inliers.size();
 
-                system.counts.correspondences_3d2d         = pose_data_3d2d.indices.size();
-                system.counts.correspondences_3d3d         = pose_data_3d3d.indices.size();
-                system.counts.correspondences_3d2d_inliers = pose_data_3d2d.inliers.size();
-                system.counts.correspondences_3d3d_inliers = pose_data_3d3d.inliers.size();
-
-                const auto err3d3d_mean = utils::mean(pose_data_3d3d.errors);
-                const auto err3d2d_mean = utils::mean(pose_data_3d2d.errors);
+                // Logging
+                const auto err3d3d_mean = utils::mean(est.pose_3d3d.errors);
+                const auto err3d2d_mean = utils::mean(est.pose_3d2d.errors);
 
                 SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
                 SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
 
-                const auto& pose = pose_data_3d3d.inliers.size() > pose_data_3d2d.inliers.size()
-                                       ? pose_data_3d3d.pose
-                                       : pose_data_3d2d.pose;
-
-                system[1] = frame::estimated { tracked, system[0].pose * pose.inv() };
+                // Apply pose update (estimate is relative camera pose between frames)
+                system[1] = frame::estimated { tracked, system[0].pose * est.chosen_pose.inv() };
 
                 SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
                 SPDLOG_INFO("Groundtruth pose: {}", system[1].pose_gt);
