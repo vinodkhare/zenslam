@@ -1117,63 +1117,7 @@ auto epipolar_angles(const cv::Vec3d& translation_of_camera1_in_camera0)
     );
 }
 
-auto zenslam::utils::triangulate_keypoints
-(
-    const map<keypoint>& keypoints_0,
-    const map<keypoint>& keypoints_1,
-    const cv::Matx34d&   projection_0,
-    const cv::Matx34d&   projection_1,
-    const double         triangulation_threshold,
-    const cv::Vec3d&     translation_of_camera1_in_camera0
-)
-    -> std::vector<point3d>
-{
-    const auto& points2f_0 = to_points
-    (
-        keypoints_0.values_matched(keypoints_1) |
-        std::ranges::to<std::vector>()
-    );
-    const auto& points2f_1 = to_points
-    (
-        keypoints_1.values_matched(keypoints_0) |
-        std::ranges::to<std::vector>()
-    );
-
-    const auto& points3d_cv =
-        triangulate_points(points2f_0, points2f_1, projection_0, projection_1);
-    const auto& indices =
-        keypoints_0.keys_matched(keypoints_1) | std::ranges::to<std::vector>();
-    const auto& descriptors =
-        keypoints_0.values_matched(keypoints_1) |
-        std::views::transform([](const keypoint& kp) { return kp.descriptor; }) |
-        std::ranges::to<std::vector>();
-
-    const auto& points3d_all = point3d::create(points3d_cv, indices, descriptors);
-
-    // Reproject points to compute reprojection error
-    const auto& points2f_0_back = project(points3d_cv, projection_0);
-    const auto& points2f_1_back = project(points3d_cv, projection_1);
-
-    const auto& errors_0 = vecnorm(points2f_0_back - points2f_0);
-    const auto& errors_1 = vecnorm(points2f_1_back - points2f_1);
-
-    const auto& angles = points3d_all |
-        epipolar_angles(translation_of_camera1_in_camera0) |
-        std::ranges::to<std::vector>();
-
-    std::vector<point3d> points3d { };
-    for (auto i = 0; i < points3d_all.size(); ++i)
-    {
-        if (points3d_all[i].z > 1 && errors_0[i] < triangulation_threshold &&
-            errors_1[i] < triangulation_threshold && angles[i] > 0.25 &&
-            angles[i] < 180 - 0.25) // 4 pixel reprojection error threshold
-        {
-            points3d.emplace_back(points3d_all[i]);
-        }
-    }
-
-    return points3d;
-}
+// moved to zenslam::triangulator
 
 auto points_0()
 {

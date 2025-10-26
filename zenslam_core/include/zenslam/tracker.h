@@ -1,11 +1,11 @@
 #pragma once
 
 #include <opencv2/core.hpp>
-#include <opencv2/features2d.hpp>
 
 #include "zenslam/calibration.h"
 #include "zenslam/detector.h"
 #include "zenslam/matcher.h"
+#include "zenslam/triangulator.h"
 #include "zenslam/options.h"
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/tracked.h"
@@ -29,10 +29,11 @@ namespace zenslam
         [[nodiscard]] auto track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> frame::tracked;
 
     private:
-        calibration                    _calibration = { };
-        class options::slam            _options     = { };
-        matcher                        _matcher = { _options, false };
-        detector                       _detector    = { };
+        calibration         _calibration = { };
+        class options::slam _options     = { };
+    matcher             _matcher     = { _options, false };
+    triangulator        _triangulator;
+        detector            _detector    = { };
 
         /** Track keypoints from pyramid_0 to pyramid_1 using KLT optical flow.
          *
@@ -42,6 +43,12 @@ namespace zenslam
          *  @param points_1_predicted (Optional) Predicted locations of the keypoints in the current frame.
          *  @return Tracked keypoints in the current frame.
          */
-        [[nodiscard]] auto track_keypoints(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const map<keypoint>& keypoints_map_0, const std::vector<cv::Point2f>& points_1_predicted = { }) const -> std::vector<keypoint>;
+        [[nodiscard]] auto track_keypoints
+        (
+            const std::vector<cv::Mat>&     pyramid_0,
+            const std::vector<cv::Mat>&     pyramid_1,
+            const map<keypoint>&            keypoints_map_0,
+            const std::vector<cv::Point2f>& points_1_predicted = { }
+        ) const -> std::vector<keypoint>;
     };
 }

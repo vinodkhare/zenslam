@@ -56,6 +56,7 @@ add_library(${PROJECT_NAME}
         source/groundtruth.cpp
         source/imu_calibration.cpp
         source/integrator.cpp
+        source/triangulator.cpp
         source/matcher.cpp
         source/motion.cpp
         source/options.cpp

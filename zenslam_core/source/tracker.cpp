@@ -9,14 +9,15 @@
 
 #include "zenslam/detector.h"
 #include "zenslam/matcher.h"
-#include "zenslam/utils_slam.h"
+#include "zenslam/triangulator.h"
 
 namespace zenslam
 {
-    tracker::tracker(calibration  calib, class options::slam  opts)
-        : _calibration(std::move(calib)), 
+    tracker::tracker(calibration calib, class options::slam opts)
+        : _calibration(std::move(calib)),
           _options(std::move(opts)),
           _matcher(_options, _options.descriptor == descriptor_type::ORB || _options.descriptor == descriptor_type::FREAK),
+          _triangulator(_calibration, _options),
           _detector(detector::create(_options))
     {
     }
@@ -64,16 +65,7 @@ namespace zenslam
         }
 
         keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
-
-        points3d += utils::triangulate_keypoints
-        (
-            keypoints_0,
-            keypoints_1,
-            _calibration.projection_matrix[0],
-            _calibration.projection_matrix[1],
-            _options.triangulation_reprojection_threshold,
-            _calibration.cameras[1].pose_in_cam0.translation()
-        );
+        points3d += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
 
         return { frame_1, keypoints_0, keypoints_1, { }, points3d };
     }
@@ -153,7 +145,10 @@ namespace zenslam
         if (candidate_points_0.size() >= 8)
         {
             std::vector<uchar> inlier_mask { };
-            cv::Mat            E { cv::findEssentialMat(candidate_points_0, candidate_points_1, _calibration.camera_matrix[0], cv::RANSAC, 0.999, _options.epipolar_threshold, inlier_mask) };
+            cv::Mat            E {
+                cv::findEssentialMat
+                (candidate_points_0, candidate_points_1, _calibration.camera_matrix[0], cv::RANSAC, 0.999, _options.epipolar_threshold, inlier_mask)
+            };
 
             for (size_t j = 0; j < candidate_indices.size(); ++j)
             {

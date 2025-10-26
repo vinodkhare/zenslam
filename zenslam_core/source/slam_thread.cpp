@@ -1,4 +1,4 @@
-#include "zenslam//slam_thread.h"
+#include "zenslam/slam_thread.h"
 
 
 #include <utility>
@@ -6,7 +6,6 @@
 #include <gsl/narrow>
 
 #include <opencv2/calib3d.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -51,17 +50,11 @@ void zenslam::slam_thread::enqueue(const frame::sensor& frame)
 
 void zenslam::slam_thread::loop()
 {
-    const auto& calibration = calibration::parse
-    (
-        _options.folder.calibration_file,
-        _options.folder.imu_calibration_file,
-        _options.slam.stereo_rectify
-    );
-    const auto& clahe = cv::createCLAHE(4.0); // TODO: make configurable
+    const auto& calibration = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file, _options.slam.stereo_rectify);
 
     // Create tracker (owns descriptor matcher configured from options)
-    zenslam::processor processor { _options.slam, calibration };
-    zenslam::tracker   tracker { calibration, _options.slam };
+    processor processor { _options.slam, calibration };
+    tracker   tracker { calibration, _options.slam };
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");

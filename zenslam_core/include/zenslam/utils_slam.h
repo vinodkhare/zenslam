@@ -16,8 +16,7 @@
 #include "zenslam/types/point3d.h"
 #include "zenslam/types/point3d_cloud.h"
 
-inline auto operator-
-(const std::vector<cv::Point2d>& lhs, const std::vector<cv::Point2f>& rhs) -> std::vector<cv::Point2d>
+inline auto operator-(const std::vector<cv::Point2d>& lhs, const std::vector<cv::Point2f>& rhs) -> std::vector<cv::Point2d>
 {
     std::vector<cv::Point2d> difference;
     difference.reserve(lhs.size());
@@ -255,27 +254,6 @@ namespace zenslam::utils
         const map<keyline>&         keylines_map_0,
         const class options::slam&  options
     ) -> std::vector<keyline>;
-
-    /** Triangulate keypoints between stereo frames using their indices.
-     * For each keypoint index present in both maps, triangulate the 3D point.
-     *
-     * @param keypoints_0 Map of keypoints in left image
-     * @param keypoints_1 Map of keypoints in right image
-     * @param projection_0 3x4 projection matrix for left camera
-     * @param projection_1 3x4 projection matrix for right camera
-     * @param triangulation_threshold Maximum allowable reprojection error
-     * @param translation_of_camera1_in_camera0
-     * @return Map from keypoint index to triangulated 3D point
-     */
-    auto triangulate_keypoints
-    (
-        const map<keypoint>& keypoints_0,
-        const map<keypoint>& keypoints_1,
-        const cv::Matx34d&   projection_0,
-        const cv::Matx34d&   projection_1,
-        double               triangulation_threshold,
-        const cv::Vec3d&     translation_of_camera1_in_camera0
-    ) -> std::vector<point3d>;
 
     /**
      * Triangulate keylines between stereo frames using their indices.
