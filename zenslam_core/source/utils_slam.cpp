@@ -22,13 +22,10 @@
 #include "zenslam/frame/processed.h"
 #include "zenslam/types/point3d.h"
 #include "zenslam/types/point3d_cloud.h"
+#include "zenslam/preint.h"
 
-// ugpm preintegration (conditionally included)
-#if __has_include(<preint/preint.h>)
-#define ZENSLAM_HAS_UGPM 1
+#if ZENSLAM_HAS_UGPM
 #include <preint/preint.h>
-#else
-#define ZENSLAM_HAS_UGPM 0
 #endif
 
 void zenslam::utils::correspondences_3d2d
@@ -237,6 +234,23 @@ bool zenslam::utils::estimate_rigid
     R = cv::Matx33d(R_mat);
     t = mean_dst - cv::Vec3d(R * mean_src);
     return true;
+}
+
+auto zenslam::utils::predict_pose_from_imu
+(
+    const cv::Affine3d&     pose_0,
+    const cv::Vec3d&        velocity_0,
+    const frame::processed& frame,
+    const cv::Vec3d&        gravity
+) -> cv::Affine3d
+{
+#if ZENSLAM_HAS_UGPM
+    return preint::predict_pose(pose_0, velocity_0, frame.preint, gravity);
+#else
+    // When ugpm is not available, return the previous pose (constant velocity model)
+    SPDLOG_WARN("IMU preintegration not available, using identity motion model");
+    return pose_0;
+#endif
 }
 
 auto zenslam::utils::estimate_rigid_ransac
@@ -902,84 +916,46 @@ auto zenslam::utils::process
         }
     };
 
-    // IMU pre-integration for this frame's IMU interval
-    try
+    // IMU pre-integration using preint class
+    if (!sensor.imu_data.empty())
     {
+        // Create preintegrator with current calibration
+        preint imu_preint(calibration.imu, preint::method::ugpm);
+
+        // Configure for optimal UGPM performance
+        imu_preint.set_overlap_factor(8);     // 8x state period overlap
+        imu_preint.set_state_frequency(50.0); // 50 Hz state frequency
+        imu_preint.set_correlate(true);       // Enable correlation
+
+        const double start_t = sensor.imu_data.front().timestamp;
+        const double end_t   = std::max(sensor.timestamp, sensor.imu_data.back().timestamp);
+
 #if ZENSLAM_HAS_UGPM
-        if (!sensor.imu_data.empty())
+        // Integrate IMU measurements
+        auto result = imu_preint.integrate_with_overlap(sensor.imu_data, start_t, end_t);
+
+        if (result.has_value())
         {
-            ugpm::ImuData imu_data;
-            // Map IMU noise densities to variances; if calibration not provided, keep zeros
-            imu_data.acc_var = calibration.imu.accelerometer_noise_density * calibration.imu.
-                accelerometer_noise_density;
-            imu_data.gyr_var = calibration.imu.gyroscope_noise_density * calibration.imu.gyroscope_noise_density;
-
-            imu_data.acc.reserve(sensor.imu_data.size());
-            imu_data.gyr.reserve(sensor.imu_data.size());
-            for (const auto& m : sensor.imu_data)
-            {
-                ugpm::ImuSample acc_s { };
-                acc_s.t       = m.timestamp;
-                acc_s.data[0] = m.alpha_x;
-                acc_s.data[1] = m.alpha_y;
-                acc_s.data[2] = m.alpha_z;
-                imu_data.acc.push_back(acc_s);
-
-                ugpm::ImuSample gyr_s { };
-                gyr_s.t       = m.timestamp;
-                gyr_s.data[0] = m.omega_x;
-                gyr_s.data[1] = m.omega_y;
-                gyr_s.data[2] = m.omega_z;
-                imu_data.gyr.push_back(gyr_s);
-            }
-
-            const double start_t = sensor.imu_data.front().timestamp;
-            const double end_t   = std::max(sensor.timestamp, sensor.imu_data.back().timestamp);
-
-            if (end_t > start_t)
-            {
-                ugpm::PreintOption      opt;   // defaults: UGPM, state_freq=50, correlate=true
-                ugpm::PreintPrior       prior; // zero biases
-                ugpm::ImuPreintegration preint(imu_data, start_t, end_t, opt, prior);
-                auto                    result = preint.get();
-                processed.preint               = ugpm::PreintMeas(result);
-            }
-            else
-            {
-                auto result       = ugpm::PreintMeas();
-                result.delta_R    = ugpm::Mat3::Identity();
-                result.delta_v    = ugpm::Vec3::Zero();
-                result.delta_p    = ugpm::Vec3::Zero();
-                result.dt         = 0.0;
-                result.dt_sq_half = 0.0;
-                result.cov.setZero();
-                processed.preint = result;
-            }
+            processed.preint = result.value();
         }
         else
         {
-            // No IMU data for this frame
-            auto result       = ugpm::PreintMeas();
-            result.delta_R    = ugpm::Mat3::Identity();
-            result.delta_v    = ugpm::Vec3::Zero();
-            result.delta_p    = ugpm::Vec3::Zero();
-            result.dt         = 0.0;
-            result.dt_sq_half = 0.0;
-            result.cov.setZero();
-            processed.preint = result;
+            // Fallback to identity if integration fails
+            processed.preint = preint::identity();
         }
-    }
 #else
-    (void)calibration; // unused without ugpm
-    // Fallback when ugpm is not available at compile time
-    processed.preint = nullptr;
-    }
-#endif
-    catch (const std::exception& e)
-    {
-        SPDLOG_WARN("IMU preintegration failed: {}", e.what());
-        // Fallback to identity/no motion
+        // When ugpm is not available, use identity
         processed.preint = { };
+#endif
+    }
+    else
+    {
+#if ZENSLAM_HAS_UGPM
+        // No IMU data - use identity transformation
+        processed.preint = preint::identity();
+#else
+        processed.preint = { };
+#endif
     }
 
     return processed;

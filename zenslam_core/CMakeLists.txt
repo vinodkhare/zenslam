@@ -58,6 +58,7 @@ add_library(${PROJECT_NAME}
         source/motion.cpp
         source/options.cpp
         source/pose.cpp
+        source/preint.cpp
         source/slam_thread.cpp
         source/folder_reader.cpp
         source/time_this.cpp

@@ -17,7 +17,8 @@
 #include "zenslam/types/point3d.h"
 #include "zenslam/types/point3d_cloud.h"
 
-inline auto operator-(const std::vector<cv::Point2d>& lhs, const std::vector<cv::Point2f>& rhs) -> std::vector<cv::Point2d>
+inline auto operator-
+(const std::vector<cv::Point2d>& lhs, const std::vector<cv::Point2f>& rhs) -> std::vector<cv::Point2d>
 {
     std::vector<cv::Point2d> difference;
     difference.reserve(lhs.size());
@@ -42,11 +43,12 @@ inline auto operator*(const cv::Affine3d& pose, const zenslam::line3d& line) -> 
     return transformed_line;
 }
 
-inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::line3d>& lines) -> zenslam::map<zenslam::line3d>
+inline auto operator*
+(const cv::Affine3d& pose, const zenslam::map<zenslam::line3d>& lines) -> zenslam::map<zenslam::line3d>
 {
     zenslam::map<zenslam::line3d> transformed_lines { };
 
-    for (const auto line: lines | std::views::values)
+    for (const auto line : lines | std::views::values)
     {
         transformed_lines[line.index]       = pose * line;
         transformed_lines[line.index].index = line.index;
@@ -90,6 +92,25 @@ namespace zenslam::utils
         const std::map<size_t, point3d>& map_points_1,
         const double&                    threshold
     ) -> pose_data;
+
+    /** Predict pose from IMU pre-integration.
+     *
+     * Uses preintegrated IMU measurements to predict the next pose given
+     * the current pose and velocity.
+     *
+     * @param pose_0 Current pose at time t0
+     * @param velocity_0 Current velocity in world frame (m/s)
+     * @param preint_meas Preintegrated measurement from t0 to t1
+     * @param gravity Gravity vector in world frame (default: [0, 0, -9.81] m/s²)
+     * @return Predicted pose at time t1
+     */
+    auto predict_pose_from_imu
+    (
+        const cv::Affine3d&     pose_0,
+        const cv::Vec3d&        velocity_0,
+        const frame::processed& frame,
+        const cv::Vec3d&        gravity = cv::Vec3d(0, 0, -9.81)
+    ) -> cv::Affine3d;
 
     /** Estimate rigid transformation (R, t) between two sets of 3D points.
      *
@@ -148,10 +169,10 @@ namespace zenslam::utils
 
     auto match_keypoints
     (
-        const map<keypoint>&                   keypoints_0,
-        const map<keypoint>&                   keypoints_1,
-        const cv::Ptr<cv::DescriptorMatcher>&  matcher,
-        const class options::slam&             options
+        const map<keypoint>&                  keypoints_0,
+        const map<keypoint>&                  keypoints_1,
+        const cv::Ptr<cv::DescriptorMatcher>& matcher,
+        const class options::slam&            options
     ) -> std::vector<cv::DMatch>;
 
     /**
@@ -207,6 +228,7 @@ namespace zenslam::utils
      * @param sensor The input sensor frame containing the image to be processed.
      * @param calibration The camera calibration parameters.
      * @param options SLAM options that may include CLAHE settings and pyramid levels.
+     * @param clahe Pre-created CLAHE object (created once for efficiency)
      * @return The pre-processed frame.
      */
     auto process
@@ -246,11 +268,11 @@ namespace zenslam::utils
      */
     auto track
     (
-        const frame::tracked&                  frame_0,
-        const frame::processed&                frame_1,
-        const calibration&                     calibration,
-        const class options::slam&             options,
-        const cv::Ptr<cv::DescriptorMatcher>&  matcher
+        const frame::tracked&                 frame_0,
+        const frame::processed&               frame_1,
+        const calibration&                    calibration,
+        const class options::slam&            options,
+        const cv::Ptr<cv::DescriptorMatcher>& matcher
     ) -> frame::tracked;
 
     /** Track keypoints from frame_0 to frame_1 using KLT optical flow.
