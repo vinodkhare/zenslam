@@ -62,7 +62,9 @@ void zenslam::utils::draw_line_matches
         img1.copyTo(roi_left);
         img2.copyTo(roi_right);
     }
-    else {}
+    else
+    {
+    }
 
     /* initialize random seed: */
     thread_local std::mt19937_64  rng { std::random_device { }() };
@@ -77,7 +79,8 @@ void zenslam::utils::draw_line_matches
 
         singleLineColorRGB = cv::Scalar(R, G, B);
     }
-    else singleLineColorRGB = singleLineColor;
+    else
+        singleLineColorRGB = singleLineColor;
 
     /* get columns offset */
     auto offset = img1.cols;
@@ -85,12 +88,12 @@ void zenslam::utils::draw_line_matches
     /* if requested, draw lines from both images */
     if (flags != cv::line_descriptor::DrawLinesMatchesFlags::NOT_DRAW_SINGLE_LINES)
     {
-        for (auto k1: keylines1)
+        for (auto k1 : keylines1)
         {
             line(outImg, cv::Point2f(k1.startPointX, k1.startPointY), cv::Point2f(k1.endPointX, k1.endPointY), singleLineColorRGB, lineThickness);
         }
 
-        for (auto k2: keylines2)
+        for (auto k2 : keylines2)
         {
             line
             (
@@ -121,10 +124,12 @@ void zenslam::utils::draw_line_matches
 
                 matchColorRGB = cv::Scalar(R, G, B);
 
-                if (singleLineColor == cv::Scalar::all(-1)) singleLineColorRGB = matchColorRGB;
+                if (singleLineColor == cv::Scalar::all(-1))
+                    singleLineColorRGB = matchColorRGB;
             }
 
-            else matchColorRGB = matchColor;
+            else
+                matchColorRGB = matchColor;
 
             /* draw lines if necessary */
             line
@@ -189,10 +194,11 @@ void zenslam::utils::draw_keylines
     const int                                        thickness
 )
 {
-    if (keylines.empty()) return;
+    if (keylines.empty())
+        return;
 
     // OpenCV drawKeylines doesn't expose thickness, so we custom-draw segments
-    for (const auto& kl: keylines)
+    for (const auto& kl : keylines)
     {
         cv::line
         (
@@ -282,8 +288,10 @@ auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, cons
     auto image_0 = frame_0.undistorted[0].clone();
     auto image_1 = frame_1.undistorted[0].clone();
 
-    if (image_0.channels() == 1) image_0 = convert_color(image_0, cv::COLOR_GRAY2BGR);
-    if (image_1.channels() == 1) image_1 = convert_color(image_1, cv::COLOR_GRAY2BGR);
+    if (image_0.channels() == 1)
+        image_0 = convert_color(image_0, cv::COLOR_GRAY2BGR);
+    if (image_1.channels() == 1)
+        image_1 = convert_color(image_1, cv::COLOR_GRAY2BGR);
 
     // Draw keypoints if enabled
     if (options.show_keypoints)
@@ -462,10 +470,10 @@ auto zenslam::utils::pyramid(const cv::Mat& image, const class options::slam& op
 auto zenslam::utils::matches(size_t n) -> std::vector<cv::DMatch>
 {
     return std::views::iota(static_cast<size_t>(0), n) | std::views::transform
-           (
-               [](auto i)
-               {
-                   return cv::DMatch(i, i, 0.0);
-               }
-           ) | std::ranges::to<std::vector>();
+    (
+        [](auto i)
+        {
+            return cv::DMatch(i, i, 0.0);
+        }
+    ) | std::ranges::to<std::vector>();
 }

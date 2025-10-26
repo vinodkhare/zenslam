@@ -68,7 +68,7 @@ auto zenslam::utils::to_points
     std::vector<cv::Point2f> points1;
     points1.reserve(matches.size());
 
-    for (const auto& match: matches)
+    for (const auto& match : matches)
     {
         points0.push_back(keypoints0[match.queryIdx].pt);
         points1.push_back(keypoints1[match.trainIdx].pt);
@@ -87,12 +87,12 @@ auto zenslam::utils::to_points(const std::vector<cv::KeyPoint>& keypoints) -> st
 auto zenslam::utils::to_points(const std::vector<keypoint>& keypoints) -> std::vector<cv::Point2f>
 {
     return keypoints | std::views::transform
-           (
-               [](const auto& keypoint)
-               {
-                   return keypoint.pt;
-               }
-           ) | std::ranges::to<std::vector>();
+    (
+        [](const auto& keypoint)
+        {
+            return keypoint.pt;
+        }
+    ) | std::ranges::to<std::vector>();
 }
 
 auto zenslam::utils::to_points(const std::map<size_t, keypoint>& keypoints) -> std::vector<cv::Point2f>
@@ -100,7 +100,7 @@ auto zenslam::utils::to_points(const std::map<size_t, keypoint>& keypoints) -> s
     std::vector<cv::Point2f> points;
     points.reserve(keypoints.size());
 
-    for (const auto& value: keypoints | std::views::values)
+    for (const auto& value : keypoints | std::views::values)
     {
         points.emplace_back(value.pt);
     }
@@ -113,7 +113,7 @@ auto zenslam::utils::to_points(const std::vector<point3d>& points3d) -> std::vec
     std::vector<cv::Point3d> points;
     points.reserve(points3d.size());
 
-    for (const auto& point: points3d)
+    for (const auto& point : points3d)
     {
         points.emplace_back(point);
     }

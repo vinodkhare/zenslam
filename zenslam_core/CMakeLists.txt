@@ -70,7 +70,7 @@ add_library(${PROJECT_NAME}
         source/verb.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${RAPIDCSV_INCLUDE_DIRS} include )
+target_include_directories(${PROJECT_NAME} PUBLIC ${RAPIDCSV_INCLUDE_DIRS} include)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         concurrentqueue::concurrentqueue

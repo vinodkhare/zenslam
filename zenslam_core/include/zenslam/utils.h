@@ -68,7 +68,7 @@ namespace zenslam::utils
     auto vecnorm(const std::vector<cv::Point_<T>>& vec) -> std::vector<T>
     {
         std::vector<T> vecnorm { };
-        for (const auto& v: vec)
+        for (const auto& v : vec)
         {
             vecnorm.emplace_back(cv::norm(v));
         }

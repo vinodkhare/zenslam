@@ -13,24 +13,24 @@ namespace zenslam::utils
     auto cast(const std::vector<T_IN>& values) -> std::vector<T_OUT>
     {
         return values | std::views::transform
-               (
-                   [](const T_IN& value)
-                   {
-                       return static_cast<T_OUT>(value);
-                   }
-               ) | std::ranges::to<std::vector>();
+        (
+            [](const T_IN& value)
+            {
+                return static_cast<T_OUT>(value);
+            }
+        ) | std::ranges::to<std::vector>();
     }
 
     template <typename T_KEY, typename T_VALUE>
     auto invert(const std::map<T_KEY, T_VALUE>& map) -> std::map<T_VALUE, T_KEY>
     {
         return map | std::views::transform
-               (
-                   [](const auto& pair)
-                   {
-                       return std::make_pair(pair.second, pair.first);
-                   }
-               ) | std::ranges::to<std::map>();
+        (
+            [](const auto& pair)
+            {
+                return std::make_pair(pair.second, pair.first);
+            }
+        ) | std::ranges::to<std::map>();
     }
 
     // Generic template function to join any range of elements into a string

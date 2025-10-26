@@ -13,8 +13,9 @@
 #define ZENSLAM_HAS_UGPM 0
 #endif
 
-namespace zenslam {
-/**
+namespace zenslam
+{
+    /**
  * @brief IMU pre-integration using UGPM (Unified Gaussian Preintegrated
  * Measurements)
  *
@@ -39,26 +40,28 @@ namespace zenslam {
  * }
  * @endcode
  */
-class integrator {
-public:
-  /**
+    class integrator
+    {
+    public:
+        /**
    * @brief Integration method selection
    */
-  enum class method {
-    ugpm, ///< Unified Gaussian Preintegrated Measurements (accurate, requires
+        enum class method
+        {
+            ugpm, ///< Unified Gaussian Preintegrated Measurements (accurate, requires
           ///< optimization)
-    lpm   ///< Linear Preintegrated Measurements (fast, no optimization)
-  };
+            lpm   ///< Linear Preintegrated Measurements (fast, no optimization)
+        };
 
-  /**
+        /**
    * @brief Construct pre-integrator with IMU calibration
    *
    * @param imu_calib IMU calibration parameters containing noise densities
    * @param preint_method Integration method (default: UGPM)
    */
-  explicit integrator(imu_calibration imu_calib, method preint_method = method::ugpm);
+        explicit integrator(imu_calibration imu_calib, method preint_method = method::ugpm);
 
-  /**
+        /**
    * @brief Set the overlap factor for UGPM optimization
    *
    * UGPMs need data overlap between integration windows to perform optimally.
@@ -66,33 +69,36 @@ public:
    *
    * @param factor Overlap factor (default: 8, recommended range: 4-12)
    */
-  void set_overlap_factor(int factor);
+        void set_overlap_factor(int factor);
 
-  /**
+        /**
    * @brief Set the state frequency for UGPM
    *
    * @param freq State frequency in Hz (default: 50.0)
    */
-  void set_state_frequency(double freq);
+        void set_state_frequency(double freq);
 
-  /**
+        /**
    * @brief Enable/disable covariance correlation in UGPM
    *
    * @param enable True to enable correlation (more accurate but slower)
    */
-  void set_correlate(bool enable);
+        void set_correlate(bool enable);
 
-  /**
+        /**
    * @brief Set prior IMU biases
    *
    * @param acc_bias Accelerometer bias [x, y, z] in m/s²
    * @param gyr_bias Gyroscope bias [x, y, z] in rad/s
    */
-  void set_biases(const std::vector<double> &acc_bias,
-                  const std::vector<double> &gyr_bias);
+        void set_biases
+        (
+            const std::vector<double>& acc_bias,
+            const std::vector<double>& gyr_bias
+        );
 
 #if ZENSLAM_HAS_UGPM
-  /**
+        /**
    * @brief Integrate IMU measurements over a time interval (legacy frame::imu)
    *
    * @param measurements IMU measurements to integrate
@@ -100,16 +106,16 @@ public:
    * @param end End of integration interval (seconds)
    * @return Preintegrated measurement result
    */
-  auto integrate(const std::vector<zenslam::frame::imu> &measurements, double start, double end) -> ugpm::PreintMeas;
+        auto integrate(const std::vector<zenslam::frame::imu>& measurements, double start, double end) -> ugpm::PreintMeas;
 
-  /**
+        /**
    * @brief Get identity preintegrated measurement (no motion)
    *
    * @return PreintMeas with identity rotation, zero velocity/position
    */
-  static auto identity() -> ugpm::PreintMeas;
+        static auto identity() -> ugpm::PreintMeas;
 
-  /**
+        /**
    * @brief Predict pose from IMU pre-integration
    *
    * Given the state at time t0 (pose, velocity) and preintegrated IMU
@@ -123,13 +129,16 @@ public:
    * @param gravity Gravity vector in world frame (default: [0, 0, -9.81] m/s²)
    * @return Predicted pose at time t1
    */
-  static auto predict_pose(const cv::Affine3d &pose_0,
-                           const cv::Vec3d &velocity_0,
-                           const ugpm::PreintMeas &preint_meas,
-                           const cv::Vec3d &gravity = cv::Vec3d(0, 0, -9.81))
-      -> cv::Affine3d;
+        static auto predict_pose
+        (
+            const cv::Affine3d&     pose_0,
+            const cv::Vec3d&        velocity_0,
+            const ugpm::PreintMeas& preint_meas,
+            const cv::Vec3d&        gravity = cv::Vec3d(0, 0, -9.81)
+        )
+            -> cv::Affine3d;
 
-  /**
+        /**
    * @brief Predict velocity from IMU pre-integration
    *
    * Given the state at time t0 and preintegrated IMU measurements,
@@ -142,32 +151,36 @@ public:
    * @param gravity Gravity vector in world frame (default: [0, 0, -9.81] m/s²)
    * @return Predicted velocity at time t1 in world frame (m/s)
    */
-  static auto
-  predict_velocity(const cv::Affine3d &pose_0, const cv::Vec3d &velocity_0,
-                   const ugpm::PreintMeas &preint_meas,
-                   const cv::Vec3d &gravity = cv::Vec3d(0, 0, -9.81))
-      -> cv::Vec3d;
+        static auto
+        predict_velocity
+        (
+            const cv::Affine3d&     pose_0,
+            const cv::Vec3d&        velocity_0,
+            const ugpm::PreintMeas& preint_meas,
+            const cv::Vec3d&        gravity = cv::Vec3d(0, 0, -9.81)
+        )
+            -> cv::Vec3d;
 #endif
 
-private:
+    private:
 #if ZENSLAM_HAS_UGPM
-  imu_calibration _imu_calib;
-  method _method;
-  int _overlap_factor;
-  double _state_freq;
-  bool _correlate;
+        imu_calibration _imu_calib;
+        method          _method;
+        int             _overlap_factor;
+        double          _state_freq;
+        bool            _correlate;
 
-  std::vector<double> _acc_bias;
-  std::vector<double> _gyr_bias;
+        std::vector<double> _acc_bias;
+        std::vector<double> _gyr_bias;
 
-  // Store previous measurements for overlap
-  std::vector<frame::imu> _measurements;
-  double _prev_end_time;
-  double _overlap = 0.0; // overlap interval in seconds
-  ugpm::PreintPrior _prior = {};
+        // Store previous measurements for overlap
+        std::vector<frame::imu> _measurements;
+        double                  _prev_end_time;
+        double                  _overlap = 0.0; // overlap interval in seconds
+        ugpm::PreintPrior       _prior   = { };
 #else
-  // Dummy members when ugpm is not available
-  int _dummy;
+        // Dummy members when ugpm is not available
+        int _dummy;
 #endif
-};
+    };
 } // namespace zenslam

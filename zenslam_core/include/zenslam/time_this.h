@@ -14,7 +14,9 @@ namespace zenslam
         time_this& operator=(time_this&&)      = delete;
 
         explicit time_this(std::chrono::system_clock::duration& time) :
-            _time { time } {}
+            _time { time }
+        {
+        }
 
         ~time_this()
         {

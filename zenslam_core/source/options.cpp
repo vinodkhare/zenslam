@@ -44,7 +44,8 @@ namespace
         if (it != options_map.end())
         {
             const auto vit = vm.find(k);
-            if (vit != vm.end()) out = vit->second.as<T>();
+            if (vit != vm.end())
+                out = vit->second.as<T>();
         }
     }
 
@@ -61,7 +62,8 @@ namespace
         if (it != options_map.end())
         {
             const auto vit = vm.find(k);
-            if (vit != vm.end()) set_color_from_vec(vit->second.as<std::vector<int>>(), out);
+            if (vit != vm.end())
+                set_color_from_vec(vit->second.as<std::vector<int>>(), out);
         }
     }
 
@@ -81,7 +83,8 @@ namespace
             const auto vit = vm.find(k);
             if (vit != vm.end())
             {
-                if (auto v = magic_enum::enum_cast<E>(vit->second.as<std::string>())) out = *v;
+                if (auto v = magic_enum::enum_cast<E>(vit->second.as<std::string>()))
+                    out    = *v;
             }
         }
     }
@@ -99,7 +102,8 @@ namespace
         if (it != options_map.end())
         {
             const auto vit = vm.find(k);
-            if (vit != vm.end()) out = vit->second.as<std::string>();
+            if (vit != vm.end())
+                out = vit->second.as<std::string>();
         }
     }
 
@@ -107,17 +111,20 @@ namespace
     template <class T>
     void yaml_set_if_present(const YAML::Node& node, const std::string_view key, T& out)
     {
-        if (const auto n = node[std::string(key)]) out = n.as<T>();
+        if (const auto n = node[std::string(key)])
+            out          = n.as<T>();
     }
 
     void yaml_set_path(const YAML::Node& node, const std::string_view key, std::filesystem::path& out)
     {
-        if (const auto n = node[std::string(key)]) out = n.as<std::string>();
+        if (const auto n = node[std::string(key)])
+            out          = n.as<std::string>();
     }
 
     void yaml_set_color(const YAML::Node& node, const std::string_view key, cv::Scalar& out)
     {
-        if (const auto n = node[std::string(key)]) set_color_from_vec(n.as<std::vector<int>>(), out);
+        if (const auto n = node[std::string(key)])
+            set_color_from_vec(n.as<std::vector<int>>(), out);
     }
 
     template <class E>
@@ -125,7 +132,8 @@ namespace
     {
         if (const auto n = node[std::string(key)])
         {
-            if (auto v = magic_enum::enum_cast<E>(n.as<std::string>())) out = *v;
+            if (auto v = magic_enum::enum_cast<E>(n.as<std::string>()))
+                out    = *v;
         }
     }
 
@@ -150,17 +158,17 @@ boost::program_options::options_description zenslam::options::description()
     boost::program_options::options_description description { "options" };
 
     description.add_options()
-            (
-                "options-file",
-                boost::program_options::value<std::string>()->default_value(options.file),
-                "options file"
-            )
-            (
-                "log-level",
-                boost::program_options::value<std::string>()->default_value(utils::log_levels_to_string[options.log_level]),
-                ("log level - pick one of: " + utils::to_string(magic_enum::enum_names<spdlog::level::level_enum>())).c_str()
-            )
-            ("help,h", "Show help")("version,v", "Show version");
+        (
+            "options-file",
+            boost::program_options::value<std::string>()->default_value(options.file),
+            "options file"
+        )
+        (
+            "log-level",
+            boost::program_options::value<std::string>()->default_value(utils::log_levels_to_string[options.log_level]),
+            ("log level - pick one of: " + utils::to_string(magic_enum::enum_names<spdlog::level::level_enum>())).c_str()
+        )
+        ("help,h", "Show help")("version,v", "Show version");
 
     description.add(folder::description());
     description.add(slam::description());
@@ -190,12 +198,13 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     }
 
     std::map<std::string, boost::program_options::basic_option<char>> options_map { };
-    for (auto& option: parsed.options)
+    for (auto& option : parsed.options)
     {
         options_map[option.string_key] = option;
     }
 
-    if (options_map.contains("options-file")) options = parse(map["options-file"].as<std::string>());
+    if (options_map.contains("options-file"))
+        options = parse(map["options-file"].as<std::string>());
 
     set_path_if_provided(options_map, map, "folder-root", options.folder.root);
     set_path_if_provided(options_map, map, "folder-left", options.folder.left);
@@ -245,7 +254,8 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
 
         if (const auto& application = config["application"])
         {
-            if (const auto x = application["log_level"]) options.log_level = utils::log_levels_from_string[x.as<std::string>()];
+            if (const auto x      = application["log_level"])
+                options.log_level = utils::log_levels_from_string[x.as<std::string>()];
             yaml_set_if_present(application, "log_pattern", options.log_pattern);
         }
 
@@ -354,7 +364,8 @@ boost::program_options::options_description zenslam::options::folder::descriptio
 
 void zenslam::options::folder::validate() const
 {
-    if (timescale <= 0.0) throw std::invalid_argument("folder.timescale must be > 0");
+    if (timescale <= 0.0)
+        throw std::invalid_argument("folder.timescale must be > 0");
 
     // Non-fatal warnings for non-existent paths
     auto resolve = [this](const std::filesystem::path& p) -> std::filesystem::path
@@ -520,17 +531,25 @@ boost::program_options::options_description zenslam::options::slam::description(
 
 void zenslam::options::slam::validate() const
 {
-    if (keyline_thickness < 1) throw std::invalid_argument("slam.keyline_thickness must be >= 1");
-    if (epipolar_threshold < 0.0) throw std::invalid_argument("slam.epipolar_threshold must be >= 0");
-    if (matcher_ratio <= 0.0 || matcher_ratio >= 1.0) throw std::invalid_argument("slam.matcher_ratio must be in (0, 1)");
-    if (triangulation_min_disparity < 0.0) throw std::invalid_argument("slam.keyline_min_disparity_px must be >= 0");
-    if (triangulation_min_angle < 0.0) throw std::invalid_argument("slam.keyline_min_triangulation_angle_deg must be >= 0");
-    if (triangulation_reprojection_threshold <= 0.0) throw std::invalid_argument("slam.triangulation_reprojection_threshold must be > 0");
+    if (keyline_thickness < 1)
+        throw std::invalid_argument("slam.keyline_thickness must be >= 1");
+    if (epipolar_threshold < 0.0)
+        throw std::invalid_argument("slam.epipolar_threshold must be >= 0");
+    if (matcher_ratio <= 0.0 || matcher_ratio >= 1.0)
+        throw std::invalid_argument("slam.matcher_ratio must be in (0, 1)");
+    if (triangulation_min_disparity < 0.0)
+        throw std::invalid_argument("slam.keyline_min_disparity_px must be >= 0");
+    if (triangulation_min_angle < 0.0)
+        throw std::invalid_argument("slam.keyline_min_triangulation_angle_deg must be >= 0");
+    if (triangulation_reprojection_threshold <= 0.0)
+        throw std::invalid_argument("slam.triangulation_reprojection_threshold must be > 0");
     if (triangulation_min_depth <= 0.0 || triangulation_max_depth <= 0.0 || triangulation_min_depth >= triangulation_max_depth)
         throw std::invalid_argument
-                ("slam depth range invalid: ensure 0 < min_depth < max_depth");
-    if (klt_window_size.width <= 0 || klt_window_size.height <= 0) throw std::invalid_argument("slam.klt_window_size must be positive");
-    if (klt_max_level < 0) throw std::invalid_argument("slam.klt_max_level must be >= 0");
+            ("slam depth range invalid: ensure 0 < min_depth < max_depth");
+    if (klt_window_size.width <= 0 || klt_window_size.height <= 0)
+        throw std::invalid_argument("slam.klt_window_size must be positive");
+    if (klt_max_level < 0)
+        throw std::invalid_argument("slam.klt_max_level must be >= 0");
 }
 
 void zenslam::options::slam::print() const
