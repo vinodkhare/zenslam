@@ -358,35 +358,32 @@ void zenslam::application::draw_viz_controls()
 
     ImPlot::CreateContext();
 
+    constexpr auto interval = 10; // seconds
+
     if (!_time_history.empty() && ImPlot::BeginPlot("Processing Times", ImVec2(-1, 300)))
     {
-        ImPlot::SetupAxes("Time (s)", "Duration (s)");
-        ImPlot::SetupAxisLimits(ImAxis_X1, _time_history.front(), _time_history.back(), ImGuiCond_Always);
+        // Lock Y axis to disable zooming/panning on Y
+        ImPlot::SetupAxes("Time (s)", "Duration (s)", ImPlotAxisFlags_None, ImPlotAxisFlags_Lock);
+
+        ImPlot::SetupAxisLimits(ImAxis_X1, _time_history.back() - interval, _time_history.back(), ImGuiCond_Always);
         ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 0.1, ImGuiCond_Once);
         ImPlot::SetupLegend(ImPlotLocation_NorthEast);
         ImPlot::SetupAxisFormat(ImAxis_X1, "%.2f");
         ImPlot::SetupAxisFormat(ImAxis_Y1, "%.4f");
 
-        // Enable grid
-        ImPlot::SetupAxes("Time (s)", "Duration (s)", ImPlotAxisFlags_None, ImPlotAxisFlags_None);
-
         ImPlot::PlotLine("Wait", _time_history.data(), _wait_history.data(), static_cast<int>(_time_history.size()));
-
         ImPlot::PlotLine("Processing",
                          _time_history.data(),
                          _processing_history.data(),
                          static_cast<int>(_time_history.size()));
-
         ImPlot::PlotLine("Tracking",
                          _time_history.data(),
                          _tracking_history.data(),
                          static_cast<int>(_time_history.size()));
-
         ImPlot::PlotLine("Estimation",
                          _time_history.data(),
                          _estimation_history.data(),
                          static_cast<int>(_time_history.size()));
-
         ImPlot::PlotLine("Total", _time_history.data(), _total_history.data(), static_cast<int>(_time_history.size()));
 
         ImPlot::EndPlot();
