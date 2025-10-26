@@ -28,7 +28,7 @@ inline auto operator*(const cv::Affine3d& pose, const std::vector<zenslam::point
     std::vector<zenslam::point3d> points3d_trans = { };
     points3d_trans.reserve(points3d.size());
 
-    for (const auto point3d: points3d)
+    for (const auto& point3d: points3d)
     {
         points3d_trans.emplace_back(pose * point3d, point3d.index, point3d.descriptor);
     }

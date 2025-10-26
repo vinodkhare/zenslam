@@ -206,6 +206,7 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     set_path_if_provided(options_map, map, "calibration-file", options.folder.calibration_file);
     set_path_if_provided(options_map, map, "groundtruth-file", options.folder.groundtruth_file);
     set_path_if_provided(options_map, map, "imu-calibration-file", options.folder.imu_calibration_file);
+    set_path_if_provided(options_map, map, "imu-file", options.folder.imu_file);
     set_path_if_provided(options_map, map, "options-file", options.file);
     set_if_provided(options_map, map, "log-level", options.log_level);
     set_if_provided(options_map, map, "log-pattern", options.log_pattern);
@@ -259,6 +260,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
             yaml_set_path(folder, "groundtruth_file", options.folder.groundtruth_file);
             yaml_set_path(folder, "output", options.folder.output);
             yaml_set_path(folder, "imu_calibration_file", options.folder.imu_calibration_file);
+            yaml_set_path(folder, "imu_file", options.folder.imu_file);
         }
 
         if (const auto& slam = config["slam"])
@@ -338,6 +340,11 @@ boost::program_options::options_description zenslam::options::folder::descriptio
         "IMU calibration file path"
     )
     (
+        "imu-file",
+        boost::program_options::value<std::string>()->default_value(folder.imu_file),
+        "IMU data CSV file path"
+    )
+    (
         "folder-output",
         boost::program_options::value<std::string>()->default_value(folder.output),
         "Output folder for results"
@@ -403,6 +410,7 @@ void zenslam::options::folder::print() const
     SPDLOG_INFO("calibration file: {}", calibration_file.string());
     SPDLOG_INFO("groundtruth file: {}", groundtruth_file.string());
     SPDLOG_INFO("IMU calibration file: {}", imu_calibration_file.string());
+    SPDLOG_INFO("IMU data file: {}", imu_file.string());
 }
 
 boost::program_options::options_description zenslam::options::slam::description()

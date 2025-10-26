@@ -48,6 +48,7 @@ namespace zenslam
             std::filesystem::path calibration_file     = { "camchain.yaml" };
             std::filesystem::path groundtruth_file     = { "groundtruth.csv" };
             std::filesystem::path imu_calibration_file = { "imu_config.yaml" };
+            std::filesystem::path imu_file             = { "" };
 
             void validate() const;
             void print() const;
