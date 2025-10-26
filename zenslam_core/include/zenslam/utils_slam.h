@@ -9,7 +9,6 @@
 #include "zenslam/calibration.h"
 #include "zenslam/options.h"
 #include "zenslam/pose_data.h"
-#include "zenslam/frame/processed.h"
 #include "zenslam/frame/sensor.h"
 #include "zenslam/frame/tracked.h"
 #include "zenslam/types/keypoint.h"
@@ -62,8 +61,8 @@ namespace zenslam::utils
     // Encapsulated pose estimation result (3D-3D and 3D-2D)
     struct estimate_pose_result
     {
-        pose_data    pose_3d3d;   // Result of 3D-3D estimation (may be empty if failed)
-        pose_data    pose_3d2d;   // Result of 3D-2D estimation (may be empty if failed)
+        pose_data    pose_3d3d;   // Result of 3D-3D estimation (maybe empty if failed)
+        pose_data    pose_3d2d;   // Result of 3D-2D estimation (maybe empty if failed)
         cv::Affine3d chosen_pose; // Chosen pose based on inlier counts (or identity if both failed)
     };
 
@@ -112,25 +111,6 @@ namespace zenslam::utils
         // Calibration (camera intrinsics)
         const class options::slam& options // SLAM options (thresholds)
     ) -> estimate_pose_result;
-
-    /** Predict pose from IMU pre-integration.
-     *
-     * Uses preintegrated IMU measurements to predict the next pose given
-     * the current pose and velocity.
-     *
-     * @param pose_0 Current pose at time t0
-     * @param velocity_0 Current velocity in world frame (m/s)
-     * @param preint_meas Preintegrated measurement from t0 to t1
-     * @param gravity Gravity vector in world frame (default: [0, 0, -9.81] m/s²)
-     * @return Predicted pose at time t1
-     */
-    auto predict_pose_from_imu
-    (
-        const cv::Affine3d&     pose_0,
-        const cv::Vec3d&        velocity_0,
-        const frame::processed& frame,
-        const cv::Vec3d&        gravity = cv::Vec3d(0, 0, -9.81)
-    ) -> cv::Affine3d;
 
     /** Estimate rigid transformation (R, t) between two sets of 3D points.
      *
@@ -243,22 +223,6 @@ namespace zenslam::utils
         double                            threshold
     ) -> std::vector<cv::DMatch>;
 
-    /** Pre-process a sensor frame by converting to grayscale, applying CLAHE, and building an image pyramid.
-     *
-     * @param sensor The input sensor frame containing the image to be processed.
-     * @param calibration The camera calibration parameters.
-     * @param options SLAM options that may include CLAHE settings and pyramid levels.
-     * @param clahe Pre-created CLAHE object (created once for efficiency)
-     * @return The pre-processed frame.
-     */
-    auto process
-    (
-        const frame::sensor&       sensor,
-        const calibration&         calibration,
-        const class options::slam& options,
-        const cv::Ptr<cv::CLAHE>&  clahe
-    ) -> frame::processed;
-
 
     /** Solve the PnP problem to estimate camera pose from 3D-2D point correspondences.
      *
@@ -277,25 +241,7 @@ namespace zenslam::utils
 
     // Tracking moved to zenslam::tracker; keep lower-level helpers here.
 
-    /** Track keypoints from frame_0 to frame_1 using KLT optical flow.
-     *
-     * @param pyramid_0 The image pyramid of the first frame.
-     * @param pyramid_1 The image pyramid of the second frame.
-     * @param keypoints_map_0 A map of keypoints in the first frame to be tracked.
-     * @param options SLAM options that may include KLT parameters.
-         * @param camera_matrix Camera intrinsic matrix for essential matrix filtering.
-     * @param points_1_predicted Optional predicted positions of keypoints in frame_1 for improved tracking.
-     * @return A vector of tracked keypoints in frame_1.
-     */
-    auto track_keypoints
-    (
-        const std::vector<cv::Mat>&     pyramid_0,
-        const std::vector<cv::Mat>&     pyramid_1,
-        const map<keypoint>&            keypoints_map_0,
-        const class options::slam&      options,
-        const cv::Matx33d&              camera_matrix,
-        const std::vector<cv::Point2f>& points_1_predicted = { }
-    ) -> std::vector<keypoint>;
+    // track_keypoints moved into zenslam::tracker
 
     /** Track keylines from frame_0 to frame_1 using KLT optical flow on endpoints.
      *
@@ -342,12 +288,13 @@ namespace zenslam::utils
     /**
      * Triangulate keylines between stereo frames using their indices.
      * For each keyline index present in both maps, triangulate the two endpoints;
-     * the returned line3d stores just the 3D endpoints (no separate midpoint).
+     * the returned @ref zenslam::line3d stores just the 3D endpoints (no separate midpoint).
      *
      * @param keylines_0 Map of keylines in left image
      * @param keylines_1 Map of keylines in right image
      * @param projection_0 3x4 projection matrix for left camera
      * @param projection_1 3x4 projection matrix for right camera
+     * @param options SLAM options containing triangulation parameters
      * @param translation_of_camera1_in_camera0
      * @return Vector of 3D line segments with original keyline indices
      */

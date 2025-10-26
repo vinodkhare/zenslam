@@ -62,13 +62,13 @@ namespace zenslam
         explicit integrator(imu_calibration imu_calib, method preint_method = method::ugpm);
 
         /**
-   * @brief Set the overlap factor for UGPM optimization
-   *
-   * UGPMs need data overlap between integration windows to perform optimally.
-   * The overlap duration is computed as: overlap_factor * (1.0 / state_freq)
-   *
-   * @param factor Overlap factor (default: 8, recommended range: 4-12)
-   */
+           * @brief Set the overlap factor for UGPM optimization
+           *
+           * UGPMs need data overlap between integration windows to perform optimally.
+           * The overlap duration is computed as: overlap_factor * (1.0 / state_freq)
+           *
+           * @param factor Overlap factor (default: 8, recommended range: 4-12)
+           */
         void set_overlap_factor(int factor);
 
         /**
@@ -86,84 +86,27 @@ namespace zenslam
         void set_correlate(bool enable);
 
         /**
-   * @brief Set prior IMU biases
-   *
-   * @param acc_bias Accelerometer bias [x, y, z] in m/s²
-   * @param gyr_bias Gyroscope bias [x, y, z] in rad/s
-   */
+         * @brief Set prior IMU biases
+         *
+         * @param acc_bias Accelerometer bias [x, y, z] in m/s²
+         * @param gyr_bias Gyroscope bias [x, y, z] in rad/s
+         */
         void set_biases
         (
             const std::vector<double>& acc_bias,
             const std::vector<double>& gyr_bias
         );
 
-#if ZENSLAM_HAS_UGPM
-        /**
-   * @brief Integrate IMU measurements over a time interval (legacy frame::imu)
-   *
-   * @param measurements IMU measurements to integrate
-   * @param start Start of integration interval (seconds)
-   * @param end End of integration interval (seconds)
-   * @return Preintegrated measurement result
-   */
-        auto integrate(const std::vector<zenslam::frame::imu>& measurements, double start, double end) -> ugpm::PreintMeas;
-
-        /**
-   * @brief Get identity preintegrated measurement (no motion)
-   *
-   * @return PreintMeas with identity rotation, zero velocity/position
-   */
-        static auto identity() -> ugpm::PreintMeas;
-
-        /**
-   * @brief Predict pose from IMU pre-integration
-   *
-   * Given the state at time t0 (pose, velocity) and preintegrated IMU
-   * measurements, predict the pose at time t1 using: R_1 = R_0 * delta_R v_1 =
-   * v_0 + R_0 * delta_v + g * dt p_1 = p_0 + v_0 * dt + R_0 * delta_p + 0.5 * g
-   * * dt^2
-   *
-   * @param pose_0 Initial pose at time t0
-   * @param velocity_0 Initial velocity at time t0 in world frame (m/s)
-   * @param preint_meas Preintegrated IMU measurement from t0 to t1
-   * @param gravity Gravity vector in world frame (default: [0, 0, -9.81] m/s²)
-   * @return Predicted pose at time t1
-   */
-        static auto predict_pose
-        (
-            const cv::Affine3d&     pose_0,
-            const cv::Vec3d&        velocity_0,
-            const ugpm::PreintMeas& preint_meas,
-            const cv::Vec3d&        gravity = cv::Vec3d(0, 0, -9.81)
-        )
-            -> cv::Affine3d;
-
-        /**
-   * @brief Predict velocity from IMU pre-integration
-   *
-   * Given the state at time t0 and preintegrated IMU measurements,
-   * predict the velocity at time t1 using:
-   *   v_1 = v_0 + R_0 * delta_v + g * dt
-   *
-   * @param pose_0 Initial pose at time t0 (for rotation)
-   * @param velocity_0 Initial velocity at time t0 in world frame (m/s)
-   * @param preint_meas Preintegrated IMU measurement from t0 to t1
-   * @param gravity Gravity vector in world frame (default: [0, 0, -9.81] m/s²)
-   * @return Predicted velocity at time t1 in world frame (m/s)
-   */
-        static auto
-        predict_velocity
-        (
-            const cv::Affine3d&     pose_0,
-            const cv::Vec3d&        velocity_0,
-            const ugpm::PreintMeas& preint_meas,
-            const cv::Vec3d&        gravity = cv::Vec3d(0, 0, -9.81)
-        )
-            -> cv::Vec3d;
-#endif
+        /** Integrate IMU measurements over a time interval with proper overlap handling.
+         *
+         * @param measurements IMU measurements to integrate
+         * @param start start time of integration interval
+         * @param end end time of integration interval
+         * @return pre-integrated IMU measurements over [start, end]
+         */
+        auto integrate(const std::vector<frame::imu>& measurements, double start, double end) -> ugpm::PreintMeas;
 
     private:
-#if ZENSLAM_HAS_UGPM
         imu_calibration _imu_calib;
         method          _method;
         int             _overlap_factor;
@@ -178,9 +121,5 @@ namespace zenslam
         double                  _prev_end_time;
         double                  _overlap = 0.0; // overlap interval in seconds
         ugpm::PreintPrior       _prior   = { };
-#else
-        // Dummy members when ugpm is not available
-        int _dummy;
-#endif
     };
 } // namespace zenslam
