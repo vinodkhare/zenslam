@@ -442,6 +442,61 @@ void zenslam::application::draw_viz_controls()
 {
     ImGui::Text("Hello Metal!");
     ImGui::Separator();
+    
+    // Get current system state
+    frame::system system { };
+    {
+        std::lock_guard lock { _mutex };
+        system = _system;
+    }
+
+    // Current Frame Information
+    ImGui::Text("Current Frame Info");
+    ImGui::Spacing();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 6.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
+    ImGui::BeginChild("frame_info_section", ImVec2(0, 200.0f), true);
+
+    // Pose Information
+    if (!std::isnan(system[1].timestamp))
+    {
+        const auto& pose = system[1].pose;
+        const auto& translation = pose.translation();
+        
+        // Extract Euler angles from rotation matrix (returns [roll, pitch, yaw] in radians)
+        const auto euler_rad = zenslam::utils::matrix_to_euler(pose.rotation());
+        
+        // Convert to degrees
+        const auto euler_deg = euler_rad * (180.0 / CV_PI);
+        
+        ImGui::Text("Pose:");
+        ImGui::Text("  Position [x, y, z]: [%.3f, %.3f, %.3f] m", 
+                    translation[0], translation[1], translation[2]);
+        ImGui::Text("  Euler [roll, pitch, yaw]: [%.2f, %.2f, %.2f] deg", 
+                    euler_deg[0], euler_deg[1], euler_deg[2]);
+        ImGui::Spacing();
+    }
+
+    // IMU Data
+    if (!system[1].imu_data.empty())
+    {
+        const auto& imu = system[1].imu_data.back(); // Show latest IMU measurement
+        
+        ImGui::Text("IMU Data (%zu samples):", system[1].imu_data.size());
+        ImGui::Text("  Angular Vel [wx, wy, wz]: [%.3f, %.3f, %.3f] rad/s",
+                    imu.omega_x, imu.omega_y, imu.omega_z);
+        ImGui::Text("  Linear Acc  [ax, ay, az]: [%.3f, %.3f, %.3f] m/s\u00b2",
+                    imu.alpha_x, imu.alpha_y, imu.alpha_z);
+    }
+    else
+    {
+        ImGui::Text("IMU Data: No data available");
+    }
+
+    ImGui::EndChild();
+    ImGui::PopStyleVar(2);
+
+    ImGui::Separator();
     ImGui::Text("Visualization Options");
     ImGui::Spacing();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 6.0f));
