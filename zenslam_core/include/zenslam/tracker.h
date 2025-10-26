@@ -5,6 +5,7 @@
 
 #include "zenslam/calibration.h"
 #include "zenslam/detector.h"
+#include "zenslam/matcher.h"
 #include "zenslam/options.h"
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/tracked.h"
@@ -30,7 +31,7 @@ namespace zenslam
     private:
         calibration                    _calibration = { };
         class options::slam            _options     = { };
-        cv::Ptr<cv::DescriptorMatcher> _matcher     = cv::DescriptorMatcher::create("BruteForce");
+        matcher                        _matcher = { _options, false };
         detector                       _detector    = { };
 
         /** Track keypoints from pyramid_0 to pyramid_1 using KLT optical flow.

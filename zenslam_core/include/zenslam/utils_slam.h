@@ -167,14 +167,6 @@ namespace zenslam::utils
         bool                       is_binary
     ) -> cv::Ptr<cv::DescriptorMatcher>;
 
-    auto match_keypoints
-    (
-        const map<keypoint>&                  keypoints_0,
-        const map<keypoint>&                  keypoints_1,
-        const cv::Ptr<cv::DescriptorMatcher>& matcher,
-        const class options::slam&            options
-    ) -> std::vector<cv::DMatch>;
-
     /**
      * Match 3D points to 2D keypoints by projecting the 3D points into the camera frame
      * and finding keypoints within a specified radius.

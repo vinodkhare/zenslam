@@ -8,16 +8,17 @@
 #include <opencv2/video/tracking.hpp>
 
 #include "zenslam/detector.h"
+#include "zenslam/matcher.h"
 #include "zenslam/utils_slam.h"
 
 namespace zenslam
 {
-    tracker::tracker(calibration calib, class options::slam opts)
-        : _calibration(std::move(calib)), _options(std::move(opts))
+    tracker::tracker(calibration  calib, class options::slam  opts)
+        : _calibration(std::move(calib)), 
+          _options(std::move(opts)),
+          _matcher(_options, _options.descriptor == descriptor_type::ORB || _options.descriptor == descriptor_type::FREAK),
+          _detector(detector::create(_options))
     {
-        const bool is_binary = _options.descriptor == descriptor_type::ORB || _options.descriptor == descriptor_type::FREAK;
-        _matcher             = utils::create_matcher(_options, is_binary);
-        _detector            = detector::create(_options);
     }
 
     auto tracker::track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> frame::tracked
@@ -62,7 +63,7 @@ namespace zenslam
             };
         }
 
-        keypoints_1 *= utils::match_keypoints(keypoints_0, keypoints_1, _matcher, _options);
+        keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
 
         points3d += utils::triangulate_keypoints
         (
