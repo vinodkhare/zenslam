@@ -56,7 +56,7 @@ int main()
     // ========================================
     // 3. Create Preintegrator and Integrate
     // ========================================
-    zenslam::preint imu_preint(imu_calib, zenslam::preint::method::ugpm);
+    zenslam::integrator imu_preint(imu_calib, zenslam::integrator::method::ugpm);
     
     // Configure for optimal performance
     imu_preint.set_overlap_factor(8);
@@ -105,14 +105,14 @@ int main()
     cv::Vec3d velocity_0(0.0, 0.0, 0.0);  // Initially at rest
     
     // Predict pose at t1
-    cv::Affine3d predicted_pose = zenslam::preint::predict_pose(
+    cv::Affine3d predicted_pose = zenslam::integrator::predict_pose(
         pose_0,
         velocity_0,
         preint_meas
     );
     
     // Predict velocity at t1
-    cv::Vec3d predicted_velocity = zenslam::preint::predict_velocity(
+    cv::Vec3d predicted_velocity = zenslam::integrator::predict_velocity(
         pose_0,
         velocity_0,
         preint_meas

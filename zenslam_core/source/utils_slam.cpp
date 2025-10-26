@@ -18,7 +18,7 @@
 #include "zenslam/frame/processed.h"
 #include "zenslam/grid_detector.h"
 #include "zenslam/pose_data.h"
-#include "zenslam/preint.h"
+#include "zenslam/integrator.h"
 #include "zenslam/types/point3d.h"
 #include "zenslam/types/point3d_cloud.h"
 #include "zenslam/utils.h"
@@ -241,7 +241,7 @@ auto zenslam::utils::predict_pose_from_imu(const cv::Affine3d &pose_0,
                                            const cv::Vec3d &gravity)
     -> cv::Affine3d {
 #if ZENSLAM_HAS_UGPM
-  return preint::predict_pose(pose_0, velocity_0, frame.preint, gravity);
+  return integrator::predict_pose(pose_0, velocity_0, frame.preint, gravity);
 #else
   // When ugpm is not available, return the previous pose (constant velocity
   // model)

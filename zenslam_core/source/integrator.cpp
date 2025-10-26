@@ -1,4 +1,4 @@
-#include "zenslam/preint.h"
+#include "zenslam/integrator.h"
 
 #include <opencv2/core/affine.hpp>
 #include <utility>
@@ -8,7 +8,7 @@ namespace zenslam
 {
 #if ZENSLAM_HAS_UGPM
 
-    preint::preint(imu_calibration imu_calib, method preint_method)
+    integrator::integrator(imu_calibration imu_calib, method preint_method)
         : _imu_calib(std::move(imu_calib)),
           _method(preint_method),
           _overlap_factor(8) // Default: 8x state period for optimal UGPM
@@ -23,22 +23,22 @@ namespace zenslam
     {
     }
 
-    void preint::set_overlap_factor(const int factor)
+    void integrator::set_overlap_factor(const int factor)
     {
         _overlap_factor = factor;
     }
 
-    void preint::set_state_frequency(const double freq)
+    void integrator::set_state_frequency(const double freq)
     {
         _state_freq = freq;
     }
 
-    void preint::set_correlate(const bool enable)
+    void integrator::set_correlate(const bool enable)
     {
         _correlate = enable;
     }
 
-    void preint::set_biases
+    void integrator::set_biases
     (
         const std::vector<double>& acc_bias,
         const std::vector<double>& gyr_bias
@@ -50,12 +50,18 @@ namespace zenslam
             _gyr_bias = gyr_bias;
     }
 
-    auto preint::integrate(const std::vector<frame::imu>& measurements, const double start, const double end) -> ugpm::PreintMeas
+    auto integrator::integrate(const std::vector<frame::imu>& measurements, const double start, const double end) -> ugpm::PreintMeas
     {
         // first add all new measurements to _measurements
         for (const auto& m : measurements)
         {
             _measurements.emplace_back(m);
+        }
+
+        if (_measurements.empty() || start >= end)
+        {
+            SPDLOG_WARN("No IMU measurements to integrate or invalid time interval [{:.4f}, {:.4f}]", start, end);
+            return ugpm::PreintMeas { };
         }
 
         constexpr int overlap_factor = 8;
@@ -96,7 +102,7 @@ namespace zenslam
         return integration.get();
     }
 
-    auto preint::predict_pose
+    auto integrator::predict_pose
     (
         const cv::Affine3d&     pose_0,
         const cv::Vec3d&        velocity_0,
@@ -151,7 +157,7 @@ namespace zenslam
         return cv::Affine3d(R_1, p_1);
     }
 
-    auto preint::predict_velocity
+    auto integrator::predict_velocity
     (
         const cv::Affine3d&     pose_0,
         const cv::Vec3d&        velocity_0,

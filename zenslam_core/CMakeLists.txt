@@ -55,10 +55,10 @@ add_library(${PROJECT_NAME}
         source/grid_detector.cpp
         source/groundtruth.cpp
         source/imu_calibration.cpp
+        source/integrator.cpp
         source/motion.cpp
         source/options.cpp
         source/pose.cpp
-        source/preint.cpp
         source/processor.cpp
         source/slam_thread.cpp
         source/folder_reader.cpp

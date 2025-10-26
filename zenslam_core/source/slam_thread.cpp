@@ -14,6 +14,7 @@
 
 #include "zenslam/calibration.h"
 #include "zenslam/groundtruth.h"
+#include "zenslam/processor.h"
 #include "zenslam/time_this.h"
 #include "zenslam/utils.h"
 #include "zenslam/utils_slam.h"
@@ -61,6 +62,7 @@ void zenslam::slam_thread::loop()
     // Binary descriptors: ORB, FREAK; Float descriptors: SIFT
     const bool is_binary = _options.slam.descriptor == descriptor_type::ORB || _options.slam.descriptor == descriptor_type::FREAK;
     const auto matcher   = utils::create_matcher(_options.slam, is_binary);
+    zenslam::processor processor { _options.slam, calibration };
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");
@@ -103,7 +105,7 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { system.durations.processing };
 
-                processed = utils::process(sensor, calibration, _options.slam, clahe);
+                processed = processor.process(sensor);
             }
 
             // TODO: separate keyline and keypoints pipelines
