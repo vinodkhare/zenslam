@@ -1,6 +1,6 @@
 #pragma once
 
-#include "zenslam/frame/tracked.h"
+#include "tracked.h"
 
 namespace zenslam::frame
 {

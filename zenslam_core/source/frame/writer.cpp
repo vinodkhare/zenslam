@@ -1,4 +1,5 @@
-#include "frame/writer.h"
+#include "zenslam/frame/writer.h"
+
 #include <filesystem>
 #include <format>
 

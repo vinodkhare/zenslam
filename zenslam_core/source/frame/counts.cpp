@@ -1,4 +1,5 @@
-#include "frame/counts.h"
+#include "zenslam/frame/counts.h"
+
 #include <spdlog/spdlog.h>
 
 namespace zenslam::frame

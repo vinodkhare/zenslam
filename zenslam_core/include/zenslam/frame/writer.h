@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "zenslam/frame/system.h"
+#include "system.h"
 
 namespace zenslam::frame
 {

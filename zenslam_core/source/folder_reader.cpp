@@ -1,4 +1,4 @@
-#include "folder_reader.h"
+#include "zenslam/folder_reader.h"
 
 #include <algorithm>
 #include <opencv2/imgcodecs.hpp>

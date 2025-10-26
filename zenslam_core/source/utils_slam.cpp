@@ -14,18 +14,22 @@
 
 #include <spdlog/spdlog.h>
 
-#include "calibration.h"
-#include "grid_detector.h"
-
-#include "../include/zenslam/types/point3d.h"
-#include "../include/zenslam/types/point3d_cloud.h"
-
-#include "frame/processed.h"
-
+#include "zenslam/calibration.h"
+#include "zenslam/grid_detector.h"
 #include "zenslam/pose_data.h"
 #include "zenslam/utils.h"
 #include "zenslam/utils_opencv.h"
-#include "zenslam/utils_std.h"
+#include "zenslam/frame/processed.h"
+#include "zenslam/types/point3d.h"
+#include "zenslam/types/point3d_cloud.h"
+
+// ugpm preintegration (conditionally included)
+#if __has_include(<preint/preint.h>)
+#define ZENSLAM_HAS_UGPM 1
+#include <preint/preint.h>
+#else
+#define ZENSLAM_HAS_UGPM 0
+#endif
 
 void zenslam::utils::correspondences_3d2d
 (
@@ -526,7 +530,7 @@ auto zenslam::utils::match_keypoints
                 filtered_matches.push_back(matches[i]);
             }
         }
-        
+
         matches = filtered_matches;
     }
 
@@ -897,6 +901,86 @@ auto zenslam::utils::process
             processed.pyramids[1]    = pyramid(processed.undistorted[1], options);
         }
     };
+
+    // IMU pre-integration for this frame's IMU interval
+    try
+    {
+#if ZENSLAM_HAS_UGPM
+        if (!sensor.imu_data.empty())
+        {
+            ugpm::ImuData imu_data;
+            // Map IMU noise densities to variances; if calibration not provided, keep zeros
+            imu_data.acc_var = calibration.imu.accelerometer_noise_density * calibration.imu.
+                accelerometer_noise_density;
+            imu_data.gyr_var = calibration.imu.gyroscope_noise_density * calibration.imu.gyroscope_noise_density;
+
+            imu_data.acc.reserve(sensor.imu_data.size());
+            imu_data.gyr.reserve(sensor.imu_data.size());
+            for (const auto& m : sensor.imu_data)
+            {
+                ugpm::ImuSample acc_s { };
+                acc_s.t       = m.timestamp;
+                acc_s.data[0] = m.alpha_x;
+                acc_s.data[1] = m.alpha_y;
+                acc_s.data[2] = m.alpha_z;
+                imu_data.acc.push_back(acc_s);
+
+                ugpm::ImuSample gyr_s { };
+                gyr_s.t       = m.timestamp;
+                gyr_s.data[0] = m.omega_x;
+                gyr_s.data[1] = m.omega_y;
+                gyr_s.data[2] = m.omega_z;
+                imu_data.gyr.push_back(gyr_s);
+            }
+
+            const double start_t = sensor.imu_data.front().timestamp;
+            const double end_t   = std::max(sensor.timestamp, sensor.imu_data.back().timestamp);
+
+            if (end_t > start_t)
+            {
+                ugpm::PreintOption      opt;   // defaults: UGPM, state_freq=50, correlate=true
+                ugpm::PreintPrior       prior; // zero biases
+                ugpm::ImuPreintegration preint(imu_data, start_t, end_t, opt, prior);
+                auto                    result = preint.get();
+                processed.preint               = ugpm::PreintMeas(result);
+            }
+            else
+            {
+                auto result       = ugpm::PreintMeas();
+                result.delta_R    = ugpm::Mat3::Identity();
+                result.delta_v    = ugpm::Vec3::Zero();
+                result.delta_p    = ugpm::Vec3::Zero();
+                result.dt         = 0.0;
+                result.dt_sq_half = 0.0;
+                result.cov.setZero();
+                processed.preint = result;
+            }
+        }
+        else
+        {
+            // No IMU data for this frame
+            auto result       = ugpm::PreintMeas();
+            result.delta_R    = ugpm::Mat3::Identity();
+            result.delta_v    = ugpm::Vec3::Zero();
+            result.delta_p    = ugpm::Vec3::Zero();
+            result.dt         = 0.0;
+            result.dt_sq_half = 0.0;
+            result.cov.setZero();
+            processed.preint = result;
+        }
+    }
+#else
+    (void)calibration; // unused without ugpm
+    // Fallback when ugpm is not available at compile time
+    processed.preint = nullptr;
+    }
+#endif
+    catch (const std::exception& e)
+    {
+        SPDLOG_WARN("IMU preintegration failed: {}", e.what());
+        // Fallback to identity/no motion
+        processed.preint = { };
+    }
 
     return processed;
 }

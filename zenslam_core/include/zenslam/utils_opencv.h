@@ -12,8 +12,6 @@
 
 #include "types/point3d.h"
 
-#include "frame/stereo.h"
-
 namespace zenslam::utils
 {
     /** Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) to an image using OpenCV.

@@ -1,4 +1,4 @@
-#include "motion.h"
+#include "zenslam/motion.h"
 
 #include <opencv2/calib3d.hpp>
 

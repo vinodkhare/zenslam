@@ -1,18 +1,20 @@
 #pragma once
 
-#include "zenslam/options.h"
-#include "zenslam/reader_thread.h"
-#include "zenslam/slam_thread.h"
-
-#include <opencv2/core.hpp>
-
 #include <memory>
 #include <mutex>
 #include <set>
 #include <vector>
 
+#include <opencv2/core.hpp>
+
+#include <zenslam/options.h>
+#include "zenslam/reader_thread.h"
+#include "zenslam/slam_thread.h"
+
 namespace zenslam
 {
+    class options;
+
     class application
     {
     public:

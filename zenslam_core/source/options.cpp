@@ -1,5 +1,6 @@
-#include "options.h"
+#include "zenslam/options.h"
 
+#include <filesystem>
 #include <print>
 
 #include <boost/program_options.hpp>
@@ -10,9 +11,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "utils.h"
-
-#include <filesystem>
+#include "zenslam/utils.h"
 
 namespace
 {

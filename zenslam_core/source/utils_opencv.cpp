@@ -1,19 +1,17 @@
-#include "utils_opencv.h"
+#include "zenslam/utils_opencv.h"
 
 #include <random>
 
+#include <gsl/narrow>
+
+#include <opencv2/calib3d.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/line_descriptor.hpp>
 #include <opencv2/video/tracking.hpp>
 
-#include "utils_std.h"
-
-#include <gsl/narrow>
-
-#include <opencv2/calib3d.hpp>
-
-#include "frame/slam.h"
+#include "zenslam/utils_std.h"
+#include "zenslam/frame/slam.h"
 
 auto zenslam::utils::apply_clahe(const cv::Mat& image, const cv::Ptr<cv::CLAHE>& clahe) -> cv::Mat
 {

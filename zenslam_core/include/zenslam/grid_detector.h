@@ -1,7 +1,5 @@
 #pragma once
 
-#include <map>
-
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/line_descriptor/descriptor.hpp>

@@ -1,20 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(zenslam_core LANGUAGES CXX)
+project(zenslam_core)
 
 set(CMAKE_CXX_STANDARD 23)
-
-find_package(Boost CONFIG REQUIRED COMPONENTS program_options)
-message(STATUS "Using Boost: " ${Boost_VERSION})
-
-find_package(Microsoft.GSL CONFIG REQUIRED)
-message(STATUS "Using Microsoft.GSL: " ${Microsoft.GSL_VERSION})
-
-find_package(OpenCV CONFIG REQUIRED)
-message(STATUS "Using OpenCV: " ${OpenCV_VERSION})
-
-find_package(VTK REQUIRED)
-message(STATUS "Using VTK: " ${VTK_VERSION})
 
 find_package(concurrentqueue CONFIG REQUIRED)
 message(STATUS "Using concurrentqueue: " ${concurrentqueue_VERSION})
@@ -31,15 +19,29 @@ message(STATUS "Using spdlog: " ${spdlog_VERSION})
 find_package(yaml-cpp CONFIG REQUIRED)
 message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
 
+find_package(Boost CONFIG REQUIRED COMPONENTS program_options)
+message(STATUS "Using Boost: " ${Boost_VERSION})
+
+# Ceres is required by ugpm headers (even if using LPM)
+find_package(Ceres REQUIRED)
+message(STATUS "Using Ceres: ${Ceres_VERSION}")
+
+find_package(Microsoft.GSL CONFIG REQUIRED)
+message(STATUS "Using Microsoft.GSL: " ${Microsoft.GSL_VERSION})
+
+find_package(OpenCV CONFIG REQUIRED)
+message(STATUS "Using OpenCV: " ${OpenCV_VERSION})
+
+find_package(VTK REQUIRED)
+message(STATUS "Using VTK: " ${VTK_VERSION})
+
 find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
 
+
 add_library(${PROJECT_NAME}
-        source/frame/camera.cpp
         source/frame/counts.cpp
         source/frame/durations.cpp
         source/frame/sensor.cpp
-        source/frame/slam.cpp
-        source/frame/stereo.cpp
         source/frame/writer.cpp
         source/types/event.cpp
         source/types/keyline.cpp
@@ -66,8 +68,9 @@ add_library(${PROJECT_NAME}
         source/verb.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE include/zenslam ${RAPIDCSV_INCLUDE_DIRS} PUBLIC include)
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_include_directories(${PROJECT_NAME} PUBLIC ${RAPIDCSV_INCLUDE_DIRS} include )
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
         concurrentqueue::concurrentqueue
         magic_enum::magic_enum
         nanoflann::nanoflann
@@ -81,7 +84,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         spdlog::spdlog
         yaml-cpp::yaml-cpp
         Boost::program_options
+        Ceres::ceres
         Microsoft.GSL::GSL
         ${VTK_LIBRARIES}
+        ugpm
 )
+
+# Add ugpm headers (preint) to include path
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)

@@ -1,4 +1,4 @@
-#include "groundtruth.h"
+#include "zenslam/groundtruth.h"
 
 #include <opencv2/core/quaternion.hpp>
 

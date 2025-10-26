@@ -1,4 +1,4 @@
-#include "camera_calibration.h"
+#include "zenslam/camera_calibration.h"
 
 
 #include <magic_enum/magic_enum.hpp>
@@ -9,7 +9,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "utils.h"
+#include "zenslam/utils.h"
 
 // read camera calibration from a kalibr yaml file
 auto zenslam::camera_calibration::parse(const std::filesystem::path& path, const std::string& camera_name) -> camera_calibration

@@ -1,4 +1,4 @@
-#include "grid_detector.h"
+#include "zenslam/grid_detector.h"
 
 #include <future>
 #include <ranges>

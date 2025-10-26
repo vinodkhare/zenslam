@@ -6,14 +6,11 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include "frame/slam.h"
-
 #include "zenslam/calibration.h"
 #include "zenslam/options.h"
 #include "zenslam/pose_data.h"
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/sensor.h"
-#include "zenslam/frame/stereo.h"
 #include "zenslam/frame/tracked.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/line3d.h"

@@ -1,4 +1,5 @@
-#include "frame/durations.h"
+#include "zenslam/frame/durations.h"
+
 #include <spdlog/spdlog.h>
 
 namespace zenslam::frame

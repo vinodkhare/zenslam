@@ -1,4 +1,4 @@
-#include "slam_thread.h"
+#include "zenslam//slam_thread.h"
 
 
 #include <utility>
@@ -6,23 +6,22 @@
 #include <gsl/narrow>
 
 #include <opencv2/calib3d.hpp>
-#include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
 #include <spdlog/spdlog.h>
 
 #include <vtk-9.3/vtkLogger.h>
 
-#include "calibration.h"
-#include "groundtruth.h"
-#include "time_this.h"
-#include "utils.h"
-#include "utils_slam.h"
-#include "utils_std.h"
-#include "frame/durations.h"
-#include "frame/slam.h"
-#include "frame/system.h"
-#include "frame/writer.h"
+#include "zenslam/calibration.h"
+#include "zenslam/groundtruth.h"
+#include "zenslam/time_this.h"
+#include "zenslam/utils.h"
+#include "zenslam/utils_slam.h"
+#include "zenslam/utils_std.h"
+#include "zenslam/frame/durations.h"
+#include "zenslam/frame/slam.h"
+#include "zenslam/frame/system.h"
+#include "zenslam/frame/writer.h"
 
 zenslam::slam_thread::slam_thread(options options) :
     _options { std::move(options) }
