@@ -7,7 +7,7 @@
 #include <opencv2/core/ocl.hpp>
 #include <opencv2/core/types.hpp>
 
-#include "zenslam/grid_detector.h"
+#include "zenslam/detector.h"
 #include "zenslam/options.h"
 
 TEST_CASE (

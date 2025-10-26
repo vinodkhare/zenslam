@@ -16,7 +16,6 @@
 
 #include "zenslam/calibration.h"
 #include "zenslam/frame/processed.h"
-#include "zenslam/grid_detector.h"
 #include "zenslam/pose_data.h"
 #include "zenslam/integrator.h"
 #include "zenslam/types/point3d.h"
@@ -1125,88 +1124,7 @@ auto zenslam::utils::solve_pnp
     }
 }
 
-auto zenslam::utils::track
-(
-    const frame::tracked&                 frame_0,
-    const frame::processed&               frame_1,
-    const calibration&                    calibration,
-    const class options::slam&            options,
-    const cv::Ptr<cv::DescriptorMatcher>& matcher
-)
-    -> frame::tracked
-{
-    const auto& detector = detector::create(options);
-
-    map<keypoint> keypoints_0 = { };
-    map<keypoint> keypoints_1 = { };
-    map<point3d>  points3d    = { };
-
-    {
-        std::jthread thread_0 {
-            [&]()
-            {
-                keypoints_0 += track_keypoints
-                (
-                    frame_0.pyramids[0],
-                    frame_1.pyramids[0],
-                    frame_0.keypoints[0],
-                    options,
-                    calibration.camera_matrix[0]
-                );
-
-                if (options.use_parallel_detector)
-                {
-                    keypoints_0 +=
-                        detector.detect_keypoints_par(frame_1.undistorted[0], keypoints_0);
-                }
-                else
-                {
-                    keypoints_0 +=
-                        detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
-                }
-            }
-        };
-
-        std::jthread thread_1 {
-            [&]()
-            {
-                keypoints_1 += track_keypoints
-                (
-                    frame_0.pyramids[1],
-                    frame_1.pyramids[1],
-                    frame_0.keypoints[1],
-                    options,
-                    calibration.camera_matrix[1]
-                );
-
-                if (options.use_parallel_detector)
-                {
-                    keypoints_1 +=
-                        detector.detect_keypoints_par(frame_1.undistorted[1], keypoints_1);
-                }
-                else
-                {
-                    keypoints_1 +=
-                        detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
-                }
-            }
-        };
-    }
-
-    keypoints_1 *= match_keypoints(keypoints_0, keypoints_1, matcher, options);
-
-    points3d += triangulate_keypoints
-    (
-        keypoints_0,
-        keypoints_1,
-        calibration.projection_matrix[0],
-        calibration.projection_matrix[1],
-        options.triangulation_reprojection_threshold,
-        calibration.cameras[1].pose_in_cam0.translation()
-    );
-
-    return { frame_1, keypoints_0, keypoints_1, { }, points3d };
-}
+// utils::track moved to zenslam::tracker
 
 auto zenslam::utils::track_keypoints
 (

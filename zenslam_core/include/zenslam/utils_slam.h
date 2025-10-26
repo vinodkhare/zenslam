@@ -275,25 +275,7 @@ namespace zenslam::utils
         cv::Affine3d&                   pose
     ) -> void;
 
-    /** Track keypoints and keylines between frames.
-     *
-     * @param frame_0 The previous SLAM frame containing keypoints and keylines.
-     * @param frame_1 The processed frame containing image pyramids.
-     * @param calibration The camera calibration parameters.
-     * @param options SLAM options that may include KLT parameters.
-     * @param matcher Pre-created descriptor matcher (created once for efficiency)
-     * @param matcher_ratio Ratio test threshold for kNN/FLANN matchers
-     * @param use_ratio_test Whether to use ratio test (true for KNN/FLANN, false for BRUTE)
-     * @return The tracked frame with updated keypoints and keylines.
-     */
-    auto track
-    (
-        const frame::tracked&                 frame_0,
-        const frame::processed&               frame_1,
-        const calibration&                    calibration,
-        const class options::slam&            options,
-        const cv::Ptr<cv::DescriptorMatcher>& matcher
-    ) -> frame::tracked;
+    // Tracking moved to zenslam::tracker; keep lower-level helpers here.
 
     /** Track keypoints from frame_0 to frame_1 using KLT optical flow.
      *

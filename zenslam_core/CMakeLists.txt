@@ -63,6 +63,7 @@ add_library(${PROJECT_NAME}
         source/slam_thread.cpp
         source/folder_reader.cpp
         source/time_this.cpp
+        source/tracker.cpp
         source/utils.cpp
         source/utils_opencv.cpp
         source/utils_slam.cpp
