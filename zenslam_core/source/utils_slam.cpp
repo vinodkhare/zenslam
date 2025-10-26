@@ -414,10 +414,10 @@ auto zenslam::utils::create_matcher
 
 auto zenslam::utils::match_keypoints
 (
-    const map<keypoint>&                   keypoints_0,
-    const map<keypoint>&                   keypoints_1,
-    const cv::Ptr<cv::DescriptorMatcher>&  matcher,
-    const class options::slam&             options
+    const map<keypoint>&                  keypoints_0,
+    const map<keypoint>&                  keypoints_1,
+    const cv::Ptr<cv::DescriptorMatcher>& matcher,
+    const class options::slam&            options
 ) -> std::vector<cv::DMatch>
 {
     cv::Mat                 descriptors_l { };
@@ -463,9 +463,8 @@ auto zenslam::utils::match_keypoints
     if (descriptors_l.empty() || descriptors_r.empty())
         return matches_new;
 
-    std::vector<cv::DMatch> matches;
-    const bool              use_ratio_test = (options.matcher == matcher_type::KNN ||
-        options.matcher == matcher_type::FLANN);
+    std::vector<cv::DMatch> matches = { };
+    const bool use_ratio_test = (options.matcher == matcher_type::KNN || options.matcher == matcher_type::FLANN);
 
     if (use_ratio_test)
     {
@@ -508,7 +507,7 @@ auto zenslam::utils::match_keypoints
         ) | std::ranges::to<std::vector>();
 
         std::vector<uchar> inlier_mask;
-        cv::Mat fundamental = cv::findFundamentalMat
+        cv::Mat            fundamental = cv::findFundamentalMat
         (
             points_l,
             points_r,
