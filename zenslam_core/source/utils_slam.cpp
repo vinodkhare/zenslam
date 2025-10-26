@@ -361,10 +361,11 @@ auto zenslam::utils::filter
 
 auto zenslam::utils::match_keypoints
 (
-    const map<keypoint>& keypoints_0,
-    const map<keypoint>& keypoints_1,
-    const cv::Matx33d&   fundamental,
-    double               epipolar_threshold
+    const map<keypoint>&       keypoints_0,
+    const map<keypoint>&       keypoints_1,
+    const cv::Matx33d&         fundamental,
+    double                     epipolar_threshold,
+    const class options::slam& options
 ) -> std::vector<cv::DMatch>
 {
     cv::Mat                 descriptors_l { };
@@ -405,9 +406,33 @@ auto zenslam::utils::match_keypoints
         }
     }
 
-    const cv::BFMatcher     matcher { descriptors_l.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2, true };
+    if (descriptors_l.empty() || descriptors_r.empty()) return matches_new;
+
+    const auto norm_type = descriptors_l.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2;
     std::vector<cv::DMatch> matches;
-    matcher.match(descriptors_l, descriptors_r, matches);
+
+    if (options.matcher == matcher_type::knn)
+    {
+        // kNN matching with ratio test
+        cv::BFMatcher matcher { norm_type, false }; // cross-check disabled for kNN
+        std::vector<std::vector<cv::DMatch>> knn_matches;
+        matcher.knnMatch(descriptors_l, descriptors_r, knn_matches, 2);
+
+        // Apply Lowe's ratio test
+        for (const auto& knn : knn_matches)
+        {
+            if (knn.size() == 2 && knn[0].distance < options.matcher_ratio * knn[1].distance)
+            {
+                matches.push_back(knn[0]);
+            }
+        }
+    }
+    else
+    {
+        // Brute-force matching with cross-check
+        cv::BFMatcher matcher { norm_type, true };
+        matcher.match(descriptors_l, descriptors_r, matches);
+    }
 
     matches =
         filter(
@@ -855,7 +880,8 @@ auto zenslam::utils::track
     keypoints_1 *= match_keypoints(keypoints_0,
                                    keypoints_1,
                                    calibration.fundamental_matrix[0],
-                                   options.epipolar_threshold);
+                                   options.epipolar_threshold,
+                                   options);
 
     points3d += triangulate_keypoints(
         keypoints_0,

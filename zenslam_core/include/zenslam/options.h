@@ -13,6 +13,12 @@
 
 namespace zenslam
 {
+    enum class matcher_type
+    {
+        brute,
+        knn
+    };
+
     class options
     {
     public:
@@ -58,6 +64,8 @@ namespace zenslam
             cv::Size        cell_size       = { 16, 16 };
             feature_type    feature         = { feature_type::FAST };
             descriptor_type descriptor      = { descriptor_type::ORB };
+            matcher_type    matcher         = { matcher_type::brute };
+            double          matcher_ratio   = { 0.8 };
             int             fast_threshold  = { 10 };
             cv::Size        klt_window_size = { 31, 31 };
             int             klt_max_level   = { 3 };

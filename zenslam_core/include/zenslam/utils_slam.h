@@ -135,10 +135,11 @@ namespace zenslam::utils
 
     auto match_keypoints
     (
-        const map<keypoint>& keypoints_0,
-        const map<keypoint>& keypoints_1,
-        const cv::Matx33d&   fundamental,
-        double               epipolar_threshold
+        const map<keypoint>&       keypoints_0,
+        const map<keypoint>&       keypoints_1,
+        const cv::Matx33d&         fundamental,
+        double                     epipolar_threshold,
+        const class options::slam& options
     ) -> std::vector<cv::DMatch>;
 
     /**

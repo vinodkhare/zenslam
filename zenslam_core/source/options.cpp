@@ -227,6 +227,8 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     set_color_if_provided(options_map, map, "keyline-match-color", options.slam.keyline_match_color);
     set_enum_if_provided(options_map, map, "feature", options.slam.feature);
     set_enum_if_provided(options_map, map, "descriptor", options.slam.descriptor);
+    set_enum_if_provided(options_map, map, "matcher", options.slam.matcher);
+    set_if_provided(options_map, map, "matcher-ratio", options.slam.matcher_ratio);
 
     return options;
 }
@@ -268,6 +270,8 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
             yaml_set_if_present(slam, "epipolar_threshold", options.slam.epipolar_threshold);
             yaml_set_enum(slam, "feature", options.slam.feature);
             yaml_set_enum(slam, "descriptor", options.slam.descriptor);
+            yaml_set_enum(slam, "matcher", options.slam.matcher);
+            yaml_set_if_present(slam, "matcher_ratio", options.slam.matcher_ratio);
             yaml_set_if_present(slam, "fast_threshold", options.slam.fast_threshold);
             yaml_set_size(slam, "klt_window_size", options.slam.klt_window_size);
             yaml_set_if_present(slam, "klt_max_level", options.slam.klt_max_level);
@@ -439,6 +443,16 @@ boost::program_options::options_description zenslam::options::slam::description(
         ("descriptor type - pick one of: " + utils::to_string(magic_enum::enum_names<descriptor_type>())).c_str()
     )
     (
+        "matcher",
+        boost::program_options::value<std::string>()->default_value(std::string(magic_enum::enum_name(opts_default.slam.matcher))),
+        ("matcher type - pick one of: " + utils::to_string(magic_enum::enum_names<matcher_type>())).c_str()
+    )
+    (
+        "matcher-ratio",
+        boost::program_options::value<double>()->default_value(opts_default.slam.matcher_ratio),
+        "Matcher ratio test threshold for kNN matching (0.0-1.0)"
+    )
+    (
         "fast-threshold",
         boost::program_options::value<double>()->default_value(opts_default.slam.fast_threshold),
         "FAST threshold"
@@ -501,6 +515,7 @@ void zenslam::options::slam::validate() const
 {
     if (keyline_thickness < 1) throw std::invalid_argument("slam.keyline_thickness must be >= 1");
     if (epipolar_threshold < 0.0) throw std::invalid_argument("slam.epipolar_threshold must be >= 0");
+    if (matcher_ratio <= 0.0 || matcher_ratio >= 1.0) throw std::invalid_argument("slam.matcher_ratio must be in (0, 1)");
     if (triangulation_min_disparity < 0.0) throw std::invalid_argument("slam.keyline_min_disparity_px must be >= 0");
     if (triangulation_min_angle < 0.0) throw std::invalid_argument("slam.keyline_min_triangulation_angle_deg must be >= 0");
     if (triangulation_reprojection_threshold <= 0.0) throw std::invalid_argument("slam.triangulation_reprojection_threshold must be > 0");
@@ -520,6 +535,8 @@ void zenslam::options::slam::print() const
     SPDLOG_INFO("epipolar threshold: {}", epipolar_threshold);
     SPDLOG_INFO("feature type: {}", magic_enum::enum_name(feature));
     SPDLOG_INFO("descriptor type: {}", magic_enum::enum_name(descriptor));
+    SPDLOG_INFO("matcher type: {}", magic_enum::enum_name(matcher));
+    SPDLOG_INFO("matcher ratio: {}", matcher_ratio);
     SPDLOG_INFO("fast threshold: {}", fast_threshold);
     SPDLOG_INFO("klt window size: [{}, {}]", klt_window_size.width, klt_window_size.height);
     SPDLOG_INFO("klt max level: {}", klt_max_level);
