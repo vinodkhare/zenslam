@@ -88,27 +88,31 @@ auto zenslam::utils::estimate_pose_3d2d
         cv::Mat          rvec { pose.rvec() };
         cv::Mat          tvec { pose.translation() };
         std::vector<int> inliers { };
-        if (cv::solvePnPRansac(
-            points3d,
-            points2d,
-            camera_matrix,
-            cv::Mat(),
-            rvec,
-            tvec,
-            true,
-            1000,
-            gsl::narrow<float>(threshold),
-            0.99,
-            inliers
-        ))
+        if (cv::solvePnPRansac
+            (
+                points3d,
+                points2d,
+                camera_matrix,
+                cv::Mat(),
+                rvec,
+                tvec,
+                true,
+                1000,
+                gsl::narrow<float>(threshold),
+                0.99,
+                inliers
+            ))
         {
             pose_data.pose    = cv::Affine3d(rvec, tvec);
             pose_data.indices = indices;
 
-            for (auto i : inliers) pose_data.inliers.push_back(indices[i]);
+            for (auto i : inliers)
+                pose_data.inliers.push_back(indices[i]);
 
             auto inliers_set = std::set(pose_data.inliers.begin(), pose_data.inliers.end());
-            for (auto i : indices) if (!inliers_set.contains(i)) pose_data.outliers.push_back(i);
+            for (auto i : indices)
+                if (!inliers_set.contains(i))
+                    pose_data.outliers.push_back(i);
 
             auto points2d_back = std::vector<cv::Point2d> { };
             cv::projectPoints(points3d, rvec, tvec, camera_matrix, cv::Mat(), points2d_back);
@@ -166,10 +170,12 @@ bool zenslam::utils::estimate_rigid
     cv::Point3d&                    t
 )
 {
-    if (points3d_0.size() != points3d_1.size() || points3d_0.size() < 3) return false;
+    if (points3d_0.size() != points3d_1.size() || points3d_0.size() < 3)
+        return false;
 
     // Compute means
-    auto mean_src = std::accumulate(
+    auto mean_src = std::accumulate
+        (
             points3d_0.begin(),
             points3d_0.end(),
             cv::Vec3d(0, 0, 0),
@@ -180,7 +186,8 @@ bool zenslam::utils::estimate_rigid
         ) /
         gsl::narrow<double>(points3d_0.size());
 
-    auto mean_dst = std::accumulate(
+    auto mean_dst = std::accumulate
+        (
             points3d_1.begin(),
             points3d_1.end(),
             cv::Vec3d(0, 0, 0),
@@ -211,7 +218,9 @@ bool zenslam::utils::estimate_rigid
 
     // SVD
     cv::Mat Sigma_mat(3, 3, CV_64F);
-    for (auto r = 0; r < 3; ++r) for (auto c = 0; c < 3; ++c) Sigma_mat.at<double>(r, c) = Sigma(r, c);
+    for (auto r = 0; r < 3; ++r)
+        for (auto c                    = 0; c < 3; ++c)
+            Sigma_mat.at<double>(r, c) = Sigma(r, c);
     cv::Mat U, S, Vt;
     cv::SVD::compute(Sigma_mat, S, U, Vt);
     cv::Mat R_mat = U * Vt;
@@ -239,7 +248,8 @@ auto zenslam::utils::estimate_rigid_ransac
     const int                       max_iterations
 ) -> bool
 {
-    if (src.size() != dst.size() || src.size() < 3) return false;
+    if (src.size() != dst.size() || src.size() < 3)
+        return false;
 
     std::mt19937                          rng { std::random_device { }() };
     std::uniform_int_distribution<size_t> dist(0, src.size() - 1);
@@ -254,7 +264,8 @@ auto zenslam::utils::estimate_rigid_ransac
     {
         // Randomly sample 3 unique indices
         std::set<size_t> idx_set;
-        while (idx_set.size() < 3) idx_set.insert(dist(rng));
+        while (idx_set.size() < 3)
+            idx_set.insert(dist(rng));
         std::vector indices(idx_set.begin(), idx_set.end());
 
         // Build minimal sets
@@ -267,7 +278,8 @@ auto zenslam::utils::estimate_rigid_ransac
 
         cv::Matx33d R;
         cv::Point3d t;
-        if (!estimate_rigid(src_sample, dst_sample, R, t)) continue;
+        if (!estimate_rigid(src_sample, dst_sample, R, t))
+            continue;
 
         // Count inliers
         std::vector<size_t> inliers;
@@ -305,7 +317,8 @@ auto zenslam::utils::estimate_rigid_ransac
 
         for (size_t i = 0; i < src.size(); ++i)
         {
-            if (std::ranges::find(inlier_indices, i) == inlier_indices.end()) outlier_indices.push_back(i);
+            if (std::ranges::find(inlier_indices, i) == inlier_indices.end())
+                outlier_indices.push_back(i);
         }
 
         return true;
@@ -378,14 +391,16 @@ auto zenslam::utils::create_matcher
         if (is_binary)
         {
             // LSH (Locality Sensitive Hashing) for binary descriptors
-            return cv::makePtr<cv::FlannBasedMatcher>(
+            return cv::makePtr<cv::FlannBasedMatcher>
+            (
                 cv::makePtr<cv::flann::LshIndexParams>(12, 20, 2)
             );
         }
         else
         {
             // KDTree for float descriptors (SIFT, SURF, etc.)
-            return cv::makePtr<cv::FlannBasedMatcher>(
+            return cv::makePtr<cv::FlannBasedMatcher>
+            (
                 cv::makePtr<cv::flann::KDTreeIndexParams>(4)
             );
         }
@@ -401,8 +416,6 @@ auto zenslam::utils::match_keypoints
 (
     const map<keypoint>&                   keypoints_0,
     const map<keypoint>&                   keypoints_1,
-    const cv::Matx33d&                     fundamental,
-    double                                 epipolar_threshold,
     const cv::Ptr<cv::DescriptorMatcher>&  matcher,
     const class options::slam&             options
 ) -> std::vector<cv::DMatch>
@@ -415,7 +428,8 @@ auto zenslam::utils::match_keypoints
 
     for (const auto& keypoint_l : keypoints_0 | std::views::values)
     {
-        if (keypoints_1.contains(keypoint_l.index)) continue;
+        if (keypoints_1.contains(keypoint_l.index))
+            continue;
 
         unmatched_l.emplace_back(keypoint_l);
 
@@ -431,7 +445,8 @@ auto zenslam::utils::match_keypoints
 
     for (const auto& keypoint_r : keypoints_1 | std::views::values)
     {
-        if (keypoints_0.contains(keypoint_r.index)) continue;
+        if (keypoints_0.contains(keypoint_r.index))
+            continue;
 
         unmatched_r.emplace_back(keypoint_r);
 
@@ -445,11 +460,12 @@ auto zenslam::utils::match_keypoints
         }
     }
 
-    if (descriptors_l.empty() || descriptors_r.empty()) return matches_new;
+    if (descriptors_l.empty() || descriptors_r.empty())
+        return matches_new;
 
     std::vector<cv::DMatch> matches;
-    const bool use_ratio_test = (options.matcher == matcher_type::KNN ||
-                                 options.matcher == matcher_type::FLANN);
+    const bool              use_ratio_test = (options.matcher == matcher_type::KNN ||
+        options.matcher == matcher_type::FLANN);
 
     if (use_ratio_test)
     {
@@ -472,14 +488,47 @@ auto zenslam::utils::match_keypoints
         matcher->match(descriptors_l, descriptors_r, matches);
     }
 
-    matches =
-        filter(
-            utils::cast<cv::KeyPoint>(unmatched_l),
-            utils::cast<cv::KeyPoint>(unmatched_r),
-            matches,
-            fundamental,
-            epipolar_threshold
+    // Estimate fundamental matrix using RANSAC and filter matches
+    if (matches.size() >= 8)
+    {
+        auto points_l = matches | std::views::transform
+        (
+            [&unmatched_l](const auto& match)
+            {
+                return unmatched_l[match.queryIdx].pt;
+            }
+        ) | std::ranges::to<std::vector>();
+
+        auto points_r = matches | std::views::transform
+        (
+            [&unmatched_r](const auto& match)
+            {
+                return unmatched_r[match.trainIdx].pt;
+            }
+        ) | std::ranges::to<std::vector>();
+
+        std::vector<uchar> inlier_mask;
+        cv::Mat fundamental = cv::findFundamentalMat
+        (
+            points_l,
+            points_r,
+            cv::FM_RANSAC,
+            options.epipolar_threshold,
+            0.99,
+            inlier_mask
         );
+
+        // Keep only inliers
+        std::vector<cv::DMatch> filtered_matches;
+        for (size_t i = 0; i < matches.size(); ++i)
+        {
+            if (inlier_mask[i])
+            {
+                filtered_matches.push_back(matches[i]);
+            }
+        }
+        matches = filtered_matches;
+    }
 
     for (const auto& match : matches)
     {
@@ -502,14 +551,17 @@ auto zenslam::utils::match_keypoints3d
     const double         threshold
 ) -> std::vector<cv::DMatch>
 {
-    if (points3d_world.empty() || keypoints.empty()) return std::vector<cv::DMatch> { };
+    if (points3d_world.empty() || keypoints.empty())
+        return std::vector<cv::DMatch> { };
 
     // find keypoints that are not triangulated
     const auto& untriangulated = keypoints.values_unmatched(points3d_world) | std::ranges::to<std::vector>();
 
-    if (untriangulated.empty()) return std::vector<cv::DMatch> { };
+    if (untriangulated.empty())
+        return std::vector<cv::DMatch> { };
 
-    const auto& points3d = pose_of_camera0_in_world.inv() * points3d_world.radius_search(
+    const auto& points3d = pose_of_camera0_in_world.inv() * points3d_world.radius_search
+        (
             static_cast<point3d>(pose_of_camera0_in_world.translation()),
             radius
         )
@@ -522,12 +574,15 @@ auto zenslam::utils::match_keypoints3d
         )
         | std::ranges::to<std::vector>();
 
-    if (points3d.empty()) return std::vector<cv::DMatch> { };
+    if (points3d.empty())
+        return std::vector<cv::DMatch> { };
 
     cv::Mat descriptors3d = { };
-    cv::vconcat(
+    cv::vconcat
+    (
         points3d
-        | std::views::transform(
+        | std::views::transform
+        (
             [](const auto& kp)
             {
                 return kp.descriptor;
@@ -539,9 +594,11 @@ auto zenslam::utils::match_keypoints3d
     );
 
     cv::Mat descriptors2d = { };
-    cv::vconcat(
+    cv::vconcat
+    (
         untriangulated
-        | std::views::transform(
+        | std::views::transform
+        (
             [](const auto& keypoint)
             {
                 return keypoint.descriptor;
@@ -552,10 +609,12 @@ auto zenslam::utils::match_keypoints3d
         descriptors2d // output
     );
 
-    if (descriptors3d.empty() || descriptors2d.empty()) return std::vector<cv::DMatch> { };
+    if (descriptors3d.empty() || descriptors2d.empty())
+        return std::vector<cv::DMatch> { };
 
     std::vector<cv::DMatch> matches_cv = { };
-    cv::BFMatcher(
+    cv::BFMatcher
+    (
         descriptors3d.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2,
         true
     ).match(descriptors3d, descriptors2d, matches_cv);
@@ -578,7 +637,8 @@ auto zenslam::utils::match_keypoints3d
     {
         if (errors[i] < threshold) // TODO: parameterize
         {
-            matches.emplace_back(
+            matches.emplace_back
+            (
                 matched_points3d[i].index,
                 matched_keypoints[i].index,
                 matches_cv[i].distance
@@ -604,21 +664,26 @@ auto zenslam::utils::match_keylines
     for (const auto& kl : keylines_map_0 | std::views::values)
     {
         keylines_0.push_back(kl);
-        if (descriptors_0.empty()) descriptors_0 = kl.descriptor;
-        else cv::vconcat(descriptors_0, kl.descriptor, descriptors_0);
+        if (descriptors_0.empty())
+            descriptors_0 = kl.descriptor;
+        else
+            cv::vconcat(descriptors_0, kl.descriptor, descriptors_0);
     }
 
     for (const auto& kl : keylines_map_1 | std::views::values)
     {
         keylines_1.push_back(kl);
-        if (descriptors_1.empty()) descriptors_1 = kl.descriptor;
-        else cv::vconcat(descriptors_1, kl.descriptor, descriptors_1);
+        if (descriptors_1.empty())
+            descriptors_1 = kl.descriptor;
+        else
+            cv::vconcat(descriptors_1, kl.descriptor, descriptors_1);
     }
 
     // Match descriptors
     const cv::BFMatcher     matcher(cv::NORM_HAMMING, true);
     std::vector<cv::DMatch> matches;
-    if (!descriptors_0.empty() && !descriptors_1.empty()) matcher.match(descriptors_0, descriptors_1, matches);
+    if (!descriptors_0.empty() && !descriptors_1.empty())
+        matcher.match(descriptors_0, descriptors_1, matches);
 
     // Epipolar filtering on endpoints and midpoint
     std::vector<cv::DMatch> filtered;
@@ -692,7 +757,8 @@ auto zenslam::utils::match_temporal
 
     for (const auto& keypoint_0 : keypoints_map_0 | std::views::values)
     {
-        if (keypoints_map_1.contains(keypoint_0.index)) continue;
+        if (keypoints_map_1.contains(keypoint_0.index))
+            continue;
 
         unmatched_0.emplace_back(keypoint_0);
 
@@ -708,7 +774,8 @@ auto zenslam::utils::match_temporal
 
     for (const auto& keypoint_1 : keypoints_map_1 | std::views::values)
     {
-        if (keypoints_map_0.contains(keypoint_1.index)) continue;
+        if (keypoints_map_0.contains(keypoint_1.index))
+            continue;
 
         unmatched_1.emplace_back(keypoint_1);
 
@@ -732,14 +799,16 @@ auto zenslam::utils::match_temporal
     matcher.match(descriptors_0, descriptors_1, matches);
 
     // Filter matches based on reprojection error
-    auto points_0 = matches | std::views::transform(
+    auto points_0 = matches | std::views::transform
+    (
         [&unmatched_0](const auto& match)
         {
             return unmatched_0[match.queryIdx].pt;
         }
     ) | std::ranges::to<std::vector>();
 
-    auto points_1 = matches | std::views::transform(
+    auto points_1 = matches | std::views::transform
+    (
         [&unmatched_1](const auto& match)
         {
             return unmatched_1[match.trainIdx].pt;
@@ -750,7 +819,8 @@ auto zenslam::utils::match_temporal
 
     auto e = cv::findEssentialMat(points_0, points_1, camera_matrix, cv::RANSAC, 0.99, threshold, mask);
 
-    auto E = cv::Matx33d(
+    auto E = cv::Matx33d
+    (
         e.at<float>(0, 0),
         e.at<float>(0, 1),
         e.at<float>(0, 2),
@@ -859,11 +929,11 @@ auto zenslam::utils::solve_pnp
 
 auto zenslam::utils::track
 (
-    const frame::tracked&                  frame_0,
-    const frame::processed&                frame_1,
-    const calibration&                     calibration,
-    const class options::slam&             options,
-    const cv::Ptr<cv::DescriptorMatcher>&  matcher
+    const frame::tracked&                 frame_0,
+    const frame::processed&               frame_1,
+    const calibration&                    calibration,
+    const class options::slam&            options,
+    const cv::Ptr<cv::DescriptorMatcher>& matcher
 ) -> frame::tracked
 {
     const auto& detector = grid_detector::create(options);
@@ -877,11 +947,14 @@ auto zenslam::utils::track
         {
             [&]()
             {
-                keypoints_0 += track_keypoints(frame_0.pyramids[0],
-                                               frame_1.pyramids[0],
-                                               frame_0.keypoints[0],
-                                               options,
-                                               calibration.camera_matrix[0]);
+                keypoints_0 += track_keypoints
+                (
+                    frame_0.pyramids[0],
+                    frame_1.pyramids[0],
+                    frame_0.keypoints[0],
+                    options,
+                    calibration.camera_matrix[0]
+                );
 
                 if (options.use_parallel_detector)
                 {
@@ -898,11 +971,14 @@ auto zenslam::utils::track
         {
             [&]()
             {
-                keypoints_1 += track_keypoints(frame_0.pyramids[1],
-                                               frame_1.pyramids[1],
-                                               frame_0.keypoints[1],
-                                               options,
-                                               calibration.camera_matrix[1]);
+                keypoints_1 += track_keypoints
+                (
+                    frame_0.pyramids[1],
+                    frame_1.pyramids[1],
+                    frame_0.keypoints[1],
+                    options,
+                    calibration.camera_matrix[1]
+                );
 
                 if (options.use_parallel_detector)
                 {
@@ -916,14 +992,16 @@ auto zenslam::utils::track
         };
     }
 
-    keypoints_1 *= match_keypoints(keypoints_0,
-                                   keypoints_1,
-                                   calibration.fundamental_matrix[0],
-                                   options.epipolar_threshold,
-                                   matcher,
-                                   options);
+    keypoints_1 *= match_keypoints
+    (
+        keypoints_0,
+        keypoints_1,
+        matcher,
+        options
+    );
 
-    points3d += triangulate_keypoints(
+    points3d += triangulate_keypoints
+    (
         keypoints_0,
         keypoints_1,
         calibration.projection_matrix[0],
@@ -953,7 +1031,8 @@ auto zenslam::utils::track_keypoints
         return { };
     }
 
-    const auto& points_0 = keypoints_map_0.values_sliced<cv::Point2f>(
+    const auto& points_0 = keypoints_map_0.values_sliced<cv::Point2f>
+    (
         [](const keypoint& kp)
         {
             return kp.pt;
@@ -966,7 +1045,8 @@ auto zenslam::utils::track_keypoints
     std::vector<uchar> status { };
     std::vector<float> errors { };
 
-    cv::calcOpticalFlowPyrLK(
+    cv::calcOpticalFlowPyrLK
+    (
         pyramid_0,
         pyramid_1,
         points_0,
@@ -981,7 +1061,8 @@ auto zenslam::utils::track_keypoints
 
     std::vector<cv::Point2f> points_0_back { };
     std::vector<uchar>       status_back { };
-    cv::calcOpticalFlowPyrLK(
+    cv::calcOpticalFlowPyrLK
+    (
         pyramid_1,
         pyramid_0,
         points_1,
@@ -1020,7 +1101,8 @@ auto zenslam::utils::track_keypoints
         // Find essential matrix with RANSAC
         std::vector<uchar> inlier_mask;
 
-        auto E = cv::findEssentialMat(
+        auto E = cv::findEssentialMat
+        (
             candidate_points_0,
             candidate_points_1,
             camera_matrix,
@@ -1095,7 +1177,8 @@ auto zenslam::utils::track_keylines
     std::vector<float> err_start_fwd;
     std::vector<float> err_end_fwd;
 
-    cv::calcOpticalFlowPyrLK(
+    cv::calcOpticalFlowPyrLK
+    (
         pyramid_0,
         pyramid_1,
         start_points_0,
@@ -1108,7 +1191,8 @@ auto zenslam::utils::track_keylines
         cv::OPTFLOW_LK_GET_MIN_EIGENVALS
     );
 
-    cv::calcOpticalFlowPyrLK(
+    cv::calcOpticalFlowPyrLK
+    (
         pyramid_0,
         pyramid_1,
         end_points_0,
@@ -1129,7 +1213,8 @@ auto zenslam::utils::track_keylines
     std::vector<float>       err_start_bwd;
     std::vector<float>       err_end_bwd;
 
-    cv::calcOpticalFlowPyrLK(
+    cv::calcOpticalFlowPyrLK
+    (
         pyramid_1,
         pyramid_0,
         start_points_1,
@@ -1142,7 +1227,8 @@ auto zenslam::utils::track_keylines
         cv::OPTFLOW_LK_GET_MIN_EIGENVALS
     );
 
-    cv::calcOpticalFlowPyrLK(
+    cv::calcOpticalFlowPyrLK
+    (
         pyramid_1,
         pyramid_0,
         end_points_1,
@@ -1202,7 +1288,8 @@ auto zenslam::utils::track_keylines
 
 auto epipolar_angles(const cv::Vec3d& translation_of_camera1_in_camera0)
 {
-    return std::views::transform(
+    return std::views::transform
+    (
         [&translation_of_camera1_in_camera0](const cv::Point3d& p)
         {
             const auto vec_to_point_0 = cv::Vec3d(p.x, p.y, p.z);
@@ -1231,7 +1318,8 @@ auto zenslam::utils::triangulate_keypoints
 
     const auto& points3d_cv = triangulate_points(points2f_0, points2f_1, projection_0, projection_1);
     const auto& indices     = keypoints_0.keys_matched(keypoints_1) | std::ranges::to<std::vector>();
-    const auto& descriptors = keypoints_0.values_matched(keypoints_1) | std::views::transform(
+    const auto& descriptors = keypoints_0.values_matched(keypoints_1) | std::views::transform
+    (
         [](const keypoint& kp)
         {
             return kp.descriptor;
@@ -1267,7 +1355,8 @@ auto zenslam::utils::triangulate_keypoints
 
 auto points_0()
 {
-    return std::views::transform(
+    return std::views::transform
+    (
         [](const zenslam::keyline& kl)
         {
             return kl.getStartPoint();
@@ -1277,7 +1366,8 @@ auto points_0()
 
 auto points_1()
 {
-    return std::views::transform(
+    return std::views::transform
+    (
         [](const zenslam::keyline& kl)
         {
             return kl.getEndPoint();
@@ -1373,8 +1463,10 @@ auto zenslam::utils::triangulate_points
     for (auto i = 0; i < points4d.cols; ++i)
     {
         cv::Vec4d X = points4d.col(i);
-        if (std::abs(X[3]) > 1E-9) points3d.emplace_back(X[0] / X[3], X[1] / X[3], X[2] / X[3]);
-        else points3d.emplace_back(0, 0, 0);
+        if (std::abs(X[3]) > 1E-9)
+            points3d.emplace_back(X[0] / X[3], X[1] / X[3], X[2] / X[3]);
+        else
+            points3d.emplace_back(0, 0, 0);
     }
 
     return points3d;
@@ -1420,7 +1512,9 @@ void zenslam::utils::umeyama
     Sigma *= 1.0 / static_cast<double>(src.size());
 
     cv::Mat Sigma_mat(3, 3, CV_64F);
-    for (auto r = 0; r < 3; ++r) for (auto c = 0; c < 3; ++c) Sigma_mat.at<double>(r, c) = Sigma(r, c);
+    for (auto r = 0; r < 3; ++r)
+        for (auto c                    = 0; c < 3; ++c)
+            Sigma_mat.at<double>(r, c) = Sigma(r, c);
 
     cv::Mat U_mat, S_mat, Vt_mat;
     cv::SVD::compute(Sigma_mat, S_mat, U_mat, Vt_mat);
