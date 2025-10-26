@@ -71,6 +71,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         VTK::RenderingOpenGL2
 )
 
+target_link_options(${PROJECT_NAME} PRIVATE "-Wl,-no_warn_duplicate_libraries")
+
 # VTK module auto-init for correct factory registration
 vtk_module_autoinit(
   TARGETS ${PROJECT_NAME}

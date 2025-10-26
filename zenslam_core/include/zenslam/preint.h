@@ -56,8 +56,7 @@ public:
    * @param imu_calib IMU calibration parameters containing noise densities
    * @param preint_method Integration method (default: UGPM)
    */
-  explicit preint(imu_calibration imu_calib,
-                  method preint_method = method::ugpm);
+  explicit preint(imu_calibration imu_calib, method preint_method = method::ugpm);
 
   /**
    * @brief Set the overlap factor for UGPM optimization

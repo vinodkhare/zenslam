@@ -9,6 +9,8 @@ message(STATUS "Found Catch2: ${Catch2_VERSION}")
 find_package(OpenCV CONFIG REQUIRED)
 message(STATUS "Found OpenCV: ${OpenCV_VERSION}")
 
+add_link_options(-Wl,-no_warn_duplicate_libraries)
+
 add_executable(hello_test source/hello_test.cpp)
 target_link_libraries(hello_test PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_features2d opencv_imgproc)
 
