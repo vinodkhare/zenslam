@@ -15,7 +15,7 @@ namespace zenslam
     class processor
     {
     public:
-        explicit processor(class options::slam options, const zenslam::calibration& calibration);
+        explicit processor(class options::slam options, calibration calibration);
 
         /**
          * @brief Processes sensor frame data and returns a processed frame.
@@ -35,7 +35,7 @@ namespace zenslam
         cv::Ptr<cv::CLAHE>  _clahe       = cv::createCLAHE(4.0); // TODO: make configurable
         class options::slam _options     = { };
         calibration         _calibration = { };
-        integrator          _preint      = integrator { _calibration.imu };
+        integrator          _integrator      = integrator { _calibration.imu };
         double              _timestamp   = std::nan("nan");
     };
 }

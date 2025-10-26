@@ -1,13 +1,15 @@
 #include "zenslam/processor.h"
 
+#include <thread>
+#include <utility>
+
 #include "zenslam/utils.h"
 #include "zenslam/utils_opencv.h"
-#include <thread>
 
-zenslam::processor::processor(class options::slam options, const zenslam::calibration& calibration) :
+zenslam::processor::processor(class options::slam options, calibration calibration) :
     _options { std::move(options) },
-    _calibration { calibration },
-    _preint { _calibration.imu }
+    _calibration { std::move(calibration) },
+    _integrator { _calibration.imu }
 {
 }
 
@@ -53,7 +55,7 @@ auto zenslam::processor::process(const frame::sensor& sensor) -> frame::processe
         {
             [&]()
             {
-                processed.preint = _preint.integrate(sensor.imu_data, isnan(_timestamp) ? sensor.timestamp : _timestamp, sensor.timestamp);
+                processed.preint = _integrator.integrate(sensor.imu_data, isnan(_timestamp) ? sensor.timestamp : _timestamp, sensor.timestamp);
             }
         };
 
