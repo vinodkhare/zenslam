@@ -2,30 +2,37 @@
 
 #include <opencv2/calib3d.hpp>
 
-auto zenslam::motion::predict(const cv::Affine3d& pose_0, const double dt) const -> cv::Affine3d
+auto zenslam::motion::predict(const frame::estimated& estimated_0, const frame::processed& processed_1) const -> cv::Affine3d
 {
-    auto translation_1 = pose_0.translation() + _velocity_1 * dt + 0.5 * _acceleration_1 * dt * dt;
+    const auto dt          = processed_1.timestamp - estimated_0.timestamp;
+    const auto translation = _vel * dt + 0.5 * _acc * dt * dt;
 
-    cv::Matx33d rotation_d { };
-    cv::Rodrigues(_angular_velocity_1 * dt + 0.5 * _angular_acceleration_1 * dt * dt, rotation_d);
+    cv::Matx33d rotation { };
+    cv::Rodrigues(_vel_ang * dt + 0.5 * _acc_ang * dt * dt, rotation);
 
-    return { pose_0.rotation() * rotation_d, translation_1 };
+    return { estimated_0.pose.rotation() * rotation, estimated_0.pose.translation() + translation };
 }
 
-auto zenslam::motion::update(const cv::Affine3d& pose_0, const cv::Affine3d& pose_1, const double dt) -> void
+auto zenslam::motion::update(const frame::estimated& estimated_0, const frame::estimated& estimated_1) -> void
 {
-    _velocity_0 = _velocity_1;
-    _velocity_1 = (pose_1.translation() - pose_0.translation()) / dt;
+    const auto dt = estimated_1.timestamp - estimated_0.timestamp;
 
-    _acceleration_0 = _acceleration_1;
-    _acceleration_1 = (_velocity_1 - _velocity_0) / dt;
+    if (std::abs(dt) < 1e-6)
+    {
+        return;
+    }
+
+    const auto vel = (estimated_1.pose.translation() - estimated_0.pose.translation()) / dt;
+    const auto acc = (vel - _vel) / dt;
 
     cv::Vec3d rvec { };
-    cv::Rodrigues(pose_0.rotation().inv() * pose_1.rotation(), rvec);
+    cv::Rodrigues(estimated_0.pose.rotation().inv() * estimated_1.pose.rotation(), rvec);
 
-    _angular_velocity_0 = _angular_velocity_1;
-    _angular_velocity_1 = rvec / dt;
+    const auto vel_ang = rvec / dt;
+    const auto acc_ang = (vel_ang - _vel_ang) / dt;
 
-    _angular_acceleration_0 = _angular_acceleration_1;
-    _angular_acceleration_1 = (_angular_velocity_1 - _angular_velocity_0) / dt;
+    _vel     = (vel + _vel) / 2.0;
+    _acc     = (acc + _acc) / 2.0;
+    _vel_ang = (vel_ang + _vel_ang) / 2.0;
+    _acc_ang = (acc_ang + _acc_ang) / 2.0;
 }

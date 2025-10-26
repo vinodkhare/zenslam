@@ -17,6 +17,7 @@
 #include "zenslam/time_this.h"
 #include "zenslam/utils.h"
 #include "zenslam/estimator.h"
+#include "zenslam/motion.h"
 #include "zenslam/utils_slam.h"
 #include "zenslam/tracker.h"
 #include "zenslam/utils_std.h"
@@ -57,6 +58,7 @@ void zenslam::slam_thread::loop()
     processor       processor { _options.slam, calibration };
     tracker         tracker { calibration, _options.slam };
     const estimator estimator { calibration, _options.slam };
+    motion          motion { };
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");
@@ -100,6 +102,12 @@ void zenslam::slam_thread::loop()
                 time_this time_this { system.durations.processing };
 
                 processed = processor.process(sensor);
+            }
+
+            // PREDICT POSE
+            cv::Affine3d pose_predicted { };
+            {
+                pose_predicted = motion.predict(system[0], processed);
             }
 
             // TODO: separate keyline and keypoints pipelines
@@ -150,6 +158,7 @@ void zenslam::slam_thread::loop()
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated { tracked, system[0].pose * chosen_pose.inv() };
 
+                SPDLOG_INFO("Predicted pose:   {}", pose_predicted);
                 SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
                 SPDLOG_INFO("Groundtruth pose: {}", system[1].pose_gt);
 
@@ -163,9 +172,14 @@ void zenslam::slam_thread::loop()
                 system.counts.lines  = system.lines3d.size();
 
                 writer.write(system);
-
-                on_frame(system);
             }
+
+            // UPDATE MOTION MODEL
+            {
+                motion.update(system[0], system[1]);
+            }
+
+            on_frame(system);
         }
 
         system.counts.print();
