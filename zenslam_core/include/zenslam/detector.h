@@ -18,7 +18,7 @@ namespace zenslam
      * independently, returning the strongest keypoint from each cell. This ensures
      * a more uniform distribution of keypoints across the image.
      */
-    class grid_detector final
+    class detector final
     {
     public:
         /**
@@ -27,7 +27,7 @@ namespace zenslam
          * @param options The SLAM options containing the desired feature detector type and cell size
          * @return A configured grid_detector instance
          */
-        static auto create(const class options::slam& options) -> grid_detector;
+        static auto create(const class options::slam& options) -> detector;
 
         /**
          * @brief Detect keypoints in the image using grid-based detection

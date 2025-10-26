@@ -51,8 +51,8 @@ add_library(${PROJECT_NAME}
         source/types/point3d.cpp
         source/calibration.cpp
         source/camera_calibration.cpp
+        source/detector.cpp
         source/folder_options.cpp
-        source/grid_detector.cpp
         source/groundtruth.cpp
         source/imu_calibration.cpp
         source/integrator.cpp

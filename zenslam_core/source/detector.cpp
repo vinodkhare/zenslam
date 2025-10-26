@@ -1,4 +1,4 @@
-#include "zenslam/grid_detector.h"
+#include "zenslam/detector.h"
 
 #include <future>
 #include <ranges>
@@ -10,7 +10,7 @@
 
 namespace zenslam
 {
-    auto grid_detector::create(const class options::slam& options) -> grid_detector
+    auto detector::create(const class options::slam& options) -> detector
     {
         auto feature_detector  = cv::Ptr<cv::Feature2D>();
         auto feature_describer = cv::Ptr<cv::Feature2D>();
@@ -41,7 +41,7 @@ namespace zenslam
             break;
         }
 
-        grid_detector detector { };
+        detector detector { };
 
         detector._detector      = feature_detector;
         detector._describer     = feature_describer;
@@ -56,7 +56,7 @@ namespace zenslam
         return { lhs.width / rhs.width, lhs.height / rhs.height };
     }
 
-    auto grid_detector::detect_keypoints
+    auto detector::detect_keypoints
     (
         const cv::Mat&       image,
         const map<keypoint>& keypoints_existing
@@ -173,7 +173,7 @@ namespace zenslam
         return keypoints;
     }
 
-    auto grid_detector::detect_keypoints_par
+    auto detector::detect_keypoints_par
     (
         const cv::Mat&       image,
         const map<keypoint>& keypoints_existing
@@ -332,7 +332,7 @@ namespace zenslam
         return keypoints;
     }
 
-    auto grid_detector::detect_keylines(const cv::Mat& image, const map<keyline>& keylines_map, const int mask_margin) const -> std::vector<keyline>
+    auto detector::detect_keylines(const cv::Mat& image, const map<keyline>& keylines_map, const int mask_margin) const -> std::vector<keyline>
     {
         // Create a mask to block detection in areas where keylines already exist
         cv::Mat mask = cv::Mat::ones(image.size(), CV_8U) * 255;

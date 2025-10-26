@@ -1135,7 +1135,7 @@ auto zenslam::utils::track
 )
     -> frame::tracked
 {
-    const auto& detector = grid_detector::create(options);
+    const auto& detector = detector::create(options);
 
     map<keypoint> keypoints_0 = { };
     map<keypoint> keypoints_1 = { };
