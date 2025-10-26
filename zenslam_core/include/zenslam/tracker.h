@@ -9,6 +9,7 @@
 #include "zenslam/options.h"
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/tracked.h"
+#include "zenslam/frame/estimated.h"
 
 namespace zenslam
 {
@@ -27,6 +28,19 @@ namespace zenslam
          *  @return New tracked frame with keypoints tracked from frame_0 to frame_1, new stereo keypoints detected in frame_1, and triangulated 3D points.
          */
         [[nodiscard]] auto track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> frame::tracked;
+
+        /** Track keypoints using a predicted pose to initialize KLT with better guesses.
+         *
+         *  The predicted absolute pose is used to project known 3D points from the previous frame
+         *  into the current frame, providing initial estimates for optical flow. For keypoints
+         *  without an associated 3D point, their previous 2D location is used as the initial guess.
+         *
+         *  @param frame_0 Previous estimated frame (contains pose and tracked data).
+         *  @param frame_1 Current processed frame.
+         *  @param pose_predicted Predicted absolute pose of the current frame (camera-0).
+         *  @return New tracked frame.
+         */
+        [[nodiscard]] auto track(const frame::estimated& frame_0, const frame::processed& frame_1, const cv::Affine3d& pose_predicted) const -> frame::tracked;
 
     private:
         calibration         _calibration  = { };

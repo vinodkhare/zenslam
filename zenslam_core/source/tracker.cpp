@@ -3,13 +3,13 @@
 #include <thread>
 #include <utility>
 
-#include <opencv2/core.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
 
 #include "zenslam/detector.h"
 #include "zenslam/matcher.h"
 #include "zenslam/triangulator.h"
+#include "zenslam/utils_opencv.h"
 
 namespace zenslam
 {
@@ -17,7 +17,6 @@ namespace zenslam
         : _calibration(std::move(calib)),
           _options(std::move(opts)),
           _matcher(_options, _options.descriptor == descriptor_type::ORB || _options.descriptor == descriptor_type::FREAK),
-          _triangulator(_calibration, _options),
           _detector(detector::create(_options))
     {
     }
@@ -51,6 +50,97 @@ namespace zenslam
                 [&]()
                 {
                     keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1]);
+
+                    if (_options.use_parallel_detector)
+                    {
+                        keypoints_1 += _detector.detect_keypoints_par(frame_1.undistorted[1], keypoints_1);
+                    }
+                    else
+                    {
+                        keypoints_1 += _detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
+                    }
+                }
+            };
+        }
+
+        keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
+        points3d += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
+
+        return { frame_1, keypoints_0, keypoints_1, { }, points3d };
+    }
+
+    auto tracker::track(const frame::estimated& frame_0, const frame::processed& frame_1, const cv::Affine3d& pose_predicted) const -> frame::tracked
+    {
+        map<keypoint> keypoints_0 = { };
+        map<keypoint> keypoints_1 = { };
+        map<point3d>  points3d    = { };
+
+        // Compute relative camera-0 motion from previous to predicted current
+        const cv::Affine3d T_01 = frame_0.pose * pose_predicted.inv();
+
+        // Prepare predicted 2D positions for KLT initialization
+        std::vector<cv::Point2f> preds_l;
+        std::vector<cv::Point2f> preds_r;
+        {
+            const auto keypoints_prev_l = frame_0.keypoints[0].values() | std::ranges::to<std::vector>();
+            preds_l.reserve(keypoints_prev_l.size());
+            for (const auto& kp : keypoints_prev_l)
+            {
+                if (frame_0.points3d.contains(kp.index))
+                {
+                    const cv::Point3d X0 = frame_0.points3d.at(kp.index);
+                    const cv::Point3d X1 = T_01 * X0; // now in current left-camera frame
+                    const auto        uv = utils::project(std::vector<cv::Point3d> { X1 }, _calibration.projection_matrix[0]);
+                    preds_l.emplace_back(cv::Point2f(static_cast<float>(uv[0].x), static_cast<float>(uv[0].y)));
+                }
+                else
+                {
+                    preds_l.emplace_back(kp.pt);
+                }
+            }
+
+            const auto keypoints_prev_r = frame_0.keypoints[1].values() | std::ranges::to<std::vector>();
+            preds_r.reserve(keypoints_prev_r.size());
+            for (const auto& kp : keypoints_prev_r)
+            {
+                if (frame_0.points3d.contains(kp.index))
+                {
+                    const cv::Point3d X0 = frame_0.points3d.at(kp.index);
+                    const cv::Point3d X1 = T_01 * X0; // current left-camera frame
+                    // Project into current right camera using stereo projection matrix
+                    const auto uv = utils::project(std::vector { X1 }, _calibration.projection_matrix[1]);
+                    preds_r.emplace_back(cv::Point2f(static_cast<float>(uv[0].x), static_cast<float>(uv[0].y)));
+                }
+                else
+                {
+                    preds_r.emplace_back(kp.pt);
+                }
+            }
+        }
+
+        {
+            std::jthread thread_0
+            {
+                [&]()
+                {
+                    keypoints_0 += track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0], preds_l);
+
+                    if (_options.use_parallel_detector)
+                    {
+                        keypoints_0 += _detector.detect_keypoints_par(frame_1.undistorted[0], keypoints_0);
+                    }
+                    else
+                    {
+                        keypoints_0 += _detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
+                    }
+                }
+            };
+
+            std::jthread thread_1
+            {
+                [&]()
+                {
+                    keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1], preds_r);
 
                     if (_options.use_parallel_detector)
                     {

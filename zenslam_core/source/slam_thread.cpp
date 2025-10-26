@@ -116,7 +116,7 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { system.durations.tracking };
 
-                tracked = tracker.track(system[0], processed);
+                tracked = tracker.track(system[0], processed, pose_predicted);
 
                 // Update counts related to keypoints and matches
                 const auto& kp0_prev = system[0].keypoints[0];
@@ -158,7 +158,7 @@ void zenslam::slam_thread::loop()
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated { tracked, system[0].pose * chosen_pose.inv() };
 
-                SPDLOG_INFO("Predicted pose:   {}", pose_predicted);
+                SPDLOG_INFO("Predicted pose:   {}", system[1].pose * pose_predicted.inv());
                 SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
                 SPDLOG_INFO("Groundtruth pose: {}", system[1].pose_gt);
 

@@ -10,7 +10,7 @@ auto zenslam::motion::predict(const frame::estimated& estimated_0, const frame::
     cv::Matx33d rotation { };
     cv::Rodrigues(_vel_ang * dt + 0.5 * _acc_ang * dt * dt, rotation);
 
-    return { estimated_0.pose.rotation() * rotation, estimated_0.pose.translation() + translation };
+    return { rotation, translation };
 }
 
 auto zenslam::motion::update(const frame::estimated& estimated_0, const frame::estimated& estimated_1) -> void

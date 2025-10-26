@@ -5,7 +5,6 @@
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/line3d.h"
 #include "zenslam/types/map.h"
-#include "zenslam/types/point3d_cloud.h"
 
 namespace zenslam::frame
 {

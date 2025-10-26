@@ -3,6 +3,7 @@
 #include "zenslam/frame/counts.h"
 #include "zenslam/frame/durations.h"
 #include "zenslam/frame/estimated.h"
+#include "zenslam/types/point3d_cloud.h"
 
 namespace zenslam::frame
 {
