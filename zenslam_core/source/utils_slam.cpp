@@ -411,12 +411,44 @@ auto zenslam::utils::match_keypoints
     const auto norm_type = descriptors_l.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2;
     std::vector<cv::DMatch> matches;
 
-    if (options.matcher == matcher_type::knn)
+    if (options.matcher == matcher_type::KNN)
     {
         // kNN matching with ratio test
         cv::BFMatcher matcher { norm_type, false }; // cross-check disabled for kNN
         std::vector<std::vector<cv::DMatch>> knn_matches;
         matcher.knnMatch(descriptors_l, descriptors_r, knn_matches, 2);
+
+        // Apply Lowe's ratio test
+        for (const auto& knn : knn_matches)
+        {
+            if (knn.size() == 2 && knn[0].distance < options.matcher_ratio * knn[1].distance)
+            {
+                matches.push_back(knn[0]);
+            }
+        }
+    }
+    else if (options.matcher == matcher_type::FLANN)
+    {
+        // FLANN-based matching with ratio test
+        cv::Ptr<cv::FlannBasedMatcher> matcher;
+        
+        if (descriptors_l.depth() == CV_8U)
+        {
+            // LSH (Locality Sensitive Hashing) for binary descriptors
+            matcher = cv::makePtr<cv::FlannBasedMatcher>(
+                cv::makePtr<cv::flann::LshIndexParams>(12, 20, 2)
+            );
+        }
+        else
+        {
+            // KDTree for float descriptors (SIFT, SURF, etc.)
+            matcher = cv::makePtr<cv::FlannBasedMatcher>(
+                cv::makePtr<cv::flann::KDTreeIndexParams>(4)
+            );
+        }
+
+        std::vector<std::vector<cv::DMatch>> knn_matches;
+        matcher->knnMatch(descriptors_l, descriptors_r, knn_matches, 2);
 
         // Apply Lowe's ratio test
         for (const auto& knn : knn_matches)

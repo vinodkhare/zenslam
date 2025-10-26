@@ -18,7 +18,7 @@ slam:
   clahe_enabled: false
   feature:    "FAST"
   descriptor: "ORB"
-  matcher:    "KNN"      # Matcher type: BRUTE (cross-check) or KNN (with ratio test)
+  matcher:    "FLANN"      # Matcher type: BRUTE (cross-check) or KNN (with ratio test)
   matcher_ratio:  0.8     # Ratio test threshold for KNN matching (0.0-1.0, typically 0.75-0.85)
   fast_threshold: 1
   use_parallel_detector: true
