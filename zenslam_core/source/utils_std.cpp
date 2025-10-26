@@ -8,7 +8,7 @@
 auto zenslam::utils::mean(const std::vector<double>& values) -> double
 {
     auto mean = 0.0;
-    for (const auto& value: values)
+    for (const auto& value : values)
     {
         mean += value;
     }
@@ -39,7 +39,7 @@ std::string zenslam::utils::to_string_epoch(const double epoch_seconds)
     // Split into integral seconds and fractional milliseconds
     const auto& seconds      = std::chrono::floor<std::chrono::seconds>(std::chrono::duration<double>(epoch_seconds));
     const auto& milliseconds =
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(epoch_seconds) - seconds);
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(epoch_seconds) - seconds);
 
     // sys_time with milliseconds precision
     auto time_point = std::chrono::sys_seconds(seconds) + milliseconds;

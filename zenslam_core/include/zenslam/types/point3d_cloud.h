@@ -20,7 +20,9 @@ namespace zenslam
                     10,
                     nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex
                 }
-            } {}
+            }
+        {
+        }
 
         point3d_cloud(const point3d_cloud& other) :
             map(other),
@@ -33,7 +35,9 @@ namespace zenslam
                     10,
                     nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex
                 }
-            } {}
+            }
+        {
+        }
 
         auto operator=(const point3d_cloud& other) -> point3d_cloud&
         {
@@ -49,8 +53,10 @@ namespace zenslam
 
         [[nodiscard]] double kdtree_get_pt(const size_t idx, const size_t dim) const
         {
-            if (dim == 0) return this->operator()(idx).x;
-            if (dim == 1) return this->operator()(idx).y;
+            if (dim == 0)
+                return this->operator()(idx).x;
+            if (dim == 1)
+                return this->operator()(idx).y;
             return this->operator()(idx).z;
         }
 

@@ -127,7 +127,7 @@ namespace zenslam
 
                 // Column 0: timestamp in nanoseconds
                 const auto timestamp_ns = doc.GetCell<double>(0, i);
-                imu.timestamp             = timestamp_ns * _timescale;
+                imu.timestamp           = timestamp_ns * _timescale;
 
                 // Columns 1-3: angular velocity (rad/s)
                 imu.gyr = cv::Vec3d

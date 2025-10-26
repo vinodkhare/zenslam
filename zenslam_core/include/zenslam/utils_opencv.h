@@ -70,8 +70,8 @@ namespace zenslam::utils
     auto draw_matches_spatial(const frame::estimated& frame, const map<point3d>& points) -> cv::Mat;
     auto draw_matches_temporal
     (
-        const frame::estimated&         frame_0,
-        const frame::estimated&         frame_1,
+        const frame::estimated&    frame_0,
+        const frame::estimated&    frame_1,
         const class options::slam& options
     ) -> cv::Mat;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;

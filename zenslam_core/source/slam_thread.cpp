@@ -60,8 +60,8 @@ void zenslam::slam_thread::loop()
 
     // Create matcher once for efficiency (instead of per-frame)
     // Binary descriptors: ORB, FREAK; Float descriptors: SIFT
-    const bool is_binary = _options.slam.descriptor == descriptor_type::ORB || _options.slam.descriptor == descriptor_type::FREAK;
-    const auto matcher   = utils::create_matcher(_options.slam, is_binary);
+    const bool         is_binary = _options.slam.descriptor == descriptor_type::ORB || _options.slam.descriptor == descriptor_type::FREAK;
+    const auto         matcher   = utils::create_matcher(_options.slam, is_binary);
     zenslam::processor processor { _options.slam, calibration };
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);

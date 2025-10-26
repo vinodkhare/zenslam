@@ -17,28 +17,28 @@ namespace zenslam
 
         switch (options.feature)
         {
-            case feature_type::FAST:
-                feature_detector = cv::FastFeatureDetector::create(options.fast_threshold);
-                break;
-            case feature_type::ORB:
-                feature_detector = cv::ORB::create();
-                break;
-            case feature_type::SIFT:
-                feature_detector = cv::SIFT::create();
-                break;
+        case feature_type::FAST:
+            feature_detector = cv::FastFeatureDetector::create(options.fast_threshold);
+            break;
+        case feature_type::ORB:
+            feature_detector = cv::ORB::create();
+            break;
+        case feature_type::SIFT:
+            feature_detector = cv::SIFT::create();
+            break;
         }
 
         switch (options.descriptor)
         {
-            case descriptor_type::ORB:
-                feature_describer = cv::ORB::create();
-                break;
-            case descriptor_type::SIFT:
-                feature_describer = cv::SIFT::create();
-                break;
-            case descriptor_type::FREAK:
-                feature_describer = cv::xfeatures2d::FREAK::create();
-                break;
+        case descriptor_type::ORB:
+            feature_describer = cv::ORB::create();
+            break;
+        case descriptor_type::SIFT:
+            feature_describer = cv::SIFT::create();
+            break;
+        case descriptor_type::FREAK:
+            feature_describer = cv::xfeatures2d::FREAK::create();
+            break;
         }
 
         grid_detector detector { };
@@ -69,7 +69,7 @@ namespace zenslam
         std::vector occupied(grid_size.width, std::vector(grid_size.height, false));
 
         // loop over all existing keypoints and update occupancy
-        for (const auto& keypoint: keypoints_existing | std::views::values)
+        for (const auto& keypoint : keypoints_existing | std::views::values)
         {
             // Calculate which grid cell this keypoint falls into
             const auto& grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
@@ -94,7 +94,8 @@ namespace zenslam
             for (auto x = 0; x < grid_size.width; ++x)
             {
                 // If the cell is occupied, then continue
-                if (occupied[x][y]) continue;
+                if (occupied[x][y])
+                    continue;
 
                 // Calculate cell boundaries, making sure not to exceed image dimensions
                 cv::Rect cell_rect
@@ -145,12 +146,12 @@ namespace zenslam
         }
 
         const auto points_cv = keypoints_cv | std::views::transform
-                         (
-                             [](const auto& keypoint)
-                             {
-                                 return keypoint.pt;
-                             }
-                         ) | std::ranges::to<std::vector>();
+        (
+            [](const auto& keypoint)
+            {
+                return keypoint.pt;
+            }
+        ) | std::ranges::to<std::vector>();
 
         for (auto i = 0; i < points_cv.size(); ++i)
         {
@@ -185,7 +186,7 @@ namespace zenslam
         std::vector occupied(grid_size.width, std::vector(grid_size.height, false));
 
         // loop over all existing keypoints and update occupancy
-        for (const auto& keypoint: keypoints_existing | std::views::values)
+        for (const auto& keypoint : keypoints_existing | std::views::values)
         {
             // Calculate which grid cell this keypoint falls into
             const auto& grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
@@ -289,12 +290,12 @@ namespace zenslam
 
         // Refine keypoint positions
         auto points_cv = keypoints_cv | std::views::transform
-                         (
-                             [](const auto& keypoint)
-                             {
-                                 return keypoint.pt;
-                             }
-                         ) | std::ranges::to<std::vector>();
+        (
+            [](const auto& keypoint)
+            {
+                return keypoint.pt;
+            }
+        ) | std::ranges::to<std::vector>();
 
         if (!points_cv.empty())
         {
@@ -314,7 +315,7 @@ namespace zenslam
         }
 
         // Compute descriptors
-        cv::Mat descriptors;
+        cv::Mat  descriptors;
         cv::UMat image_umat;
         image.copyTo(image_umat);
         _describer->compute(image_umat, keypoints_cv, descriptors);
@@ -337,7 +338,7 @@ namespace zenslam
         cv::Mat mask = cv::Mat::ones(image.size(), CV_8U) * 255;
 
         // For each existing keyline, mask out a thick line along the line segment
-        for (const auto& existing_keyline: keylines_map | std::views::values)
+        for (const auto& existing_keyline : keylines_map | std::views::values)
         {
             // Get start and end points of the line segment
             const cv::Point start
@@ -378,11 +379,11 @@ namespace zenslam
             }
 
             keylines.emplace_back(keylines_cv[i], keyline::index_next);
-            if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows)) keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
+            if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows))
+                keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
             keyline::index_next++;
         }
 
         return keylines;
     }
-
 } // namespace zenslam

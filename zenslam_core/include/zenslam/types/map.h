@@ -100,12 +100,12 @@ namespace zenslam
     auto map<T>::keys_matched(const map& other) const -> auto
     {
         return *this | std::views::keys | std::views::filter
-               (
-                   [&other](const auto& index)
-                   {
-                       return other.contains(index);
-                   }
-               ) | std::ranges::to<std::vector>();
+        (
+            [&other](const auto& index)
+            {
+                return other.contains(index);
+            }
+        ) | std::ranges::to<std::vector>();
     }
 
     template <indexable T>
@@ -119,36 +119,36 @@ namespace zenslam
     auto map<T>::values_cast() const -> auto
     {
         return *this | std::views::values | std::views::transform
-               (
-                   [](const auto& item) -> S
-                   {
-                       return static_cast<S>(item);
-                   }
-               );
+        (
+            [](const auto& item) -> S
+            {
+                return static_cast<S>(item);
+            }
+        );
     }
 
     template <indexable T>
     auto map<T>::values_matched(const map& other) const -> auto
     {
         return *this | std::views::values | std::views::filter
-               (
-                   [&other](const auto& item)
-                   {
-                       return other.contains(item.index);
-                   }
-               );
+        (
+            [&other](const auto& item)
+            {
+                return other.contains(item.index);
+            }
+        );
     }
 
     template <indexable T>
     auto map<T>::values_unmatched(const map& other) const -> auto
     {
         return *this | std::views::values | std::views::filter
-               (
-                   [&other](const auto& item)
-                   {
-                       return !other.contains(item.index);
-                   }
-               );
+        (
+            [&other](const auto& item)
+            {
+                return !other.contains(item.index);
+            }
+        );
     }
 
     template <indexable T>
@@ -156,12 +156,12 @@ namespace zenslam
     auto map<T>::values_matched(const map<S>& other) const -> auto
     {
         return *this | std::views::values | std::views::filter
-               (
-                   [&other](const auto& item)
-                   {
-                       return other.contains(item.index);
-                   }
-               );
+        (
+            [&other](const auto& item)
+            {
+                return other.contains(item.index);
+            }
+        );
     }
 
     template <indexable T>
@@ -169,12 +169,12 @@ namespace zenslam
     auto map<T>::values_unmatched(const map<S>& other) const -> auto
     {
         return *this | std::views::values | std::views::filter
-               (
-                   [&other](const auto& item)
-                   {
-                       return !other.contains(item.index);
-                   }
-               );
+        (
+            [&other](const auto& item)
+            {
+                return !other.contains(item.index);
+            }
+        );
     }
 
     template <indexable T>
@@ -193,16 +193,18 @@ namespace zenslam
     template <indexable T>
     auto map<T>::operator+=(const T& item) -> void
     {
-        if (!this->contains(item.index)) this->_indices.push_back(item.index);
+        if (!this->contains(item.index))
+            this->_indices.push_back(item.index);
         this->operator[](item.index) = item;
     }
 
     template <indexable T>
     auto map<T>::operator+=(const std::vector<T>& items) -> void
     {
-        for (const auto& item: items)
+        for (const auto& item : items)
         {
-            if (!this->contains(item.index)) this->_indices.push_back(item.index);
+            if (!this->contains(item.index))
+                this->_indices.push_back(item.index);
             this->operator[](item.index) = item;
         }
     }
@@ -210,9 +212,10 @@ namespace zenslam
     template <indexable T>
     auto map<T>::operator+=(const std::map<size_t, T>& other) -> void
     {
-        for (const auto& [index, item]: other)
+        for (const auto& [index, item] : other)
         {
-            if (!this->contains(item.index)) this->_indices.push_back(item.index);
+            if (!this->contains(item.index))
+                this->_indices.push_back(item.index);
             this->operator[](item.index) = item;
         }
     }
@@ -220,7 +223,7 @@ namespace zenslam
     template <indexable T>
     auto map<T>::operator+=(const map& other) -> void
     {
-        for (const auto& [index, item]: other)
+        for (const auto& [index, item] : other)
         {
             if (!this->contains(item.index))
             {
@@ -233,7 +236,7 @@ namespace zenslam
     template <indexable T>
     auto map<T>::operator*=(const std::vector<cv::DMatch>& matches) -> void
     {
-        for (const auto& match: matches)
+        for (const auto& match : matches)
         {
             if (this->contains(match.trainIdx))
             {
@@ -250,7 +253,7 @@ namespace zenslam
         }
 
         this->_indices.clear();
-        for (const auto& [index, item]: *this)
+        for (const auto& [index, item] : *this)
         {
             this->_indices.push_back(index);
         }

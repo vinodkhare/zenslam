@@ -37,10 +37,11 @@ zenslam::groundtruth zenslam::groundtruth::read(const std::filesystem::path& pat
 
 auto zenslam::groundtruth::slerp(const double timestamp) -> pose
 {
-    while (_index < _poses.size() && _poses[_index].timestamp < timestamp) _index++;
+    while (_index < _poses.size() && _poses[_index].timestamp < timestamp)
+        _index++;
 
     const auto& t = (timestamp - _poses[_index - 1].timestamp) /
-                    (_poses[_index].timestamp - _poses[_index - 1].timestamp);
+        (_poses[_index].timestamp - _poses[_index - 1].timestamp);
 
     pose pose { };
     pose.translation = _poses[_index - 1].translation * (1.0 - t) + _poses[_index].translation * t;

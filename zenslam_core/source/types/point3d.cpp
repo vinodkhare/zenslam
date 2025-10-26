@@ -10,10 +10,10 @@ auto zenslam::point3d::create
 ) -> std::vector<point3d>
 {
     return std::views::zip(points, indices, descriptors) | std::views::transform
-           (
-               [](const auto& tuple)
-               {
-                   return point3d { std::get<0>(tuple), std::get<1>(tuple), std::get<2>(tuple) };
-               }
-           ) | std::ranges::to<std::vector>();
+    (
+        [](const auto& tuple)
+        {
+            return point3d { std::get < 0 > (tuple), std::get < 1 > (tuple), std::get < 2 > (tuple) };
+        }
+    ) | std::ranges::to<std::vector>();
 }

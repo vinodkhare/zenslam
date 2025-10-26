@@ -76,7 +76,7 @@ namespace zenslam
             }
         }
 
-        erase_if(_measurements, [&](auto& m){ return m.timestamp < start - overlap_period; });
+        erase_if(_measurements, [&](auto& m) { return m.timestamp < start - overlap_period; });
 
         ugpm::ImuData imu_data = { };
         imu_data.acc.reserve(to_integrate.size());
@@ -207,6 +207,7 @@ namespace zenslam
     void preint::set_overlap_factor(int factor) { (void)factor; }
     void preint::set_state_frequency(double freq) { (void)freq; }
     void preint::set_correlate(bool enable) { (void)enable; }
+
     void preint::set_biases
     (
         const std::vector<double>& acc_bias,

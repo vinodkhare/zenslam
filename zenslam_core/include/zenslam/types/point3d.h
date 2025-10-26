@@ -28,7 +28,7 @@ inline auto operator*(const cv::Affine3d& pose, const std::vector<zenslam::point
     std::vector<zenslam::point3d> points3d_trans = { };
     points3d_trans.reserve(points3d.size());
 
-    for (const auto& point3d: points3d)
+    for (const auto& point3d : points3d)
     {
         points3d_trans.emplace_back(pose * point3d, point3d.index, point3d.descriptor);
     }
@@ -40,7 +40,7 @@ inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::poin
 {
     zenslam::map<zenslam::point3d> points3d_trans { };
 
-    for (const auto& point3d: points3d | std::views::values)
+    for (const auto& point3d : points3d | std::views::values)
     {
         points3d_trans[point3d.index]            = pose * point3d;
         points3d_trans[point3d.index].index      = point3d.index;
@@ -49,4 +49,3 @@ inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::poin
 
     return points3d_trans;
 }
-

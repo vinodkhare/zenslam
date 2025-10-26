@@ -27,7 +27,7 @@ namespace zenslam
 
         options                   _options = { };
         std::mutex                _mutex   = { };
-    std::condition_variable   _cv      = { };
+        std::condition_variable   _cv      = { };
         std::queue<frame::sensor> _queue   = { };
 
         std::stop_source _stop_source = { };
