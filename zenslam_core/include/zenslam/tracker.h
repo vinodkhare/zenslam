@@ -5,11 +5,11 @@
 #include "zenslam/calibration.h"
 #include "zenslam/detector.h"
 #include "zenslam/matcher.h"
-#include "zenslam/triangulator.h"
 #include "zenslam/options.h"
+#include "zenslam/triangulator.h"
+#include "zenslam/frame/estimated.h"
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/tracked.h"
-#include "zenslam/frame/estimated.h"
 
 namespace zenslam
 {

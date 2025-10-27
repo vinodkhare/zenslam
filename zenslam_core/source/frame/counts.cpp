@@ -19,8 +19,10 @@ namespace zenslam::frame
         SPDLOG_INFO("  Matches Triangulated:  {:4}", matches_triangulated);
         SPDLOG_INFO("  3D-3D Correspondences: {:4}", correspondences_3d3d);
         SPDLOG_INFO("  3D-2D Correspondences: {:4}", correspondences_3d2d);
+        SPDLOG_INFO("  2D-2D Correspondences: {:4}", correspondences_2d2d);
         SPDLOG_INFO("  3D-3D Inliers:         {:4}", correspondences_3d3d_inliers);
         SPDLOG_INFO("  3D-2D Inliers:         {:4}", correspondences_3d2d_inliers);
+        SPDLOG_INFO("  2D-2D Inliers:         {:4}", correspondences_2d2d_inliers);
         SPDLOG_INFO("  Map Points:            {:4}", points);
     }
 }

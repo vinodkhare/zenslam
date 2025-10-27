@@ -140,20 +140,31 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { system.durations.estimation };
 
-                const auto [pose_3d3d, pose_3d2d, chosen_pose] = estimator.estimate_pose(system[0].points3d, tracked);
+                auto [pose_3d3d, pose_3d2d, pose_2d2d, chosen_pose, chosen_count] = estimator.estimate_pose(system[0], tracked);
+
+                SPDLOG_INFO("Chosen count: {}", chosen_count);
 
                 // Update counts
                 system.counts.correspondences_3d2d         = pose_3d2d.indices.size();
                 system.counts.correspondences_3d3d         = pose_3d3d.indices.size();
+                system.counts.correspondences_2d2d         = pose_2d2d.indices.size();
                 system.counts.correspondences_3d2d_inliers = pose_3d2d.inliers.size();
                 system.counts.correspondences_3d3d_inliers = pose_3d3d.inliers.size();
+                system.counts.correspondences_2d2d_inliers = pose_2d2d.inliers.size();
 
                 // Logging
                 const auto err3d3d_mean = utils::mean(pose_3d3d.errors);
                 const auto err3d2d_mean = utils::mean(pose_3d2d.errors);
+                const auto err2d2d_mean = utils::mean(pose_2d2d.errors);
 
                 SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
                 SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
+                SPDLOG_INFO("2D-2D mean error: {:.4f} px", err2d2d_mean);
+
+                if (chosen_count < 10)
+                {
+                    chosen_pose = pose_predicted;
+                }
 
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated { tracked, system[0].pose * chosen_pose.inv() };

@@ -17,8 +17,10 @@ namespace zenslam::frame
         size_t matches_triangulated         = { };
         size_t correspondences_3d3d         = { };
         size_t correspondences_3d2d         = { };
+        size_t correspondences_2d2d         = { };
         size_t correspondences_3d3d_inliers = { };
         size_t correspondences_3d2d_inliers = { };
+        size_t correspondences_2d2d_inliers = { };
         size_t points                       = { };
         size_t lines                        = { };
 

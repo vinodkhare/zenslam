@@ -1,20 +1,12 @@
-## ZenSLAM
+# ZenSLAM
 
-ZenSLAM is an experimental stereo SLAM playground. It currently provides:
+## What is ZenSLAM?
 
-* A core C++23 library (`zenslam_core`) with calibration parsing, frame abstractions, feature detection (grid +
-  FAST/ORB/SIFT backends), stereo matching, stereo rectification, epipolar filtering, triangulation utilities, 
-  threading helpers, and option parsing.
-* An application layer (`zenslam_app`) with a simple GUI (HelloImGui + OpenCV viz) for visualizing frames, matches,
-  and (work-in-progress) reconstructed 3D points.
-* A Python utility (`zenslam_py/scripts/bag_to_images.py`) to extract image sequences from ROS1/ROS2 bag files using
-  `rosbags` (no ROS install needed).
-* A Catch2 based test target (`zenslam_tests`) for unit / regression tests.
+ZenSLAM is a "nothing special" SLAM system. In the last couple of decades or so, SLAM has matured as a technology and has become inreasingly commoditized. Today it is possible to write a SLAM system using off-the-shelf components and libraries. ZenSLAM is an exploration of this idea: can we build a simple stereo SLAM system using well-known techniques and readily available libraries? ZenSLAM aims not for innovation, but for clarity, simplicity, and ease of understanding and use.
 
 Status: early / evolving. Expect APIs to change.
 
 ---
-
 ## Coding Philosophy
 
 * Start with the most obvious solution and then refactor
@@ -87,6 +79,8 @@ Installed via vcpkg (recommended). Core components require:
 * VTK (pulled indirectly by OpenCV viz)
 * Catch2 (tests)
 * nanoflann
+* glog
+* Ceres Solver (with EigenSparse, LAPACK, Schur, SuiteSparse options)
 
 Example vcpkg install (adjust triplet, add --overlay-ports if needed):
 
@@ -100,7 +94,9 @@ Example vcpkg install (adjust triplet, add --overlay-ports if needed):
   spdlog \
   yaml-cpp \
   catch2 \
-  nanoflann
+  nanoflann \
+  glog \
+  'ceres[eigensparse,lapack,schur,suitesparse]'
 ```
 
 Ensure `CMAKE_TOOLCHAIN_FILE` points to your vcpkg toolchain when configuring.
@@ -110,15 +106,14 @@ Ensure `CMAKE_TOOLCHAIN_FILE` points to your vcpkg toolchain when configuring.
 ## Configure & Build (All Targets)
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      -DCMAKE_TOOLCHAIN_FILE="/path/to/vcpkg.cmake"
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_TOOLCHAIN_FILE="/path/to/vcpkg.cmake"
 cmake --build build -j
 ```
 
 Build times:
 
 | Date       | Debug        | Release      |
-| ---------- | ------------ | ------------ |
+|------------|--------------|--------------|
 | 2025-10-23 | 00:01:55.546 | 00:00:24.286 |
 
 Run the app:
@@ -296,16 +291,6 @@ These documents are evolving—contributions and corrections are welcome.
 
 ---
 
-## Roadmap (Short-Term)
-
-* Maintain persistent keypoint tracks (KLT + descriptor refresh).
-* Basic pose estimation (PnP / essential decomposition).
-* Map point management (prune, merge, re-triangulate).
-* Visualization of 3D points in-app (color by track length / reprojection error).
-* Benchmark scripts & dataset loaders (TUM-VI, EuRoC).
-
----
-
 ## Contributing
 
 Early stage: feel free to open issues / PRs for ideas or small improvements. Larger architectural changes: start a
@@ -315,11 +300,9 @@ discussion first.
 
 ## License
 
-See `LICENSE`.
+See [`LICENSE`](LICENSE).
 
----
 
-## Acknowledgements
+```mermaid
 
-Built with fantastic open-source libraries: OpenCV, VTK, HelloImGui, yaml-cpp, spdlog, magic_enum, Catch2, and more.
-
+```
