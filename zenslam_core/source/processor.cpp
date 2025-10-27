@@ -55,12 +55,12 @@ auto zenslam::processor::process(const frame::sensor& sensor) -> frame::processe
         {
             [&]()
             {
-                processed.preint = _integrator.integrate(sensor.imu_data, isnan(_timestamp) ? sensor.timestamp : _timestamp, sensor.timestamp);
+                processed.integral = _integrator.integrate(sensor.imu_data, isnan(_timestamp) ? sensor.timestamp : _timestamp, sensor.timestamp);
             }
         };
-
-        _timestamp = sensor.timestamp;
     }
+
+    _timestamp = sensor.timestamp;
 
     return processed;
 }

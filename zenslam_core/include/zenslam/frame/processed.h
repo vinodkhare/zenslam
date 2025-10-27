@@ -10,6 +10,6 @@ namespace zenslam::frame
     {
         std::array<cv::Mat, 2>              undistorted = { };
         std::array<std::vector<cv::Mat>, 2> pyramids    = { };
-        ugpm::PreintMeas                    preint      = { };
+        ugpm::PreintMeas                    integral    = { };
     };
 }

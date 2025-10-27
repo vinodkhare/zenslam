@@ -4,7 +4,7 @@
 
 auto zenslam::motion::predict(const frame::estimated& estimated_0, const frame::processed& processed_1) const -> cv::Affine3d
 {
-    const auto dt          = processed_1.timestamp - estimated_0.timestamp;
+    const auto dt          = isnan(estimated_0.timestamp) ? 0 : processed_1.timestamp - estimated_0.timestamp;
     const auto translation = _vel * dt + 0.5 * _acc * dt * dt;
 
     cv::Matx33d rotation { };
@@ -17,7 +17,7 @@ auto zenslam::motion::update(const frame::estimated& estimated_0, const frame::e
 {
     const auto dt = estimated_1.timestamp - estimated_0.timestamp;
 
-    if (std::abs(dt) < 1e-6)
+    if (isnan(dt) < 1e-6)
     {
         return;
     }

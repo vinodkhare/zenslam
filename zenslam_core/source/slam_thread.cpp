@@ -92,8 +92,6 @@ void zenslam::slam_thread::loop()
 
                 sensor = _queue.front();
                 _queue.pop();
-
-                system[0] = std::move(system[1]);
             }
 
             // PREPROCESS
@@ -191,6 +189,8 @@ void zenslam::slam_thread::loop()
             }
 
             on_frame(system);
+
+            system[0] = std::move(system[1]);
         }
 
         system.counts.print();
