@@ -1,6 +1,5 @@
 #include "zenslam/slam_thread.h"
 
-
 #include <utility>
 
 #include <spdlog/spdlog.h>
@@ -8,14 +7,15 @@
 #include <vtk-9.3/vtkLogger.h>
 
 #include "zenslam/calibration.h"
+#include "zenslam/estimator.h"
+#include "zenslam/gravity_estimator.h"
 #include "zenslam/groundtruth.h"
+#include "zenslam/motion_predictor.h"
 #include "zenslam/processor.h"
 #include "zenslam/time_this.h"
-#include "zenslam/utils.h"
-#include "zenslam/estimator.h"
-#include "zenslam/motion_predictor.h"
-#include "zenslam/utils_slam.h"
 #include "zenslam/tracker.h"
+#include "zenslam/utils.h"
+#include "zenslam/utils_slam.h"
 #include "zenslam/utils_std.h"
 #include "zenslam/frame/durations.h"
 #include "zenslam/frame/estimated.h"
@@ -51,10 +51,11 @@ void zenslam::slam_thread::loop()
     const auto& calibration = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file, _options.slam.stereo_rectify);
 
     // Create tracker (owns descriptor matcher configured from options)
-    processor       processor { _options.slam, calibration };
-    tracker         tracker { calibration, _options.slam };
-    const estimator estimator { calibration, _options.slam };
-    motion_predictor          motion { };
+    processor         processor { _options.slam, calibration };
+    tracker           tracker { calibration, _options.slam };
+    const estimator   estimator { calibration, _options.slam };
+    motion_predictor  motion { };
+    gravity_estimator gravity_estimator { };
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");
@@ -163,6 +164,16 @@ void zenslam::slam_thread::loop()
 
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated { tracked, system[0].pose * chosen_pose.inv() };
+
+                if (gravity_estimator.count() < 50)
+                {
+                    gravity_estimator.add(system[1]);
+                }
+                else
+                {
+                    auto gravity = gravity_estimator.estimate();
+                    SPDLOG_DEBUG("Gravity: {}", gravity);
+                }
 
                 SPDLOG_INFO("Predicted pose:   {}", system[1].pose * pose_predicted.inv());
                 SPDLOG_INFO("Estimated pose:   {}", system[1].pose);

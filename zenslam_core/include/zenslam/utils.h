@@ -112,3 +112,24 @@ struct fmt::formatter<cv::Affine3d> : formatter<std::string>
         );
     }
 };
+
+// Pretty formatter for cv::Vec3d for spdlog/fmt
+template <>
+struct fmt::formatter<cv::Vec3d> : formatter<std::string>
+{
+    template <typename FormatContext>
+    auto format(const cv::Vec3d& value, FormatContext& context) const
+    {
+        return formatter<std::string>::format
+        (
+            fmt::format
+            (
+                "[ {:+.4f}, {:+.4f}, {:+.4f} ]",
+                value[0],
+                value[1],
+                value[2]
+            ),
+            context
+        );
+    }
+};
