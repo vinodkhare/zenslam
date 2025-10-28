@@ -102,6 +102,7 @@ void zenslam::slam_thread::loop()
             cv::Affine3d pose_predicted { };
             {
                 pose_predicted = motion.predict(system[0], processed);
+                SPDLOG_INFO("Predicted pose: {}", pose_predicted);
             }
 
             // TODO: separate keyline and keypoints pipelines

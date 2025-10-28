@@ -17,7 +17,7 @@ auto zenslam::motion::update(const frame::estimated& estimated_0, const frame::e
 {
     const auto dt = estimated_1.timestamp - estimated_0.timestamp;
 
-    if (isnan(dt) < 1e-6)
+    if (isnan(dt))
     {
         return;
     }
