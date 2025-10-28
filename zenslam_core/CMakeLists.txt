@@ -59,7 +59,7 @@ add_library(${PROJECT_NAME}
         source/estimator.cpp
         source/triangulator.cpp
         source/matcher.cpp
-        source/motion.cpp
+        source/motion_predictor.cpp
         source/options.cpp
         source/pose.cpp
         source/processor.cpp

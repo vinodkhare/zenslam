@@ -13,7 +13,7 @@
 #include "zenslam/time_this.h"
 #include "zenslam/utils.h"
 #include "zenslam/estimator.h"
-#include "zenslam/motion.h"
+#include "zenslam/motion_predictor.h"
 #include "zenslam/utils_slam.h"
 #include "zenslam/tracker.h"
 #include "zenslam/utils_std.h"
@@ -54,7 +54,7 @@ void zenslam::slam_thread::loop()
     processor       processor { _options.slam, calibration };
     tracker         tracker { calibration, _options.slam };
     const estimator estimator { calibration, _options.slam };
-    motion          motion { };
+    motion_predictor          motion { };
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer      = frame::writer(_options.folder.output / "frame_data.csv");

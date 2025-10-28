@@ -7,7 +7,7 @@
 
 namespace zenslam
 {
-    class motion
+    class motion_predictor
     {
     public:
         /**

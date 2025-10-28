@@ -1,8 +1,8 @@
-#include "zenslam/motion.h"
+#include "zenslam/motion_predictor.h"
 
 #include <opencv2/calib3d.hpp>
 
-auto zenslam::motion::predict(const frame::estimated& estimated_0, const frame::processed& processed_1) const -> cv::Affine3d
+auto zenslam::motion_predictor::predict(const frame::estimated& estimated_0, const frame::processed& processed_1) const -> cv::Affine3d
 {
     const auto dt          = isnan(estimated_0.timestamp) ? 0 : processed_1.timestamp - estimated_0.timestamp;
     const auto translation = _vel * dt + 0.5 * _acc * dt * dt;
@@ -13,7 +13,7 @@ auto zenslam::motion::predict(const frame::estimated& estimated_0, const frame::
     return { rotation, translation };
 }
 
-auto zenslam::motion::update(const frame::estimated& estimated_0, const frame::estimated& estimated_1) -> void
+auto zenslam::motion_predictor::update(const frame::estimated& estimated_0, const frame::estimated& estimated_1) -> void
 {
     const auto dt = estimated_1.timestamp - estimated_0.timestamp;
 
