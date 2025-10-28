@@ -1,53 +1,45 @@
 #include "zenslam/integrator.h"
 
-#include <opencv2/core/affine.hpp>
 #include <utility>
 #include <spdlog/spdlog.h>
 
 namespace zenslam
 {
-#if ZENSLAM_HAS_UGPM
-
     integrator::integrator(imu_calibration imu_calib, method preint_method)
         : _imu_calib(std::move(imu_calib)),
-          _method(preint_method),
-          _overlap_factor(8),
-          _state_freq(200.0),
-          _correlate(true),
-          _acc_bias({ 0.0, 0.0, 0.0 }),
-          _gyr_bias({ 0.0, 0.0, 0.0 }),
-          _prev_end_time(0.0)
+          _method(preint_method)
     {
     }
 
-    void integrator::set_overlap_factor(const int factor)
+    static ugpm::PreintPrior to_ugpm_prior(const prior& p)
     {
-        _overlap_factor = factor;
+        ugpm::PreintPrior up;
+        up.acc_bias = p.acc_bias;
+        up.gyr_bias = p.gyr_bias;
+        return up;
     }
 
-    void integrator::set_state_frequency(const double freq)
+    static prior from_ugpm_prior(const ugpm::PreintPrior& p)
     {
-        _state_freq = freq;
+        prior zp;
+        zp.acc_bias = p.acc_bias;
+        zp.gyr_bias = p.gyr_bias;
+        return zp;
     }
 
-    void integrator::set_correlate(const bool enable)
+    static integral from_ugpm_meas(const ugpm::PreintMeas& m)
     {
-        _correlate = enable;
+        integral z { };
+        z.delta_R    = m.delta_R;
+        z.delta_v    = m.delta_v;
+        z.delta_p    = m.delta_p;
+        z.dt         = m.dt;
+        z.dt_sq_half = m.dt_sq_half;
+        z.cov        = m.cov;
+        return z;
     }
 
-    void integrator::set_biases
-    (
-        const std::vector<double>& acc_bias,
-        const std::vector<double>& gyr_bias
-    )
-    {
-        if (acc_bias.size() == 3)
-            _acc_bias = acc_bias;
-        if (gyr_bias.size() == 3)
-            _gyr_bias = gyr_bias;
-    }
-
-    auto integrator::integrate(const std::vector<frame::imu>& measurements, const double start, const double end) -> ugpm::PreintMeas
+    auto integrator::integrate(const std::vector<frame::imu>& measurements, const double start, const double end) -> integral
     {
         // first add all new measurements to _measurements
         for (const auto& m : measurements)
@@ -58,7 +50,7 @@ namespace zenslam
         if (_measurements.empty() || start >= end)
         {
             SPDLOG_WARN("No IMU measurements to integrate or invalid time interval [{:.4f}, {:.4f}]", start, end);
-            return ugpm::PreintMeas { };
+            return integral { };
         }
 
         constexpr int overlap_factor = 8;
@@ -79,50 +71,23 @@ namespace zenslam
         imu_data.acc.reserve(to_integrate.size());
         imu_data.gyr.reserve(to_integrate.size());
 
-        for (const auto& m : to_integrate)
+        for (const auto& [timestamp, acc, gyr] : to_integrate)
         {
-            imu_data.acc.emplace_back(ugpm::ImuSample { m.timestamp, m.acc[0], m.acc[1], m.acc[2] });
-            imu_data.gyr.emplace_back(ugpm::ImuSample { m.timestamp, m.gyr[0], m.gyr[1], m.gyr[2] });
+            imu_data.acc.emplace_back(ugpm::ImuSample { timestamp, acc[0], acc[1], acc[2] });
+            imu_data.gyr.emplace_back(ugpm::ImuSample { timestamp, gyr[0], gyr[1], gyr[2] });
         }
 
         // Setup preintegration options
         ugpm::PreintOption options = { };
         options.type               = _method == method::ugpm ? ugpm::UGPM : ugpm::LPM;
-        options.state_freq         = _state_freq;
-        options.correlate          = _correlate;
+        options.state_freq         = 200;
+        options.correlate          = true;
         options.quantum            = -1; // Disable per-chunk mode
 
-        ugpm::ImuPreintegration integration = { imu_data, start, end, options, _prior, false, overlap_factor };
+        ugpm::ImuPreintegration integration = { imu_data, start, end, options, to_ugpm_prior(_prior), false, overlap_factor };
 
-        _prior = integration.getPrior();
+        _prior = from_ugpm_prior(integration.getPrior());
 
-        return integration.get();
+        return from_ugpm_meas(integration.get());
     }
-
-#else
-
-    // Stub implementation when ugpm is not available
-    preint::preint(const imu_calibration& imu_calib, method preint_method)
-        : _dummy(0)
-    {
-        (void)imu_calib;
-        (void)preint_method;
-        SPDLOG_WARN("UGPM not available at compile time - IMU preintegration disabled");
-    }
-
-    void preint::set_overlap_factor(int factor) { (void)factor; }
-    void preint::set_state_frequency(double freq) { (void)freq; }
-    void preint::set_correlate(bool enable) { (void)enable; }
-
-    void preint::set_biases
-    (
-        const std::vector<double>& acc_bias,
-        const std::vector<double>& gyr_bias
-    )
-    {
-        (void)acc_bias;
-        (void)gyr_bias;
-    }
-
-#endif
 } // namespace zenslam

@@ -2,7 +2,7 @@
 
 #include "sensor.h"
 
-#include <preint/preint.h>
+#include "zenslam/integrator_types.h"
 
 namespace zenslam::frame
 {
@@ -10,6 +10,6 @@ namespace zenslam::frame
     {
         std::array<cv::Mat, 2>              undistorted = { };
         std::array<std::vector<cv::Mat>, 2> pyramids    = { };
-        ugpm::PreintMeas                    integral    = { };
+        integral                            integral    = { };
     };
 }
