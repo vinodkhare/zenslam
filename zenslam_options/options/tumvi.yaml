@@ -17,6 +17,7 @@ folder:
 slam:
   cell_size: [ 64, 64 ]
   clahe_enabled: false
+  integrator_method: "lpm"   # Options: "lpm" (linear preintegrated measurements), "ugpm" (unified gaussian preintegrated measurements)
   feature:    "FAST"
   descriptor: "ORB"
   matcher:    "BRUTE"      # Matcher type: BRUTE (cross-check) or KNN (with ratio test)

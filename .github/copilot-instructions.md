@@ -6,3 +6,4 @@
 - Build folder contains subfolders for each build type, e.g., `Debug`, `Release`, 'RelWithDebInfo' etc.
 - Use `vcpkg` toolchain file for dependency management.
 - When building, try to use VS Code/CMake build tasks if possible.
+- The github repo is located here: https://github.com/vinodkhare/zenslam

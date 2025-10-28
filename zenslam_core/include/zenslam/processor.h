@@ -35,7 +35,7 @@ namespace zenslam
         cv::Ptr<cv::CLAHE>  _clahe       = cv::createCLAHE(4.0); // TODO: make configurable
         class options::slam _options     = { };
         calibration         _calibration = { };
-        integrator          _integrator      = integrator { _calibration.imu };
+    integrator          _integrator      = integrator { _calibration.imu, _options.integrator_method };
         double              _timestamp   = std::nan("nan");
     };
 }

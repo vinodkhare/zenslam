@@ -9,7 +9,7 @@
 zenslam::processor::processor(class options::slam options, calibration calibration) :
     _options { std::move(options) },
     _calibration { std::move(calibration) },
-    _integrator { _calibration.imu }
+    _integrator { _calibration.imu, _options.integrator_method }
 {
 }
 
@@ -55,7 +55,7 @@ auto zenslam::processor::process(const frame::sensor& sensor) -> frame::processe
         {
             [&]()
             {
-                // processed.integral = _integrator.integrate(sensor.imu_data, isnan(_timestamp) ? sensor.timestamp : _timestamp, sensor.timestamp);
+                processed.integral = _integrator.integrate(sensor.imu_data, isnan(_timestamp) ? sensor.timestamp : _timestamp, sensor.timestamp);
             }
         };
     }

@@ -237,6 +237,7 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     set_enum_if_provided(options_map, map, "feature", options.slam.feature);
     set_enum_if_provided(options_map, map, "descriptor", options.slam.descriptor);
     set_enum_if_provided(options_map, map, "matcher", options.slam.matcher);
+    set_enum_if_provided(options_map, map, "integrator-method", options.slam.integrator_method);
     set_if_provided(options_map, map, "matcher-ratio", options.slam.matcher_ratio);
 
     return options;
@@ -282,6 +283,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
             yaml_set_enum(slam, "feature", options.slam.feature);
             yaml_set_enum(slam, "descriptor", options.slam.descriptor);
             yaml_set_enum(slam, "matcher", options.slam.matcher);
+            yaml_set_enum(slam, "integrator_method", options.slam.integrator_method);
             yaml_set_if_present(slam, "matcher_ratio", options.slam.matcher_ratio);
             yaml_set_if_present(slam, "fast_threshold", options.slam.fast_threshold);
             yaml_set_size(slam, "klt_window_size", options.slam.klt_window_size);
@@ -466,6 +468,11 @@ boost::program_options::options_description zenslam::options::slam::description(
         ("matcher type - pick one of: " + utils::to_string(magic_enum::enum_names<matcher_type>())).c_str()
     )
     (
+        "integrator-method",
+        boost::program_options::value<std::string>()->default_value(std::string(magic_enum::enum_name(opts_default.slam.integrator_method))),
+        ("integrator method - pick one of: " + utils::to_string(magic_enum::enum_names<integrator::method>())).c_str()
+    )
+    (
         "matcher-ratio",
         boost::program_options::value<double>()->default_value(opts_default.slam.matcher_ratio),
         "Matcher ratio test threshold for kNN matching (0.0-1.0)"
@@ -562,6 +569,7 @@ void zenslam::options::slam::print() const
     SPDLOG_INFO("feature type: {}", magic_enum::enum_name(feature));
     SPDLOG_INFO("descriptor type: {}", magic_enum::enum_name(descriptor));
     SPDLOG_INFO("matcher type: {}", magic_enum::enum_name(matcher));
+    SPDLOG_INFO("integrator method: {}", magic_enum::enum_name(integrator_method));
     SPDLOG_INFO("matcher ratio: {}", matcher_ratio);
     SPDLOG_INFO("fast threshold: {}", fast_threshold);
     SPDLOG_INFO("klt window size: [{}, {}]", klt_window_size.width, klt_window_size.height);

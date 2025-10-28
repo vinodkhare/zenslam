@@ -10,6 +10,7 @@
 
 #include "detection_types.h"
 #include "verb.h"
+#include "integrator.h"
 
 namespace zenslam
 {
@@ -67,6 +68,8 @@ namespace zenslam
             feature_type    feature               = { feature_type::FAST };
             descriptor_type descriptor            = { descriptor_type::ORB };
             matcher_type    matcher               = { matcher_type::BRUTE };
+            // IMU preintegration backend method (ugpm or lpm)
+            integrator::method integrator_method  = { integrator::method::ugpm };
             double          matcher_ratio         = { 0.8 };
             int             fast_threshold        = { 10 };
             cv::Size        klt_window_size       = { 31, 31 };
