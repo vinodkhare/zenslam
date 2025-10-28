@@ -11,12 +11,9 @@ namespace zenslam
     integrator::integrator(imu_calibration imu_calib, method preint_method)
         : _imu_calib(std::move(imu_calib)),
           _method(preint_method),
-          _overlap_factor(8) // Default: 8x state period for optimal UGPM
-          ,
-          _state_freq(50.0) // Default: 50 Hz state frequency
-          ,
-          _correlate(true) // Default: enable correlation
-          ,
+          _overlap_factor(8),
+          _state_freq(200.0),
+          _correlate(true),
           _acc_bias({ 0.0, 0.0, 0.0 }),
           _gyr_bias({ 0.0, 0.0, 0.0 }),
           _prev_end_time(0.0)
@@ -70,7 +67,7 @@ namespace zenslam
         std::vector<frame::imu> to_integrate = { };
         for (const auto& m : _measurements)
         {
-            if (start - overlap_period <= m.timestamp && m.timestamp <= end)
+            if (start - overlap_period <= m.timestamp && m.timestamp <= end + overlap_period)
             {
                 to_integrate.push_back(m);
             }

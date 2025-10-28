@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16)
 
 project(zenslam_core)
 
@@ -100,3 +100,6 @@ target_link_options(${PROJECT_NAME} PRIVATE "-Wl,-no_warn_duplicate_libraries")
 
 # Add ugpm headers (preint) to include path
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+
+# Enable precompiled headers for zenslam_core only
+target_precompile_headers(${PROJECT_NAME} PRIVATE include/zenslam/pch.h)

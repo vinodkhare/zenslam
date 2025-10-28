@@ -3,10 +3,6 @@
 
 #include <utility>
 
-#include <gsl/narrow>
-
-#include <opencv2/calib3d.hpp>
-
 #include <spdlog/spdlog.h>
 
 #include <vtk-9.3/vtkLogger.h>
