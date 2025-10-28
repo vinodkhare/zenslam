@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Eigen/Eigen>
+#include <opencv2/core.hpp>
 
 namespace zenslam
 {
@@ -8,12 +8,12 @@ namespace zenslam
      */
     struct integral
     {
-        Eigen::Matrix3d             delta_R    = Eigen::Matrix3d::Identity();
-        Eigen::Vector3d             delta_v    = Eigen::Vector3d::Zero();
-        Eigen::Vector3d             delta_p    = Eigen::Vector3d::Zero();
+        cv::Matx33d                 delta_R    = cv::Matx33d::eye();
+        cv::Vec3d                   delta_v    = cv::Vec3d(0,0,0);
+        cv::Vec3d                   delta_p    = cv::Vec3d(0,0,0);
         double                      dt         = 0.0;
         double                      dt_sq_half = 0.0;
-        Eigen::Matrix<double, 9, 9> cov        = Eigen::Matrix<double, 9, 9>::Zero();
+        cv::Matx<double, 9, 9>      cov        = cv::Matx<double, 9, 9>::zeros();
     };
 
     /** @brief Prior biases for IMU pre-integration

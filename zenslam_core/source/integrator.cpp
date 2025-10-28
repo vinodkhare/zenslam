@@ -5,7 +5,7 @@
 
 namespace zenslam
 {
-    integrator::integrator(imu_calibration imu_calib, method preint_method)
+    integrator::integrator(imu_calibration imu_calib, const method preint_method)
         : _imu_calib(std::move(imu_calib)),
           _method(preint_method)
     {
@@ -27,15 +27,38 @@ namespace zenslam
         return zp;
     }
 
+    static cv::Matx33d eigenToMatx33d(const Eigen::Matrix3d& M)
+    {
+        return {
+            M(0,0), M(0,1), M(0,2),
+            M(1,0), M(1,1), M(1,2),
+            M(2,0), M(2,1), M(2,2)
+        };
+    }
+
+    static cv::Vec3d eigenToVec3d(const Eigen::Vector3d& v)
+    {
+        return {v(0), v(1), v(2)};
+    }
+
+    static cv::Matx<double,9,9> eigenToMatx9x9(const Eigen::Matrix<double,9,9>& M)
+    {
+        cv::Matx<double,9,9> out;
+        for (int r = 0; r < 9; ++r)
+            for (int c = 0; c < 9; ++c)
+                out(r,c) = M(r,c);
+        return out;
+    }
+
     static integral from_ugpm_meas(const ugpm::PreintMeas& m)
     {
         integral z { };
-        z.delta_R    = m.delta_R;
-        z.delta_v    = m.delta_v;
-        z.delta_p    = m.delta_p;
+        z.delta_R    = eigenToMatx33d(m.delta_R);
+        z.delta_v    = eigenToVec3d(m.delta_v);
+        z.delta_p    = eigenToVec3d(m.delta_p);
         z.dt         = m.dt;
         z.dt_sq_half = m.dt_sq_half;
-        z.cov        = m.cov;
+        z.cov        = eigenToMatx9x9(m.cov);
         return z;
     }
 
