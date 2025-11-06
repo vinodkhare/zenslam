@@ -14,10 +14,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include "zenslam/calibration.h"
-#include "zenslam/frame/processed.h"
-#include "zenslam/pose_data.h"
-#include "zenslam/integrator.h"
 #include "zenslam/types/point3d.h"
 #include "zenslam/types/point3d_cloud.h"
 #include "zenslam/utils.h"

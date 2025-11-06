@@ -1,5 +1,6 @@
 #include "zenslam/slam_thread.h"
 
+#include <opencv2/core.hpp>
 #include <utility>
 
 #include <spdlog/spdlog.h>
@@ -10,6 +11,7 @@
 #include "zenslam/estimator.h"
 #include "zenslam/gravity_estimator.h"
 #include "zenslam/groundtruth.h"
+#include "zenslam/inertial_predictor.h"
 #include "zenslam/motion_predictor.h"
 #include "zenslam/processor.h"
 #include "zenslam/time_this.h"
@@ -55,6 +57,7 @@ void zenslam::slam_thread::loop()
     tracker           tracker { calibration, _options.slam };
     const estimator   estimator { calibration, _options.slam };
     motion_predictor  motion { };
+    inertial_predictor inertial { cv::Vec3d {0.0, 9.81, 0.0} , calibration.cameras[0].pose_in_imu0};
     gravity_estimator gravity_estimator { };
 
     auto groundtruth = groundtruth::read(_options.folder.groundtruth_file);
@@ -103,7 +106,10 @@ void zenslam::slam_thread::loop()
             cv::Affine3d pose_predicted { };
             {
                 pose_predicted = motion.predict(system[0], processed);
-                SPDLOG_INFO("Predicted pose: {}", pose_predicted);
+                SPDLOG_INFO("Predicted pose (motion): {}", pose_predicted);
+
+                pose_predicted = inertial.predict(system[0], processed);
+                SPDLOG_INFO("Predicted pose (inertial): {}", pose_predicted);
             }
 
             // TODO: separate keyline and keypoints pipelines
@@ -173,6 +179,7 @@ void zenslam::slam_thread::loop()
                 else
                 {
                     auto gravity = gravity_estimator.estimate();
+                    inertial.set_gravity_in_world(gravity);
                     SPDLOG_INFO("Gravity estimated: [{:.3f}, {:.3f}, {:.3f}], mag: {:.3f}", gravity[0], gravity[1], gravity[2], cv::norm(gravity));
                 }
 
@@ -195,6 +202,7 @@ void zenslam::slam_thread::loop()
             // UPDATE MOTION MODEL
             {
                 motion.update(system[0], system[1]);
+                inertial.update(system[0], system[1]);
             }
 
             on_frame(system);

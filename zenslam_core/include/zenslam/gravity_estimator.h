@@ -7,7 +7,6 @@
 #include <opencv2/core/matx.hpp>
 
 #include "frame/estimated.h"
-#include "frame/processed.h"
 
 namespace zenslam
 {

@@ -7,8 +7,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "zenslam/options.h"
-#include "zenslam/frame/sensor.h"
-#include "zenslam/frame/tracked.h"
+#include "zenslam/types/keyline.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/line3d.h"
 #include "zenslam/types/point3d.h"
