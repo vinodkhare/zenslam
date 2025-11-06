@@ -60,7 +60,6 @@ add_library(${PROJECT_NAME}
         source/triangulator.cpp
         source/matcher.cpp
         source/motion_predictor.cpp
-        source/inertial_predictor.cpp
         source/gravity_estimator.cpp
         source/options.cpp
         source/pose.cpp

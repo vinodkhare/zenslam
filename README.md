@@ -122,6 +122,10 @@ Run the app:
 ./build/zenslam_app/zenslam_app   # or from install prefix after `cmake --install build`
 ```
 
+### Troubleshooting
+
+After a MacOS update, you might start getting cmake or linker errors related to missing SDK files. To fix this, I created a symlink from the expected SDK path to the actual SDK path. E.g. `ln -s MacOSX26.1.sdk MacOSX26.0.sdk`.
+
 ### Visualization Options
 
 The application supports runtime toggling of keypoints and keylines in the visualization:

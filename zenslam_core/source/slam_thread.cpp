@@ -165,14 +165,15 @@ void zenslam::slam_thread::loop()
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated { tracked, system[0].pose * chosen_pose.inv() };
 
+                // Gravity estimation using residual method (needs previous frame)
                 if (gravity_estimator.count() < 50)
                 {
-                    gravity_estimator.add(system[1]);
+                    gravity_estimator.add(system[1], calibration.cameras[0].pose_in_imu0);
                 }
                 else
                 {
                     auto gravity = gravity_estimator.estimate();
-                    SPDLOG_DEBUG("Gravity: {}", gravity);
+                    SPDLOG_INFO("Gravity estimated: [{:.3f}, {:.3f}, {:.3f}], mag: {:.3f}", gravity[0], gravity[1], gravity[2], cv::norm(gravity));
                 }
 
                 SPDLOG_INFO("Predicted pose:   {}", system[1].pose * pose_predicted.inv());

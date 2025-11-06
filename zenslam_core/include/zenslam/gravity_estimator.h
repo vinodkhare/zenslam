@@ -1,53 +1,77 @@
 #pragma once
 
+#include <deque>
 #include <vector>
 
+#include <opencv2/core/affine.hpp>
 #include <opencv2/core/matx.hpp>
 
 #include "frame/estimated.h"
+#include "frame/processed.h"
 
 namespace zenslam
 {
     /**
-     * @brief Estimate gravity vector in world frame from early-frame poses.
+     * @brief Estimate gravity vector by comparing visual odometry acceleration with IMU measurements.
      *
-     * Assumes a known "down" direction in the camera frame (default OpenCV camera Y+).
-     * For each input pose, transforms this camera-frame down-axis into the world frame
-     * and accumulates samples. The estimate is the normalized average direction scaled
-     * by the specified magnitude (default 9.81 m/s^2).
+     * This estimator uses a residual-based approach:
+     * 1. Computes acceleration from camera poses (visual odometry)
+     * 2. Transforms camera acceleration to IMU frame
+     * 3. Compares with measured IMU acceleration
+     * 4. The residual is the gravity vector (since a_measured = a_true - g)
+     *
+     * Does NOT assume static initialization - works during dynamic motion.
      */
     class gravity_estimator
     {
     public:
         gravity_estimator() = default;
 
-        explicit gravity_estimator(const cv::Vec3d& cam_down_axis) : _axis_cam_down(normalize(cam_down_axis))
+        /**
+         * Add a pair of consecutive frames for gravity estimation.
+         * Requires at least 3 frames to compute acceleration (need velocity from 2 frames).
+         */
+        auto add
+        (
+            const frame::estimated& estimated_curr,
+            const cv::Affine3d&     T_cam_imu
+        ) -> void;
+
+        /**
+         * Return gravity vector in world frame.
+         * Returns the median of accumulated gravity samples for robustness.
+         */
+        [[nodiscard]] auto estimate() const -> cv::Vec3d;
+
+        /**
+         * Check if we have enough samples for a reliable estimate.
+         */
+        [[nodiscard]] auto has_estimate() const -> bool { return _gravity_samples.size() >= 10; }
+
+        /**
+         * Return number of accumulated samples.
+         */
+        [[nodiscard]] auto count() const -> size_t { return _gravity_samples.size(); }
+
+        /**
+         * Reset accumulated samples.
+         */
+        auto reset() -> void
         {
+            _gravity_samples.clear();
+            _pose_history.clear();
         }
-
-        // Provide an estimated frame (pose must have valid rotation)
-        auto add(const frame::estimated& f) -> void;
-
-        // Return number of accumulated samples
-        [[nodiscard]] auto count() const -> size_t { return _samples.size(); }
-
-        // Return gravity vector in world frame with specified magnitude (default 9.81)
-        [[nodiscard]] auto estimate(double magnitude = 9.81) const -> cv::Vec3d;
-
-        // Reset accumulated samples
-        auto reset() -> void { _samples.clear(); }
-
-        // Change the assumed camera-frame down axis (will normalize internally)
-        auto set_axis_cam_down(const cv::Vec3d& axis) -> void { _axis_cam_down = normalize(axis); }
 
     private:
-        static auto normalize(const cv::Vec3d& v) -> cv::Vec3d
+        struct pose_sample
         {
-            const auto n = cv::norm(v);
-            return n > 0 ? v / n : cv::Vec3d(0, 1, 0);
-        }
+            double      timestamp;
+            cv::Vec3d   position;
+            cv::Matx33d rotation;
+        };
 
-        cv::Vec3d              _axis_cam_down { 0.0, 1.0, 0.0 }; // OpenCV camera Y+ points down
-        std::vector<cv::Vec3d> _samples;                         // world-frame down-axis samples
+        std::vector<cv::Vec3d>  _gravity_samples;
+        std::deque<pose_sample> _pose_history; // Keep last 3 poses for acceleration estimation
+        static constexpr size_t _history_size = 3;
     };
 }
