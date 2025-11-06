@@ -5,35 +5,38 @@ project(zenslam_core)
 set(CMAKE_CXX_STANDARD 23)
 
 find_package(concurrentqueue CONFIG REQUIRED)
-message(STATUS "Using concurrentqueue: " ${concurrentqueue_VERSION})
+message(STATUS "Found concurrentqueue: " ${concurrentqueue_VERSION})
+
+find_package(GTSAM CONFIG REQUIRED)
+message(STATUS "Found GTSAM: " ${GTSAM_VERSION})
 
 find_package(magic_enum CONFIG REQUIRED)
-message(STATUS "Using magic_enum: " ${magic_enum_VERSION})
+message(STATUS "Found magic_enum: " ${magic_enum_VERSION})
 
 find_package(nanoflann CONFIG REQUIRED)
-message(STATUS "Using nanoflann: " ${nanoflann_VERSION})
+message(STATUS "Found nanoflann: " ${nanoflann_VERSION})
 
 find_package(spdlog CONFIG REQUIRED)
-message(STATUS "Using spdlog: " ${spdlog_VERSION})
+message(STATUS "Found spdlog: " ${spdlog_VERSION})
 
 find_package(yaml-cpp CONFIG REQUIRED)
-message(STATUS "Using yaml-cpp: " ${yaml-cpp_VERSION})
+message(STATUS "Found yaml-cpp: " ${yaml-cpp_VERSION})
 
-find_package(Boost CONFIG REQUIRED COMPONENTS program_options)
-message(STATUS "Using Boost: " ${Boost_VERSION})
+find_package(Boost CONFIG REQUIRED COMPONENTS program_options filesystem)
+message(STATUS "Found Boost: " ${Boost_VERSION})
 
 # Ceres is required by ugpm headers (even if using LPM)
 find_package(Ceres REQUIRED)
-message(STATUS "Using Ceres: ${Ceres_VERSION}")
+message(STATUS "Found Ceres: ${Ceres_VERSION}")
 
 find_package(Microsoft.GSL CONFIG REQUIRED)
-message(STATUS "Using Microsoft.GSL: " ${Microsoft.GSL_VERSION})
+message(STATUS "Found Microsoft.GSL: " ${Microsoft.GSL_VERSION})
 
 find_package(OpenCV CONFIG REQUIRED)
-message(STATUS "Using OpenCV: " ${OpenCV_VERSION})
+message(STATUS "Found OpenCV: " ${OpenCV_VERSION})
 
 find_package(VTK REQUIRED)
-message(STATUS "Using VTK: " ${VTK_VERSION})
+message(STATUS "Found VTK: " ${VTK_VERSION})
 
 find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
 
@@ -79,6 +82,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${RAPIDCSV_INCLUDE_DIRS} inclu
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         concurrentqueue::concurrentqueue
+        gtsam
         magic_enum::magic_enum
         nanoflann::nanoflann
         opencv_calib3d
@@ -90,6 +94,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         opencv_xfeatures2d
         spdlog::spdlog
         yaml-cpp::yaml-cpp
+        Boost::filesystem
         Boost::program_options
         Ceres::ceres
         Microsoft.GSL::GSL
