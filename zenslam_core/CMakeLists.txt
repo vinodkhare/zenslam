@@ -7,9 +7,6 @@ set(CMAKE_CXX_STANDARD 23)
 find_package(concurrentqueue CONFIG REQUIRED)
 message(STATUS "Found concurrentqueue: " ${concurrentqueue_VERSION})
 
-find_package(GTSAM CONFIG REQUIRED)
-message(STATUS "Found GTSAM: " ${GTSAM_VERSION})
-
 find_package(magic_enum CONFIG REQUIRED)
 message(STATUS "Found magic_enum: " ${magic_enum_VERSION})
 
@@ -82,7 +79,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${RAPIDCSV_INCLUDE_DIRS} inclu
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         concurrentqueue::concurrentqueue
-        gtsam
         magic_enum::magic_enum
         nanoflann::nanoflann
         opencv_calib3d
