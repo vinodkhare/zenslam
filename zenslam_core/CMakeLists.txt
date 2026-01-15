@@ -102,8 +102,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         ugpm
 )
 
-target_link_options(${PROJECT_NAME} PRIVATE "-Wl,-no_warn_duplicate_libraries")
-
 # Add ugpm headers (preint) to include path
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 

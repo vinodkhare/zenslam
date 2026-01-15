@@ -4,7 +4,7 @@ project(zenslam_app LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 
-find_package(Boost CONFIG REQUIRED COMPONENTS program_options)
+find_package(Boost CONFIG REQUIRED COMPONENTS program_options filesystem)
 message(STATUS "Found Boost: " ${Boost_VERSION})
 
 find_package(Microsoft.GSL CONFIG REQUIRED)
@@ -70,8 +70,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         VTK::RenderingCore
         VTK::RenderingOpenGL2
 )
-
-target_link_options(${PROJECT_NAME} PRIVATE "-Wl,-no_warn_duplicate_libraries")
 
 # VTK module auto-init for correct factory registration
 vtk_module_autoinit(

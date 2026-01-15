@@ -82,21 +82,29 @@ Installed via vcpkg (recommended). Core components require:
 * glog
 * Ceres Solver (with EigenSparse, LAPACK, Schur, SuiteSparse options)
 
-Example vcpkg install (adjust triplet, add --overlay-ports if needed):
+Multi-line for ZSH:
 
-```bash
-./vcpkg install \
-  boost-program-options \
-  concurrentqueue \
-  'hello-imgui[glfw-binding,opengl3-binding]' \
-  magic-enum \
-  'opencv[contrib,nonfree,vtk]' \
-  spdlog \
-  yaml-cpp \
-  catch2 \
-  nanoflann \
-  glog \
-  'ceres[eigensparse,lapack,schur,suitesparse]'
+```zsh
+./vcpkg install boost-program-options
+./vcpkg install catch2
+./vcpkg install 'ceres[eigensparse,lapack,schur,suitesparse]'
+./vcpkg install concurrentqueue
+./vcpkg install gtsam
+./vcpkg install 'hello-imgui[metal-binding,glfw-binding]'
+./vcpkg install implot
+./vcpkg install magic-enum
+./vcpkg install ms-gsl
+./vcpkg install nanoflann
+./vcpkg install 'opencv[vtk]'
+./vcpkg install rapidcsv
+./vcpkg install spdlog
+./vcpkg install yaml-cpp
+```
+
+Or, single-line for ZSH:
+
+```zsh
+./vcpkg install boost-program-options catch2 'ceres[eigensparse,lapack,schur,suitesparse]' concurrentqueue gtsam 'hello-imgui[metal-binding,glfw-binding]' implot magic-enum ms-gsl nanoflann 'opencv[vtk]' rapidcsv spdlog yaml-cpp
 ```
 
 Ensure `CMAKE_TOOLCHAIN_FILE` points to your vcpkg toolchain when configuring.
@@ -136,6 +144,7 @@ The application supports runtime toggling of keypoints and keylines in the visua
 
 **YAML configuration:**
 Add to your `options.yaml` under the `slam` section:
+
 ```yaml
 slam:
   show_keypoints: true   # Show keypoints in visualization
@@ -305,8 +314,3 @@ discussion first.
 ## License
 
 See [`LICENSE`](LICENSE).
-
-
-```mermaid
-
-```
