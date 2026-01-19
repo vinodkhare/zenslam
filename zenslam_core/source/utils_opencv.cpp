@@ -22,6 +22,11 @@ auto zenslam::utils::apply_clahe(const cv::Mat& image, const cv::Ptr<cv::CLAHE>&
 
 auto zenslam::utils::convert_color(const cv::Mat& image, const int code) -> cv::Mat
 {
+    if (image.empty())
+    {
+        throw std::runtime_error("empty image");
+    }
+
     cv::Mat converted_image { };
     cv::cvtColor(image, converted_image, code);
     return converted_image;

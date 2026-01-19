@@ -50,6 +50,8 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     p.add_argument('--limit-per-topic', type=int, default=None, help='Maximum number of images per topic.')
     p.add_argument('--flat', action='store_true',
                    help='Do not create per-topic subdirectories, put all images in output root.')
+    p.add_argument('--export-images', action='store_true', help='Extract and export images from image topics.')
+    p.add_argument('--export-tf', action='store_true', help='Extract and export TF tree from /tf and /tf_static topics.')
     p.add_argument('--quiet', action='store_true', help='Reduce logging output.')
     p.add_argument('--no-progress', action='store_true', help='Disable progress bar display.')
     return p.parse_args(argv)
@@ -142,8 +144,40 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if not bag_path.exists():
         print(f'ERROR: Bag path not found: {bag_path}', file=sys.stderr)
         return 1
+    
+    # print all connections in the bag for debugging
+    with AnyReader([bag_path]) as reader:
+        print("Connections in the bag:")
+        for conn in reader.connections:
+            print(f"  Topic: {conn.topic}, Type: {conn.msgtype}")
 
     selected_topics = set(args.topics) if args.topics else None
+
+    if args.export_tf:
+        with AnyReader([bag_path]) as reader:
+            # Find TF topics
+            tf_connections = [
+                conn for conn in reader.connections if conn.topic in ['/tf_static']
+            ]
+
+            # Read TF messages
+            i = 0
+            for connection, timestamp, rawdata in reader.messages(connections=tf_connections):
+                msg = reader.deserialize(rawdata, connection.msgtype)
+                
+                # msg.transforms is a list of geometry_msgs/TransformStamped
+                for transform in msg.transforms:
+                    print(f"{transform.header.frame_id} -> {transform.child_frame_id}")
+                    # print(f"  Translation: {transform.transform.translation}")
+                    # print(f"  Rotation: {transform.transform.rotation}")
+
+                if i > 3:
+                    break
+
+                i += 1
+
+    if not args.export_images:
+        return 0
 
     # Use AnyReader to automatically detect bag type
     with AnyReader([bag_path]) as reader:

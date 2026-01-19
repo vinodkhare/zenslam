@@ -4,15 +4,15 @@ application:
   log_pattern: "[%H:%M:%S.%e] [%^%L%$] [%!:%s:%#] %v"
 
 folder:
-  root: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0
+  root: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/mav0
   left: cam0/data
   right: cam1/data
   timescale: 1.0E-9
-  calibration_file:     /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/camchain.yaml
-  groundtruth_file:     /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/gt_imu.csv
-  imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
-  imu_file:             /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0/imu0/data.csv
-  output:               /Volumes/DATA01/results/tumvi/dataset-corridor1_1024_16
+  calibration_file:     /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/camchain.yaml
+  groundtruth_file:     /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/gt_imu.csv
+  imu_calibration_file: /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
+  imu_file:             /Volumes/DATA00/benchmarks/tumvi/dataset-corridor1_1024_16/mav0/imu0/data.csv
+  output:               /Volumes/DATA00/results/tumvi/dataset-corridor1_1024_16
 
 slam:
   cell_size: [ 64, 64 ]

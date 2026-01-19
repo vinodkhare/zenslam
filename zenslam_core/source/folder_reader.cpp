@@ -14,34 +14,19 @@ namespace zenslam
             if (a.size() != b.size())
                 return false;
             for (size_t i = 0; i < a.size(); ++i)
-                if (std::tolower(static_cast<unsigned char>(a[i])) !=
-                    std::tolower(static_cast<unsigned char>(b[i])))
+                if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i])))
                     return false;
             return true;
         }
-    }
+    } // namespace
 
     bool folder_reader::is_image_file(const path_type& p)
     {
-        static const char* extensions[] = {
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".bmp",
-            ".tif",
-            ".tiff"
-        };
+        static const char* extensions[] = { ".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff" };
 
         const auto ext = p.extension().string();
 
-        return std::ranges::any_of
-        (
-            extensions,
-            [&ext](auto e)
-            {
-                return is_equals(e, ext);
-            }
-        );
+        return std::ranges::any_of(extensions, [&ext](auto e) { return is_equals(e, ext); });
     }
 
     void folder_reader::scan_directories(const path_type& left_dir, const path_type& right_dir)
@@ -54,12 +39,16 @@ namespace zenslam
         {
             for (auto& entry : std::filesystem::directory_iterator(left_dir))
             {
-                if (entry.is_regular_file())
+                if (entry.is_regular_file() && is_image_file(entry.path()))
                 {
                     _left_files.push_back(entry.path());
                 }
             }
             std::ranges::sort(_left_files);
+        }
+        else
+        {
+            SPDLOG_ERROR("left camera folder does not exist: {}", left_dir.string());
         }
 
         // Scan right directory
@@ -67,7 +56,7 @@ namespace zenslam
         {
             for (auto& entry : std::filesystem::directory_iterator(right_dir))
             {
-                if (entry.is_regular_file())
+                if (entry.is_regular_file() && is_image_file(entry.path()))
                 {
                     _right_files.push_back(entry.path());
                 }
@@ -78,13 +67,7 @@ namespace zenslam
         _count = std::min(_left_files.size(), _right_files.size());
     }
 
-    folder_reader::folder_reader
-    (
-        const path_type& left_dir,
-        const path_type& right_dir,
-        const double     timescale,
-        const path_type& imu_file
-    ) :
+    folder_reader::folder_reader(const path_type& left_dir, const path_type& right_dir, const double timescale, const path_type& imu_file) :
         _timescale(timescale)
     {
         scan_directories(left_dir, right_dir);
@@ -94,8 +77,7 @@ namespace zenslam
         }
     }
 
-    folder_reader::folder_reader(const class options::folder& options) :
-        _timescale(options.timescale)
+    folder_reader::folder_reader(const class options::folder& options) : _timescale(options.timescale)
     {
         scan_directories(options.root / options.left, options.root / options.right);
         if (!options.imu_file.empty())
@@ -130,19 +112,9 @@ namespace zenslam
                 imu.timestamp           = timestamp_ns * _timescale;
 
                 // Columns 1-3: angular velocity (rad/s)
-                imu.gyr = cv::Vec3d
-                (
-                    doc.GetCell<double>(1, i),
-                    doc.GetCell<double>(2, i),
-                    doc.GetCell<double>(3, i)
-                );
+                imu.gyr = cv::Vec3d(doc.GetCell<double>(1, i), doc.GetCell<double>(2, i), doc.GetCell<double>(3, i));
 
-                imu.acc = cv::Vec3d
-                (
-                    doc.GetCell<double>(4, i),
-                    doc.GetCell<double>(5, i),
-                    doc.GetCell<double>(6, i)
-                );
+                imu.acc = cv::Vec3d(doc.GetCell<double>(4, i), doc.GetCell<double>(5, i), doc.GetCell<double>(6, i));
 
                 _imu_measurements.push_back(imu);
             }
@@ -159,18 +131,39 @@ namespace zenslam
     {
         if (_current_index >= _count)
         {
-            return { }; // Return empty frame if no more data
+            return {}; // Return empty frame if no more data
         }
 
-        frame::sensor frame = { };
+        frame::sensor frame = {};
 
         // Extract timestamp from filename (assumed to be in nanoseconds)
-        const auto timestamp_ns = std::stod(_left_files[_current_index].stem().string());
-        frame.timestamp         = timestamp_ns * _timescale;
+        double timestamp_ns;
+        try
+        {
+            timestamp_ns = std::stod(_left_files[_current_index].stem().string());
+        }
+        catch (const std::invalid_argument& e)
+        {
+            SPDLOG_ERROR("Invalid timestamp in filename: {}", _left_files[_current_index].stem().string());
+            throw;
+        }
+
+        frame.timestamp = timestamp_ns * _timescale;
 
         // Load images
         frame.images[0] = cv::imread(_left_files[_current_index].string());
         frame.images[1] = cv::imread(_right_files[_current_index].string());
+
+        // if images are empty, throw error
+        if (frame.images[0].empty())
+        {
+            throw std::runtime_error("Failed to load left image: " + _left_files[_current_index].string());
+        }
+
+        if (frame.images[1].empty())
+        {
+            throw std::runtime_error("Failed to load right image: " + _right_files[_current_index].string());
+        }
 
         // Set frame index
         frame.index = frame::sensor::count++;
@@ -179,9 +172,7 @@ namespace zenslam
         if (!_imu_measurements.empty())
         {
             // Get previous frame timestamp (or 0 for first frame)
-            const double prev_timestamp = (_current_index > 0)
-                                              ? std::stod(_left_files[_current_index - 1].stem().string()) * _timescale
-                                              : 0.0;
+            const double prev_timestamp = (_current_index > 0) ? std::stod(_left_files[_current_index - 1].stem().string()) * _timescale : 0.0;
 
             // Find all IMU measurements in the interval (prev_timestamp, frame.timestamp]
             while (_imu_index < _imu_measurements.size() && _imu_measurements[_imu_index].timestamp <= prev_timestamp)

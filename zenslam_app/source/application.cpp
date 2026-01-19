@@ -92,10 +92,10 @@ void zenslam::application::render()
     draw_temporal_matches(system);
 
     // 3D scene (native VTK window)
-    draw_scene_vtk(system);
+    // draw_scene_vtk(system);
 
     // UI controls
-    draw_viz_controls();
+    // draw_viz_controls();
 
     cv::waitKey(1);
 }
