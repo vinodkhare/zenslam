@@ -6,6 +6,8 @@ ZenSLAM is a "nothing special" SLAM system. In the last couple of decades or so,
 
 Status: early / evolving. Expect APIs to change.
 
+![screenshot](zenslam_docs/images/screenshot.png)
+
 ---
 ## Coding Philosophy
 

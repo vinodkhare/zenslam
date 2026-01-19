@@ -46,16 +46,16 @@ namespace zenslam
                 {
                     break;
                 }
+
+                auto frame = reader.read();
+
+                if (frame.images[0].empty() || frame.images[1].empty())
+                {
+                    throw std::runtime_error("No more frames to read");
+                }
+
+                on_frame(std::move(frame));
             }
-
-            auto frame = reader.read();
-
-            if (frame.images[0].empty() || frame.images[1].empty())
-            {
-                throw std::runtime_error("No more frames to read");
-            }
-
-            on_frame(std::move(frame));
         }
     };
 } // namespace zenslam

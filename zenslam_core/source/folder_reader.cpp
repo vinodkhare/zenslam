@@ -196,6 +196,8 @@ namespace zenslam
         // Advance to next frame
         ++_current_index;
 
+        SPDLOG_TRACE("Read image index {} with timestamp {:.6f} s", frame.index, frame.timestamp);
+
         return frame;
     }
 } // namespace zenslam

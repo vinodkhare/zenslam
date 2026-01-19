@@ -71,6 +71,8 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this{ system.durations.wait };
 
+                SPDLOG_TRACE("Waiting for next frame");
+
                 std::unique_lock lock{ _mutex };
                 _cv.wait(lock, [this] { return !_queue.empty() || _stop_token.stop_requested(); });
 
