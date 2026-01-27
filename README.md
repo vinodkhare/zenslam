@@ -12,7 +12,7 @@ Status: early / evolving. Expect APIs to change.
 ## Coding Philosophy
 
 * Start with the most obvious solution and then refactor
-* The most obvious solution will often be versbose - let this be. Once you have enough code, patterns for refactoring
+* The most obvious solution will often be verbose - let this be. Once you have enough code, patterns for refactoring
   will suggest themselves.
 * Premature abstraction (like premature optimization) is the root of all Evil.
 * Aim for simplicity: make things as simple as possible, but no simpler.

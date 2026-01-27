@@ -350,6 +350,7 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         S.points->Modified();
         S.pointsPoly->Modified();
         S.pointsGlyph->Update();
+        S.pointsActor->GetProperty()->SetOpacity(_point_cloud_opacity);
     }
 
     // Update or hide lines
@@ -505,6 +506,7 @@ void zenslam::application::draw_viz_controls()
 
     ImGui::Checkbox("Show Keypoints", &_options.slam.show_keypoints);
     ImGui::Checkbox("Show Keylines", &_options.slam.show_keylines);
+    ImGui::SliderFloat("Point Cloud Opacity", &_point_cloud_opacity, 0.0f, 1.0f, "%.2f");
 
     // Color picker for keylines (single keyline color)
     const auto& s = _options.slam.keyline_single_color; // B, G, R

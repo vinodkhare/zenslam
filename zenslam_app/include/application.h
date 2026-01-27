@@ -72,5 +72,8 @@ namespace zenslam
     // Trajectory history for visualization
     std::vector<cv::Point3d> _trajectory_estimated = {};
     std::vector<cv::Point3d> _trajectory_gt        = {};
+
+    // Visualization controls
+    float _point_cloud_opacity = 1.0f;
     };
 } // namespace zenslam
