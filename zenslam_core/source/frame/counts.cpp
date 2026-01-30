@@ -24,5 +24,15 @@ namespace zenslam::frame
         SPDLOG_INFO("  3D-2D Inliers:         {:4}", correspondences_3d2d_inliers);
         SPDLOG_INFO("  2D-2D Inliers:         {:4}", correspondences_2d2d_inliers);
         SPDLOG_INFO("  Map Points:            {:4}", points);
+        SPDLOG_INFO("");
+        SPDLOG_INFO("Quality Metrics:");
+        SPDLOG_INFO("  KLT Error Mean:        {:.3f} px", klt_error_mean);
+        SPDLOG_INFO("  KLT Success Rate:      {:.1f}%", klt_success_rate * 100.0);
+        SPDLOG_INFO("  Match Distance Mean:   {:.3f}", match_distance_mean);
+        SPDLOG_INFO("  Epipolar Error Mean:   {:.3f} px", epipolar_error_mean);
+        SPDLOG_INFO("  Fundamental Inliers:   {:4}", fundamental_inliers);
+        SPDLOG_INFO("  Response Mean L/R:     {:.1f} / {:.1f}", response_mean_l, response_mean_r);
+        SPDLOG_INFO("  Grid Occupancy L/R:    {:.1f}% / {:.1f}%", grid_occupancy_l * 100.0, grid_occupancy_r * 100.0);
+        SPDLOG_INFO("  Track Age Mean/Max:    {:.1f} / {:.0f}", track_age_mean, track_age_max);
     }
 }

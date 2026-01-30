@@ -55,6 +55,23 @@ inline auto operator*
 namespace zenslam::utils
 {
 
+    /**
+     * Returns 2D-2D correspondences between two sets of keypoints based on matching indices.
+     * @param keypoints_0 0th set of keypoints
+     * @param keypoints_1 1st set of keypoints
+     * @param points2f_0 set of matching 2D points from 0th set
+     * @param points2f_1 set of matching 2D points from 1st set
+     * @param indices indices of 1 found in 0
+     */
+    auto correspondence_2d2d
+    (
+        const std::map<size_t, keypoint>& keypoints_0,
+        const std::map<size_t, keypoint>& keypoints_1,
+        std::vector<cv::Point2f>&         points2f_0,
+        std::vector<cv::Point2f>&         points2f_1,
+        std::vector<size_t>&              indices
+    ) -> void;
+
     auto correspondences_3d2d
     (
         const std::map<size_t, point3d>&  points,
@@ -65,6 +82,14 @@ namespace zenslam::utils
     ) -> void;
 
 
+    /**
+     * Returns 3D-3D correspondences between two sets of 3D points based on matching indices.
+     * @param points_map_0 0th set of 3D points
+     * @param points_map_1 1st set of 3D points
+     * @param points3d_0 set of matching 3D points from 0th set
+     * @param points3d_1 set of matching 3D points from 1st set
+     * @param indexes indices of 1 found in 0
+     */
     void correspondences_3d3d
     (
         const std::map<size_t, point3d>& points_map_0,

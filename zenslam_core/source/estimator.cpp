@@ -1,40 +1,23 @@
 #include "zenslam/estimator.h"
 
-#include <set>
 #include <algorithm>
-#include <cmath>
+#include <set>
 
 #include <gsl/narrow>
 
 #include <opencv2/calib3d.hpp>
+#include <utility>
 
 #include <spdlog/spdlog.h>
 
 #include "zenslam/utils_slam.h"
+#include "zenslam/utils_std.h"
 
 namespace zenslam
 {
-    estimator::estimator(const calibration& calib, const class options::slam& opts)
-        : _calibration(calib), _options(opts)
-    {
-    }
+    estimator::estimator(calibration calib, class options::slam  opts) : _calibration(std::move(calib)), _options(std::move(opts)) {}
 
-    namespace
-    {
-        auto median(std::vector<double> v) -> double
-        {
-            if (v.empty())
-                return 0.0;
-            std::ranges::nth_element(v, v.begin() + v.size() / 2);
-            return v[v.size() / 2];
-        }
-    }
-
-    auto estimator::estimate_pose_3d2d
-    (
-        const std::map<size_t, point3d>&  map_points_0,
-        const std::map<size_t, keypoint>& map_keypoints_1
-    ) const -> pose_data
+    auto estimator::estimate_pose_3d2d(const std::map<size_t, point3d>& map_points_0, const std::map<size_t, keypoint>& map_keypoints_1) const -> pose_data
     {
         std::vector<cv::Point3d> points3d;
         std::vector<cv::Point2d> points2d;
@@ -42,15 +25,14 @@ namespace zenslam
         utils::correspondences_3d2d(map_points_0, map_keypoints_1, points3d, points2d, indices);
 
         cv::Affine3d pose = cv::Affine3d::Identity();
-        auto         out  = zenslam::pose_data { };
+        auto         out  = zenslam::pose_data{};
 
         if (points3d.size() >= 6)
         {
-            cv::Mat          rvec { pose.rvec() };
-            cv::Mat          tvec { pose.translation() };
+            cv::Mat          rvec{ pose.rvec() };
+            cv::Mat          tvec{ pose.translation() };
             std::vector<int> inliers;
-            if (cv::solvePnPRansac
-                (
+            if (cv::solvePnPRansac(
                     points3d,
                     points2d,
                     _calibration.camera_matrix[0],
@@ -61,8 +43,7 @@ namespace zenslam
                     1000,
                     gsl::narrow<float>(_options.threshold_3d2d),
                     0.99,
-                    inliers
-                ))
+                    inliers))
             {
                 out.pose    = cv::Affine3d(rvec, tvec);
                 out.indices = indices;
@@ -93,11 +74,7 @@ namespace zenslam
         throw std::runtime_error("Not enough 3D-2D correspondences to compute pose (need > 6)");
     }
 
-    auto estimator::estimate_pose_3d3d
-    (
-        const std::map<size_t, point3d>& map_points_0,
-        const std::map<size_t, point3d>& map_points_1
-    ) const -> pose_data
+    auto estimator::estimate_pose_3d3d(const std::map<size_t, point3d>& map_points_0, const std::map<size_t, point3d>& map_points_1) const -> pose_data
     {
         std::vector<cv::Point3d> points_0;
         std::vector<cv::Point3d> points_1;
@@ -112,38 +89,23 @@ namespace zenslam
             std::vector<size_t> outliers;
             std::vector<double> errors;
             utils::estimate_rigid_ransac(points_0, points_1, R, t, inliers, outliers, errors, _options.threshold_3d3d, 1000);
-            return { cv::Affine3d { R, t }, indices, inliers, outliers, errors };
+            return { cv::Affine3d{ R, t }, indices, inliers, outliers, errors };
         }
 
         throw std::runtime_error("Not enough 3D-3D correspondences to compute pose (need > 3)");
     }
 
-    auto estimator::estimate_pose_2d2d
-    (
+    auto estimator::estimate_pose_2d2d(
         const std::map<size_t, keypoint>& map_keypoints_0,
         const std::map<size_t, keypoint>& map_keypoints_1,
-        const std::map<size_t, point3d>&  map_points3d_0
-    ) const -> pose_data
+        const std::map<size_t, point3d>&  map_points3d_0) const -> pose_data
     {
         // Build 2D-2D correspondences (left camera) by matching indices
         std::vector<cv::Point2f> points0;
         std::vector<cv::Point2f> points1;
         std::vector<size_t>      indices;
 
-        points0.reserve(map_keypoints_0.size());
-        points1.reserve(map_keypoints_0.size());
-        indices.reserve(map_keypoints_0.size());
-
-        for (const auto& [idx, kp0] : map_keypoints_0)
-        {
-            auto it1 = map_keypoints_1.find(idx);
-            if (it1 != map_keypoints_1.end())
-            {
-                points0.emplace_back(kp0.pt);
-                points1.emplace_back(it1->second.pt);
-                indices.emplace_back(idx);
-            }
-        }
+        utils::correspondence_2d2d(map_keypoints_0, map_keypoints_1, points0, points1, indices);
 
         if (points0.size() < 8)
             throw std::runtime_error("Not enough 2D-2D correspondences to compute essential matrix (need >= 8)");
@@ -190,42 +152,14 @@ namespace zenslam
 
         // Triangulate up-to-scale points using the recovered R,t (unit) to compute scale
         const cv::Matx33d K(_calibration.camera_matrix[0]);
-        const auto Rm = cv::Matx33d(R);
-        const auto tv = cv::Vec3d(t);
+        const auto        Rm = cv::Matx33d(R);
+        const auto        tv = cv::Vec3d(t);
 
-        cv::Matx34d P0
-        (
-            K(0, 0),
-            K(0, 1),
-            K(0, 2),
-            0.0,
-            K(1, 0),
-            K(1, 1),
-            K(1, 2),
-            0.0,
-            K(2, 0),
-            K(2, 1),
-            K(2, 2),
-            0.0
-        );
+        cv::Matx34d P0(K(0, 0), K(0, 1), K(0, 2), 0.0, K(1, 0), K(1, 1), K(1, 2), 0.0, K(2, 0), K(2, 1), K(2, 2), 0.0);
 
         const cv::Matx33d KR = K * Rm;
         const cv::Vec3d   Kt = K * tv;
-        cv::Matx34d       P1
-        (
-            KR(0, 0),
-            KR(0, 1),
-            KR(0, 2),
-            Kt[0],
-            KR(1, 0),
-            KR(1, 1),
-            KR(1, 2),
-            Kt[1],
-            KR(2, 0),
-            KR(2, 1),
-            KR(2, 2),
-            Kt[2]
-        );
+        cv::Matx34d       P1(KR(0, 0), KR(0, 1), KR(0, 2), Kt[0], KR(1, 0), KR(1, 1), KR(1, 2), Kt[1], KR(2, 0), KR(2, 1), KR(2, 2), Kt[2]);
 
         const auto X_est = utils::triangulate_points(inlier_p0, inlier_p1, P0, P1);
 
@@ -247,11 +181,11 @@ namespace zenslam
         if (scales.size() < 3)
             throw std::runtime_error("Unable to compute robust scale for 2D-2D pose");
 
-        const double s = median(scales);
+        const double s = utils::median(scales);
 
         // Build pose and compute errors as 2D reprojection of X0 into frame 1
         const cv::Point3d t_scaled = cv::Point3d(tv) * s;
-        pose_data         out { };
+        pose_data         out{};
         out.pose    = cv::Affine3d(Rm, t_scaled);
         out.indices = indices; // all correspondences considered
 
@@ -279,7 +213,7 @@ namespace zenslam
 
     auto estimator::estimate_pose(const std::map<size_t, point3d>& points3d_0, const frame::tracked& tracked_1) const -> estimate_pose_result
     {
-        estimate_pose_result result { };
+        estimate_pose_result result{};
 
         // Attempt 3D-3D
         try
@@ -301,7 +235,7 @@ namespace zenslam
             SPDLOG_WARN("3D-2D pose estimation failed: {}", e.what());
         }
 
-        // Choose the pose with more inliers; if tie, prefer 3D-3D; if both invalid, identity
+        // Choose the pose with more inliers; if tied, prefer 3D-3D; if both invalid, identity
         const auto inliers_3d3d = result.pose_3d3d.inliers.size();
         const auto inliers_3d2d = result.pose_3d2d.inliers.size();
 
@@ -318,7 +252,7 @@ namespace zenslam
 
     auto estimator::estimate_pose(const frame::estimated& frame_0, const frame::tracked& tracked_1) const -> estimate_pose_result
     {
-        estimate_pose_result result { };
+        estimate_pose_result result{};
 
         // 3D-3D
         try
@@ -392,4 +326,4 @@ namespace zenslam
 
         return result;
     }
-}
+} // namespace zenslam

@@ -23,6 +23,24 @@
 #include <preint/preint.h>
 #endif
 
+auto zenslam::utils::correspondence_2d2d(
+    const std::map<size_t, keypoint>& keypoints_0,
+    const std::map<size_t, keypoint>& keypoints_1,
+    std::vector<cv::Point2f>&         points2f_0,
+    std::vector<cv::Point2f>&         points2f_1,
+    std::vector<size_t>&              indices) -> void
+{
+    for (const auto& index_1 : keypoints_1 | std::views::keys)
+    {
+        if (keypoints_0.contains(index_1))
+        {
+            points2f_0.emplace_back(keypoints_0.at(index_1).pt);
+            points2f_1.emplace_back(keypoints_1.at(index_1).pt);
+            indices.emplace_back(index_1);
+        }
+    }
+}
+
 void zenslam::utils::correspondences_3d2d
 (
     const std::map<size_t, point3d>&  points,

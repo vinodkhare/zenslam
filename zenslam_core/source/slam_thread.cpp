@@ -1,10 +1,7 @@
 #include "zenslam/slam_thread.h"
 
-#include <opencv2/core.hpp>
-#include <utility>
-
 #include <spdlog/spdlog.h>
-
+#include <utility>
 #include <vtk-9.3/vtkLogger.h>
 
 #include "zenslam/calibration.h"
@@ -62,11 +59,18 @@ void zenslam::slam_thread::loop()
     calibration.print();
 
     frame::system system{};
+
+    // Set configuration strings once
+    system.counts.detector_type   = magic_enum::enum_name(_options.slam.feature);
+    system.counts.descriptor_type = magic_enum::enum_name(_options.slam.descriptor);
+    system.counts.matcher_type    = magic_enum::enum_name(_options.slam.matcher);
+
     while (!_stop_token.stop_requested())
     {
         {
             time_this t{ system.durations.total };
 
+            // READ FRAME
             frame::sensor sensor{};
             {
                 time_this time_this{ system.durations.wait };
@@ -126,6 +130,27 @@ void zenslam::slam_thread::loop()
                 system.counts.keypoints_total      = system.counts.keypoints_l + system.counts.keypoints_r;
                 system.counts.matches              = kp0_cur.keys_matched(kp1_cur).size();
                 system.counts.matches_triangulated = tracked.points3d.size();
+
+                // Compute quality metrics
+                // Response statistics (feature strength)
+                auto responses_l = kp0_cur | std::views::transform([](const auto& pair) { return pair.second.response; }) | std::ranges::to<std::vector>();
+                auto responses_r = kp1_cur | std::views::transform([](const auto& pair) { return pair.second.response; }) | std::ranges::to<std::vector>();
+
+                system.counts.response_mean_l = utils::mean(responses_l);
+                system.counts.response_mean_r = utils::mean(responses_r);
+                system.counts.response_std_l  = utils::std_dev(responses_l);
+                system.counts.response_std_r  = utils::std_dev(responses_r);
+
+                // KLT success rate
+                if (!kp0_prev.empty())
+                {
+                    system.counts.klt_success_rate = static_cast<double>(system.counts.keypoints_l_tracked) / static_cast<double>(kp0_prev.size());
+                    system.counts.klt_success_rate = static_cast<double>(system.counts.keypoints_l_tracked) / static_cast<double>(kp0_prev.size());
+                }
+                else
+                {
+                    system.counts.klt_success_rate = std::nan("nan");
+                }
             }
 
             // ESTIMATE
@@ -176,7 +201,7 @@ void zenslam::slam_thread::loop()
 
                 SPDLOG_INFO("Predicted pose:   {}", system[1].pose * pose_predicted.inv());
                 SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
-                SPDLOG_INFO("Groundtruth pose: {}", system[1].pose_gt);
+                SPDLOG_INFO("Ground-truth pose: {}", system[1].pose_gt);
 
                 system.points3d += system[1].pose * system[1].points3d;
                 system.lines3d += system[1].pose * system[1].lines3d;
