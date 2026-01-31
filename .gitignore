@@ -44,6 +44,7 @@
 .build
 .cache
 .idea
+.venv
 .vscode
 
 # MacOS files

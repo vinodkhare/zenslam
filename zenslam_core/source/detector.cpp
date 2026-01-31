@@ -21,7 +21,7 @@ namespace zenslam
             feature_detector = cv::FastFeatureDetector::create(options.fast_threshold);
             break;
         case feature_type::ORB:
-            feature_detector = cv::ORB::create();
+            feature_detector = cv::ORB::create(500, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, options.fast_threshold);
             break;
         case feature_type::SIFT:
             feature_detector = cv::SIFT::create();
