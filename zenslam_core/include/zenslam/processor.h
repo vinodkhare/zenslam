@@ -4,8 +4,8 @@
 #include <opencv2/imgproc.hpp>
 
 #include "calibration.h"
-#include "options.h"
 #include "integrator.h"
+#include "options.h"
 
 #include "frame/processed.h"
 #include "frame/sensor.h"
@@ -19,7 +19,7 @@ namespace zenslam
 
         /**
          * @brief Processes sensor frame data and returns a processed frame.
-         * 
+         *
          * This function takes raw sensor frame data as input and performs necessary
          * processing operations to convert it into a processed frame suitable for
          * further use in the SLAM pipeline. It enhances the image using CLAHE if
@@ -33,9 +33,9 @@ namespace zenslam
 
     private:
         cv::Ptr<cv::CLAHE>  _clahe       = cv::createCLAHE(4.0); // TODO: make configurable
-        class options::slam _options     = { };
-        calibration         _calibration = { };
-    integrator          _integrator      = integrator { _calibration.imu, _options.integrator_method };
+        class options::slam _options     = {};
+        calibration         _calibration = {};
+        integrator          _integrator  = integrator{ _calibration.imu, _options.integrator_method };
         double              _timestamp   = std::nan("nan");
     };
-}
+} // namespace zenslam

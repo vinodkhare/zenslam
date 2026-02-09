@@ -136,31 +136,45 @@ Run the app:
 
 After a MacOS update, you might start getting cmake or linker errors related to missing SDK files. To fix this, I created a symlink from the expected SDK path to the actual SDK path. E.g. `ln -s MacOSX26.1.sdk MacOSX26.0.sdk`.
 
-### Visualization Options
+### zenslam_app Options
 
-The application supports runtime toggling of keypoints and keylines in the visualization:
+All CLI options for `zenslam_app` are listed below. Boolean flags accept `true|false` (or just `--flag` to enable).
 
-**Command-line options:**
-* `--show-keypoints <true|false>` - Show/hide keypoints in the temporal matches view (default: true)
-* `--show-keylines <true|false>` - Show/hide keylines in the temporal matches view (default: true)
-
-**YAML configuration:**
-Add to your `options.yaml` under the `slam` section:
-
-```yaml
-slam:
-  show_keypoints: true   # Show keypoints in visualization
-  show_keylines: true    # Show keylines in visualization
-```
-
-**Runtime UI controls:**
-The ImGui panel includes checkboxes to toggle keypoints and keylines display while the application is running.
-
-Run tests:
-
-```bash
-ctest --test-dir build -j --output-on-failure
-```
+| Option                                   | Default           | Permissible values                                           | Description                                               |
+| ---------------------------------------- | ----------------- | ------------------------------------------------------------ | --------------------------------------------------------- |
+| `--options-file`                         | `options.yaml`    | Path                                                         | Options YAML file to load (CLI overrides YAML).           |
+| `--log-level`                            | `trace`           | `trace`, `debug`, `info`, `warn`, `error`, `critical`, `off` | Logging verbosity.                                        |
+| `--help`, `-h`                           | `false`           | Flag                                                         | Show help text and exit.                                  |
+| `--version`, `-v`                        | `false`           | Flag                                                         | Print version and exit.                                   |
+| `--folder-root`                          | `.`               | Path                                                         | Root folder for dataset.                                  |
+| `--folder-left`                          | `cam0`            | Path                                                         | Left image folder (relative to root or absolute).         |
+| `--folder-right`                         | `cam1`            | Path                                                         | Right image folder (relative to root or absolute).        |
+| `--folder-timescale`                     | `1.0`             | $> 0$                                                        | Timescale applied to folder timestamps.                   |
+| `--calibration-file`                     | `camchain.yaml`   | Path                                                         | Stereo calibration file path.                             |
+| `--groundtruth-file`                     | `groundtruth.csv` | Path                                                         | Groundtruth file path.                                    |
+| `--imu-calibration-file`                 | `imu_config.yaml` | Path                                                         | IMU calibration file path.                                |
+| `--imu-file`                             | (empty)           | Path                                                         | IMU data CSV file path.                                   |
+| `--folder-output`                        | `output`          | Path                                                         | Output folder for results.                                |
+| `--clahe-enabled`                        | `false`           | `true`                                                       | `false`                                                   | Enable CLAHE preprocessing.      |
+| `--use-parallel-detector`                | `true`            | `true`                                                       | `false`                                                   | Use parallel grid detector.      |
+| `--stereo-rectify`                       | `false`           | `true`                                                       | `false`                                                   | Enable stereo rectification.     |
+| `--epipolar-threshold`                   | `1.0`             | $\ge 0$                                                      | Epipolar distance threshold.                              |
+| `--feature`                              | `FAST`            | `FAST`, `ORB`, `SIFT`                                        | Feature detector type.                                    |
+| `--descriptor`                           | `ORB`             | `ORB`, `SIFT`, `FREAK`                                       | Descriptor type.                                          |
+| `--matcher`                              | `BRUTE`           | `BRUTE`, `KNN`, `FLANN`                                      | Matcher backend.                                          |
+| `--integrator-method`                    | `ugpm`            | `ugpm`, `lpm`                                                | IMU preintegration method.                                |
+| `--matcher-ratio`                        | `0.8`             | $0 < x < 1$                                                  | Ratio test threshold for kNN matching.                    |
+| `--fast-threshold`                       | `10`              | $\ge 0$                                                      | FAST detector threshold.                                  |
+| `--threshold-3d3d`                       | `0.005`           | $\ge 0$                                                      | 3D-3D RANSAC threshold (meters).                          |
+| `--threshold-3d2d`                       | `1.0`             | $\ge 0$                                                      | 3D-2D RANSAC threshold (pixels).                          |
+| `--show-keypoints`                       | `true`            | `true`                                                       | `false`                                                   | Show keypoints in visualization. |
+| `--show-keylines`                        | `true`            | `true`                                                       | `false`                                                   | Show keylines in visualization.  |
+| `--keyline-single-color`                 | `0 255 0`         | `B G R` ints (0-255)                                         | Keyline single color (BGR).                               |
+| `--keyline-match-color`                  | `0 0 255`         | `B G R` ints (0-255)                                         | Keyline match color (BGR).                                |
+| `--keyline-thickness`                    | `1`               | $\ge 1$                                                      | Keyline line thickness (pixels).                          |
+| `--keyline-min-disparity-px`             | `2.0`             | $\ge 0$                                                      | Min average disparity across keyline endpoints (pixels).  |
+| `--keyline-min-triangulation-angle-deg`  | `15`              | $\ge 0$                                                      | Min triangulation angle at endpoints (degrees).           |
+| `--triangulation_reprojection_threshold` | `1.0`             | $> 0$                                                        | Max average reprojection error across endpoints (pixels). |
 
 ### Running Benchmarks
 
@@ -195,6 +209,58 @@ The test suite includes Catch2 benchmarks comparing `cv::Mat` (CPU) vs `cv::UMat
 ./build/zenslam_tests/hello_test "[benchmark]" --benchmark-no-analysis
 ```
 
+### Tracking Statistics
+
+Simple RUN:
+
+```
+================================================================================
+OVERALL STATISTICS
+================================================================================
+Total frames............................ 5977
+Mean KLT success rate................... 38.29%
+Mean matches............................ 51.2
+Mean triangulated....................... 24.8
+Mean processing time.................... 0.063s
+Mean tracking time...................... 0.044s
+Mean detection time (L+R)............... 0.000s
+Mean matching time...................... 0.000s
+Mean response (L/R)..................... 10.0 / 9.4
+
+================================================================================
+PROBLEM FRAMES SUMMARY
+================================================================================
+
+Found 2020 problem frames (33.8% of total):
+  - Low KLT success rate: 1640 frames
+  - Slow processing (>0.085s): 205 frames
+  - Low triangulated points: 93 frames
+  - Low pose inliers: 82 frames
+```
+
+With CLAHE
+
+```
+================================================================================
+OVERALL STATISTICS
+================================================================================
+Total frames............................ 5990
+Mean KLT success rate................... 36.53%
+Mean matches............................ 50.8
+Mean triangulated....................... 25.4
+Mean processing time.................... 0.072s
+Mean tracking time...................... 0.050s
+Mean detection time (L+R)............... 0.000s
+Mean matching time...................... 0.000s
+Mean response (L/R)..................... 21.7 / 20.7
+
+Found 2312 problem frames (38.6% of total):
+  - Low KLT success rate: 2008 frames
+  - Slow processing (>0.101s): 189 frames
+  - Low triangulated points: 88 frames
+  - Low pose inliers: 27 frames
+```
+
 **Notes:**
 - **UMat benchmarks** require OpenCL support (check with `cv::ocl::haveOpenCL()`)
   - First UMat run may be slower due to OpenCL initialization and kernel compilation
@@ -216,17 +282,6 @@ The test suite includes Catch2 benchmarks comparing `cv::Mat` (CPU) vs `cv::UMat
 ---
 
 ## Parallel detector toggle
-
-You can choose between the sequential and parallel grid detectors at runtime.
-
-- CLI: pass `--use-parallel-detector` (on) or `--no-use-parallel-detector` (off). The default is on.
-
-- YAML (`options.yaml`):
-
-```yaml
-slam:
-  use_parallel_detector: true  # or false
-```
 
 When enabled, keypoints are detected per-grid-cell using a parallel implementation that processes cells concurrently. On multi-core CPUs this often improves throughput; for very small images or light workloads, the sequential version can avoid threading overhead.
 

@@ -239,6 +239,7 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     set_enum_if_provided(options_map, map, "matcher", options.slam.matcher);
     set_enum_if_provided(options_map, map, "integrator-method", options.slam.integrator_method);
     set_if_provided(options_map, map, "matcher-ratio", options.slam.matcher_ratio);
+    set_if_provided(options_map, map, "clahe-enabled", options.slam.clahe_enabled);
 
     return options;
 }
