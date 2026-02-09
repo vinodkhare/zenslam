@@ -87,6 +87,7 @@ namespace zenslam
             cv::Scalar keyline_single_color = { 0, 255, 0 }; // default green (BGR)
             cv::Scalar keyline_match_color  = { 0, 0, 255 }; // default red (BGR)
             int        keyline_thickness    = { 1 };         // line thickness in pixels
+            int        keyline_mask_margin  = { 10 };        // margin around existing keylines for masking (pixels)
 
             // Keyline triangulation thresholds (configurable; previously hard-coded)
             // Minimum acceptable average disparity between matched endpoints (pixels)

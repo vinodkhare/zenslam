@@ -10,6 +10,7 @@
 #include "zenslam/frame/estimated.h"
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/tracked.h"
+#include "zenslam/types/keyline.h"
 
 namespace zenslam
 {
@@ -64,5 +65,19 @@ namespace zenslam
             const map<keypoint>&            keypoints_map_0,
             const std::vector<cv::Point2f>& points_1_predicted = { }
         ) const -> std::vector<keypoint>;
+
+        /** Track keylines from pyramid_0 to pyramid_1 using KLT optical flow on endpoints.
+         *
+         *  @param pyramid_0 Image pyramid of the previous frame.
+         *  @param pyramid_1 Image pyramid of the current frame.
+         *  @param keylines_map_0 Keylines in the previous frame to track.
+         *  @return Tracked keylines in the current frame.
+         */
+        [[nodiscard]] auto track_keylines
+        (
+            const std::vector<cv::Mat>& pyramid_0,
+            const std::vector<cv::Mat>& pyramid_1,
+            const map<keyline>&         keylines_map_0
+        ) const -> std::vector<keyline>;
     };
 }

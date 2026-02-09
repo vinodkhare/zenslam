@@ -5,25 +5,34 @@
 
 namespace zenslam::frame
 {
+    /** Generic feature counts for any feature type (points or lines) */
+    struct feature_counts
+    {
+        size_t features_l           = { };  // Features detected in left camera
+        size_t features_r           = { };  // Features detected in right camera
+        size_t features_l_tracked   = { };  // Features tracked in left camera
+        size_t features_r_tracked   = { };  // Features tracked in right camera
+        size_t features_l_new       = { };  // New features detected in left camera
+        size_t features_r_new       = { };  // New features detected in right camera
+        size_t features_total       = { };  // Total features (left + right)
+        size_t matches_stereo       = { };  // Matches between left and right cameras
+        size_t triangulated_3d      = { };  // Successfully triangulated 3D features
+    };
+
     struct counts
     {
-        size_t keypoints_l                  = { };
-        size_t keypoints_r                  = { };
-        size_t keypoints_l_tracked          = { };
-        size_t keypoints_r_tracked          = { };
-        size_t keypoints_l_new              = { };
-        size_t keypoints_r_new              = { };
-        size_t keypoints_total              = { };
-        size_t matches                      = { };
-        size_t matches_triangulated         = { };
+        // Feature statistics
+        feature_counts points       = { };  // Point feature statistics
+        feature_counts lines        = { };  // Line feature statistics
+        
         size_t correspondences_3d3d         = { };
         size_t correspondences_3d2d         = { };
         size_t correspondences_2d2d         = { };
         size_t correspondences_3d3d_inliers = { };
         size_t correspondences_3d2d_inliers = { };
         size_t correspondences_2d2d_inliers = { };
-        size_t points                       = { };
-        size_t lines                        = { };
+        size_t map_points                   = { };  // Total 3D points in map
+        size_t map_lines                    = { };  // Total 3D lines in map
 
         // Quality metrics
         double klt_error_mean               = { };

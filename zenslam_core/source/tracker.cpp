@@ -10,6 +10,7 @@
 #include "zenslam/matcher.h"
 #include "zenslam/triangulator.h"
 #include "zenslam/utils_opencv.h"
+#include "zenslam/utils_slam.h"
 
 namespace zenslam
 {
@@ -25,13 +26,17 @@ namespace zenslam
     {
         map<keypoint> keypoints_0 = { };
         map<keypoint> keypoints_1 = { };
+        map<keyline>  keylines_0  = { };
+        map<keyline>  keylines_1  = { };
         map<point3d>  points3d    = { };
+        map<line3d>   lines3d     = { };
 
         {
             std::jthread thread_0
             {
                 [&]()
                 {
+                    // Track keypoints
                     keypoints_0 += track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0]);
 
                     if (_options.use_parallel_detector)
@@ -42,6 +47,12 @@ namespace zenslam
                     {
                         keypoints_0 += _detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
                     }
+
+                    // Track keylines
+                    keylines_0 += track_keylines(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keylines[0]);
+
+                    // Detect new keylines (avoiding areas where tracked keylines exist)
+                    keylines_0 += _detector.detect_keylines(frame_1.undistorted[0], keylines_0, _options.keyline_mask_margin);
                 }
             };
 
@@ -49,6 +60,7 @@ namespace zenslam
             {
                 [&]()
                 {
+                    // Track keypoints
                     keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1]);
 
                     if (_options.use_parallel_detector)
@@ -59,21 +71,54 @@ namespace zenslam
                     {
                         keypoints_1 += _detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
                     }
+
+                    // Track keylines
+                    keylines_1 += track_keylines(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keylines[1]);
+
+                    // Detect new keylines (avoiding areas where tracked keylines exist)
+                    keylines_1 += _detector.detect_keylines(frame_1.undistorted[1], keylines_1, _options.keyline_mask_margin);
                 }
             };
         }
 
+        // Match keypoints
         keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
         points3d += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
 
-        return { frame_1, keypoints_0, keypoints_1, { }, points3d };
+        // Match keylines using the fundamental matrix
+        const auto keyline_matches = utils::match_keylines
+        (
+            keylines_0,
+            keylines_1,
+            _calibration.fundamental_matrix[0],
+            _options.epipolar_threshold
+        );
+
+        // Update keylines with matches (remap indices)
+        keylines_1 *= keyline_matches;
+
+        // Triangulate keylines
+        lines3d += utils::triangulate_keylines
+        (
+            keylines_0,
+            keylines_1,
+            _calibration.projection_matrix[0],
+            _calibration.projection_matrix[1],
+            _options,
+            _calibration.cameras[1].pose_in_cam0.translation()
+        );
+
+        return { frame_1, {keypoints_0, keypoints_1}, {keylines_0, keylines_1}, points3d, lines3d };
     }
 
     auto tracker::track(const frame::estimated& frame_0, const frame::processed& frame_1, const cv::Affine3d& pose_predicted) const -> frame::tracked
     {
         map<keypoint> keypoints_0 = { };
         map<keypoint> keypoints_1 = { };
+        map<keyline>  keylines_0  = { };
+        map<keyline>  keylines_1  = { };
         map<point3d>  points3d    = { };
+        map<line3d>   lines3d     = { };
 
         // Compute relative camera-0 motion from previous to predicted current
         const cv::Affine3d T_01 = frame_0.pose * pose_predicted.inv();
@@ -123,6 +168,7 @@ namespace zenslam
             {
                 [&]()
                 {
+                    // Track keypoints
                     keypoints_0 += track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0], preds_l);
 
                     if (_options.use_parallel_detector)
@@ -133,6 +179,12 @@ namespace zenslam
                     {
                         keypoints_0 += _detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
                     }
+
+                    // Track keylines
+                    keylines_0 += track_keylines(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keylines[0]);
+
+                    // Detect new keylines (avoiding areas where tracked keylines exist)
+                    keylines_0 += _detector.detect_keylines(frame_1.undistorted[0], keylines_0, _options.keyline_mask_margin);
                 }
             };
 
@@ -140,6 +192,7 @@ namespace zenslam
             {
                 [&]()
                 {
+                    // Track keypoints
                     keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1], preds_r);
 
                     if (_options.use_parallel_detector)
@@ -150,14 +203,44 @@ namespace zenslam
                     {
                         keypoints_1 += _detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
                     }
+
+                    // Track keylines
+                    keylines_1 += track_keylines(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keylines[1]);
+
+                    // Detect new keylines (avoiding areas where tracked keylines exist)
+                    keylines_1 += _detector.detect_keylines(frame_1.undistorted[1], keylines_1, _options.keyline_mask_margin);
                 }
             };
         }
 
+        // Match keypoints
         keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
         points3d += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
 
-        return { frame_1, keypoints_0, keypoints_1, { }, points3d };
+        // Match keylines using the fundamental matrix
+        const auto keyline_matches = utils::match_keylines
+        (
+            keylines_0,
+            keylines_1,
+            _calibration.fundamental_matrix[0],
+            _options.epipolar_threshold
+        );
+
+        // Update keylines with matches (remap indices)
+        keylines_1 *= keyline_matches;
+
+        // Triangulate keylines
+        lines3d += utils::triangulate_keylines
+        (
+            keylines_0,
+            keylines_1,
+            _calibration.projection_matrix[0],
+            _calibration.projection_matrix[1],
+            _options,
+            _calibration.cameras[1].pose_in_cam0.translation()
+        );
+
+        return { frame_1, {keypoints_0, keypoints_1}, {keylines_0, keylines_1}, points3d, lines3d };
     }
 
     // Moved from utils::track_keypoints
@@ -262,5 +345,15 @@ namespace zenslam
         }
 
         return tracked_keypoints;
+    }
+
+    std::vector<keyline> tracker::track_keylines
+    (
+        const std::vector<cv::Mat>& pyramid_0,
+        const std::vector<cv::Mat>& pyramid_1,
+        const map<keyline>&         keylines_map_0
+    ) const
+    {
+        return utils::track_keylines(pyramid_0, pyramid_1, keylines_map_0, _options);
     }
 }

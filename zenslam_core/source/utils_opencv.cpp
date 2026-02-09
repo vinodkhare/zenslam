@@ -284,6 +284,41 @@ auto zenslam::utils::draw_matches_spatial(const frame::estimated& frame, const m
         cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS | cv::DrawMatchesFlags::DRAW_OVER_OUTIMG
     );
 
+    std::vector<keyline> keylines_l_matched { };
+    std::vector<keyline> keylines_r_matched { };
+    keylines_l_matched.reserve(frame.keylines[0].size());
+    keylines_r_matched.reserve(frame.keylines[0].size());
+
+    // Align keylines by index for correct match pairing.
+    for (const auto& [index, kl_l] : frame.keylines[0])
+    {
+        if (frame.keylines[1].contains(index))
+        {
+            keylines_l_matched.push_back(kl_l);
+            keylines_r_matched.push_back(frame.keylines[1].at(index));
+        }
+    }
+
+    if (!keylines_l_matched.empty())
+    {
+        const auto& line_matches = utils::matches(keylines_l_matched.size());
+
+        draw_line_matches
+        (
+            undistorted_l,
+            utils::cast<cv::line_descriptor::KeyLine>(keylines_l_matched),
+            undistorted_r,
+            utils::cast<cv::line_descriptor::KeyLine>(keylines_r_matched),
+            line_matches,
+            matches_image,
+            cv::Scalar::all(-1),
+            cv::Scalar::all(-1),
+            std::vector<char>(line_matches.size(), true),
+            cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG,
+            1
+        );
+    }
+
     return matches_image;
 }
 
@@ -360,9 +395,22 @@ auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, cons
     // Draw keyline matches if enabled
     if (options.show_keylines)
     {
-        const auto& keylines_0_matched = frame_0.keylines[0].values_matched(frame_1.keylines[0]) | std::ranges::to<std::vector>();
-        const auto& keylines_1_matched = frame_1.keylines[1].values_matched(frame_0.keylines[0]) | std::ranges::to<std::vector>();
-        const auto& line_matches       = matches(keylines_0_matched.size());
+        std::vector<keyline> keylines_0_matched { };
+        std::vector<keyline> keylines_1_matched { };
+        keylines_0_matched.reserve(frame_0.keylines[0].size());
+        keylines_1_matched.reserve(frame_0.keylines[0].size());
+
+        // Align matched keylines by index so draw_line_matches pairs are correct.
+        for (const auto& [index, kl_0] : frame_0.keylines[0])
+        {
+            if (frame_1.keylines[0].contains(index))
+            {
+                keylines_0_matched.push_back(kl_0);
+                keylines_1_matched.push_back(frame_1.keylines[0].at(index));
+            }
+        }
+
+        const auto& line_matches = utils::matches(keylines_0_matched.size());
 
         draw_line_matches
         (

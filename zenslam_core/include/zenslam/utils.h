@@ -4,8 +4,8 @@
 #include <map>
 #include <numbers>
 
-#include <string>
 #include <opencv2/core/affine.hpp>
+#include <string>
 
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
@@ -19,15 +19,9 @@ namespace zenslam::utils
 {
     inline std::string version = "0.0.1";
 
-    inline std::map<std::string, spdlog::level::level_enum> log_levels_from_string =
-    {
-        { "trace", spdlog::level::trace },
-        { "debug", spdlog::level::debug },
-        { "info", spdlog::level::info },
-        { "warn", spdlog::level::warn },
-        { "error", spdlog::level::err },
-        { "critical", spdlog::level::critical },
-        { "off", spdlog::level::off }
+    inline std::map<std::string, spdlog::level::level_enum> log_levels_from_string = {
+        { "trace", spdlog::level::trace }, { "debug", spdlog::level::debug },       { "info", spdlog::level::info }, { "warn", spdlog::level::warn },
+        { "error", spdlog::level::err },   { "critical", spdlog::level::critical }, { "off", spdlog::level::off }
     };
 
     inline auto log_levels_to_string = invert(log_levels_from_string);
@@ -36,12 +30,8 @@ namespace zenslam::utils
     auto to_keypoints(const std::vector<keypoint>& keypoints) -> std::vector<cv::KeyPoint>;
     auto to_map(const std::vector<cv::DMatch>& matches) -> std::map<int, int>;
 
-    auto to_points
-    (
-        const std::vector<cv::KeyPoint>& keypoints0,
-        const std::vector<cv::KeyPoint>& keypoints1,
-        const std::vector<cv::DMatch>&   matches
-    ) -> std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>>;
+    auto to_points(const std::vector<cv::KeyPoint>& keypoints0, const std::vector<cv::KeyPoint>& keypoints1, const std::vector<cv::DMatch>& matches)
+        -> std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>>;
 
     auto to_points(const std::vector<cv::KeyPoint>& keypoints) -> std::vector<cv::Point2f>;
     auto to_points(const std::vector<keypoint>& keypoints) -> std::vector<cv::Point2f>;
@@ -67,7 +57,7 @@ namespace zenslam::utils
     template <typename T>
     auto vecnorm(const std::vector<cv::Point_<T>>& vec) -> std::vector<T>
     {
-        std::vector<T> vecnorm { };
+        std::vector<T> vecnorm{};
         for (const auto& v : vec)
         {
             vecnorm.emplace_back(cv::norm(v));
@@ -83,7 +73,7 @@ namespace zenslam::utils
      * @return Rectified image
      */
     auto rectify(const cv::Mat& image, const cv::Mat& map_x, const cv::Mat& map_y) -> cv::Mat;
-}
+} // namespace zenslam::utils
 
 // Pretty formatter for cv::Affine3d for spdlog/fmt
 template <>
@@ -96,20 +86,9 @@ struct fmt::formatter<cv::Affine3d> : formatter<std::string>
         const auto& t      = value.translation();
         const auto& angles = zenslam::utils::matrix_to_euler(R) * (180.0 / std::numbers::pi);
 
-        return formatter<std::string>::format
-        (
-            fmt::format
-            (
-                "{{ x: {{ {:+.4f}, {:+.4f}, {:+.4f} }}, 𝜭: {{ {:+.4f}, {:+.4f}, {:+.4f} }} }}",
-                t[0],
-                t[1],
-                t[2],
-                angles[0],
-                angles[1],
-                angles[2]
-            ),
-            context
-        );
+        return formatter<std::string>::format(
+            fmt::format("{{ x: {{ {:+.4f}, {:+.4f}, {:+.4f} }}, 𝜭: {{ {:+.4f}, {:+.4f}, {:+.4f} }} }}", t[0], t[1], t[2], angles[0], angles[1], angles[2]),
+            context);
     }
 };
 
@@ -120,16 +99,6 @@ struct fmt::formatter<cv::Vec3d> : formatter<std::string>
     template <typename FormatContext>
     auto format(const cv::Vec3d& value, FormatContext& context) const
     {
-        return formatter<std::string>::format
-        (
-            fmt::format
-            (
-                "[ {:+.4f}, {:+.4f}, {:+.4f} ]",
-                value[0],
-                value[1],
-                value[2]
-            ),
-            context
-        );
+        return formatter<std::string>::format(fmt::format("[ {:+.4f}, {:+.4f}, {:+.4f} ]", value[0], value[1], value[2]), context);
     }
 };

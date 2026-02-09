@@ -50,17 +50,29 @@ zenslam::application::application(options options) : _options { std::move(option
             _estimation_history.push_back(std::chrono::duration<double>(_system.durations.estimation).count());
             _total_history.push_back(std::chrono::duration<double>(_system.durations.total).count());
 
-            // Update counts history for plots
-            _kp_l_history.push_back(static_cast<double>(_system.counts.keypoints_l));
-            _kp_r_history.push_back(static_cast<double>(_system.counts.keypoints_r));
-            _kp_tracked_l_history.push_back(static_cast<double>(_system.counts.keypoints_l_tracked));
-            _kp_tracked_r_history.push_back(static_cast<double>(_system.counts.keypoints_r_tracked));
-            _kp_new_l_history.push_back(static_cast<double>(_system.counts.keypoints_l_new));
-            _kp_new_r_history.push_back(static_cast<double>(_system.counts.keypoints_r_new));
-            _kp_total_history.push_back(static_cast<double>(_system.counts.keypoints_total));
-            _matches_history.push_back(static_cast<double>(_system.counts.matches));
-            _triangulated_history.push_back(static_cast<double>(_system.counts.matches_triangulated));
-            _map_points_history.push_back(static_cast<double>(_system.counts.points));
+            // Update point counts history
+            _point_history.features_l.push_back(static_cast<double>(_system.counts.points.features_l));
+            _point_history.features_r.push_back(static_cast<double>(_system.counts.points.features_r));
+            _point_history.features_l_tracked.push_back(static_cast<double>(_system.counts.points.features_l_tracked));
+            _point_history.features_r_tracked.push_back(static_cast<double>(_system.counts.points.features_r_tracked));
+            _point_history.features_l_new.push_back(static_cast<double>(_system.counts.points.features_l_new));
+            _point_history.features_r_new.push_back(static_cast<double>(_system.counts.points.features_r_new));
+            _point_history.features_total.push_back(static_cast<double>(_system.counts.points.features_total));
+            _point_history.matches_stereo.push_back(static_cast<double>(_system.counts.points.matches_stereo));
+            _point_history.triangulated_3d.push_back(static_cast<double>(_system.counts.points.triangulated_3d));
+            _point_history.map_total.push_back(static_cast<double>(_system.counts.map_points));
+
+            // Update line counts history
+            _line_history.features_l.push_back(static_cast<double>(_system.counts.lines.features_l));
+            _line_history.features_r.push_back(static_cast<double>(_system.counts.lines.features_r));
+            _line_history.features_l_tracked.push_back(static_cast<double>(_system.counts.lines.features_l_tracked));
+            _line_history.features_r_tracked.push_back(static_cast<double>(_system.counts.lines.features_r_tracked));
+            _line_history.features_l_new.push_back(static_cast<double>(_system.counts.lines.features_l_new));
+            _line_history.features_r_new.push_back(static_cast<double>(_system.counts.lines.features_r_new));
+            _line_history.features_total.push_back(static_cast<double>(_system.counts.lines.features_total));
+            _line_history.matches_stereo.push_back(static_cast<double>(_system.counts.lines.matches_stereo));
+            _line_history.triangulated_3d.push_back(static_cast<double>(_system.counts.lines.triangulated_3d));
+            _line_history.map_total.push_back(static_cast<double>(_system.counts.map_lines));
         }
 
         // Update trajectory history
@@ -576,41 +588,86 @@ void zenslam::application::draw_viz_controls()
         ImPlot::SetupAxisFormat(ImAxis_X1, "%.2f");
 
         // Keypoints
-        ImPlot::PlotLine("KP L", _time_history.data(), _kp_l_history.data(), static_cast<int>(_time_history.size()));
-        ImPlot::PlotLine("KP R", _time_history.data(), _kp_r_history.data(), static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("KP L", _time_history.data(), _point_history.features_l.data(), static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("KP R", _time_history.data(), _point_history.features_r.data(), static_cast<int>(_time_history.size()));
         ImPlot::PlotLine("Tracked L",
                          _time_history.data(),
-                         _kp_tracked_l_history.data(),
+                         _point_history.features_l_tracked.data(),
                          static_cast<int>(_time_history.size()));
         ImPlot::PlotLine("Tracked R",
                          _time_history.data(),
-                         _kp_tracked_r_history.data(),
+                         _point_history.features_r_tracked.data(),
                          static_cast<int>(_time_history.size()));
         ImPlot::PlotLine("New L",
                          _time_history.data(),
-                         _kp_new_l_history.data(),
+                         _point_history.features_l_new.data(),
                          static_cast<int>(_time_history.size()));
         ImPlot::PlotLine("New R",
                          _time_history.data(),
-                         _kp_new_r_history.data(),
+                         _point_history.features_r_new.data(),
                          static_cast<int>(_time_history.size()));
         ImPlot::PlotLine("KP Total",
                          _time_history.data(),
-                         _kp_total_history.data(),
+                         _point_history.features_total.data(),
                          static_cast<int>(_time_history.size()));
 
         // Matches & 3D
         ImPlot::PlotLine("Matches",
                          _time_history.data(),
-                         _matches_history.data(),
+                         _point_history.matches_stereo.data(),
                          static_cast<int>(_time_history.size()));
         ImPlot::PlotLine("Triangulated",
                          _time_history.data(),
-                         _triangulated_history.data(),
+                         _point_history.triangulated_3d.data(),
                          static_cast<int>(_time_history.size()));
         ImPlot::PlotLine("Map Points",
                          _time_history.data(),
-                         _map_points_history.data(),
+                         _point_history.map_total.data(),
+                         static_cast<int>(_time_history.size()));
+
+        ImPlot::EndPlot();
+    }
+
+    // Keyline Counts Plot
+    if (!_time_history.empty() && ImPlot::BeginPlot("Keyline Counts", ImVec2(-1, 320)))
+    {
+        ImPlot::SetupAxes("Time (s)", "Count", ImPlotAxisFlags_None, ImPlotAxisFlags_None);
+        ImPlot::SetupAxisLimits(ImAxis_X1, _time_history.back() - interval, _time_history.back(), ImGuiCond_Always);
+        ImPlot::SetupLegend(ImPlotLocation_NorthEast);
+        ImPlot::SetupAxisFormat(ImAxis_X1, "%.2f");
+
+        // Keylines
+        ImPlot::PlotLine("KL L", _time_history.data(), _line_history.features_l.data(), static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("KL R", _time_history.data(), _line_history.features_r.data(), static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("Tracked L",
+                         _time_history.data(),
+                         _line_history.features_l_tracked.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("Tracked R",
+                         _time_history.data(),
+                         _line_history.features_r_tracked.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("New L",
+                         _time_history.data(),
+                         _line_history.features_l_new.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("New R",
+                         _time_history.data(),
+                         _line_history.features_r_new.data(),
+                         static_cast<int>(_time_history.size()));
+
+        // Matches & 3D
+        ImPlot::PlotLine("KL Matches",
+                         _time_history.data(),
+                         _line_history.matches_stereo.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("Lines 3D",
+                         _time_history.data(),
+                         _line_history.triangulated_3d.data(),
+                         static_cast<int>(_time_history.size()));
+        ImPlot::PlotLine("Map Lines",
+                         _time_history.data(),
+                         _line_history.map_total.data(),
                          static_cast<int>(_time_history.size()));
 
         ImPlot::EndPlot();

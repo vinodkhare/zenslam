@@ -57,17 +57,23 @@ namespace zenslam
     std::vector<double> _estimation_history = {};
     std::vector<double> _total_history      = {};
 
-    // Frame counts history for plots
-    std::vector<double> _kp_l_history          = {};
-    std::vector<double> _kp_r_history          = {};
-    std::vector<double> _kp_tracked_l_history  = {};
-    std::vector<double> _kp_tracked_r_history  = {};
-    std::vector<double> _kp_new_l_history      = {};
-    std::vector<double> _kp_new_r_history      = {};
-    std::vector<double> _kp_total_history      = {};
-    std::vector<double> _matches_history       = {};
-    std::vector<double> _triangulated_history  = {};
-    std::vector<double> _map_points_history    = {};
+    // Feature count history structure
+    struct feature_count_history {
+        std::vector<double> features_l          = {};
+        std::vector<double> features_r          = {};
+        std::vector<double> features_l_tracked  = {};
+        std::vector<double> features_r_tracked  = {};
+        std::vector<double> features_l_new      = {};
+        std::vector<double> features_r_new      = {};
+        std::vector<double> features_total      = {};  // Only used for points
+        std::vector<double> matches_stereo      = {};
+        std::vector<double> triangulated_3d     = {};
+        std::vector<double> map_total           = {};
+    };
+
+    // Feature count history instances
+    feature_count_history _point_history = {};
+    feature_count_history _line_history  = {};
 
     // Trajectory history for visualization
     std::vector<cv::Point3d> _trajectory_estimated = {};

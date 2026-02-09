@@ -2,10 +2,7 @@
 
 #include <ranges>
 
-#include <opencv2/calib3d.hpp>
 #include <opencv2/imgproc.hpp>
-
-#include <spdlog/spdlog.h>
 
 
 auto zenslam::utils::skew(const cv::Vec3d& vector) -> cv::Matx33d
@@ -27,15 +24,7 @@ auto zenslam::utils::to_keypoints(const std::vector<keypoint>& keypoints) -> std
     std::vector<cv::KeyPoint> cv_keypoints;
     cv_keypoints.reserve(keypoints.size());
 
-    std::ranges::transform
-    (
-        keypoints,
-        std::back_inserter(cv_keypoints),
-        [](const auto& keypoint)
-        {
-            return keypoint;
-        }
-    );
+    std::ranges::transform(keypoints, std::back_inserter(cv_keypoints), [](const auto& keypoint) { return keypoint; });
 
     return cv_keypoints;
 }
@@ -43,24 +32,12 @@ auto zenslam::utils::to_keypoints(const std::vector<keypoint>& keypoints) -> std
 auto zenslam::utils::to_map(const std::vector<cv::DMatch>& matches) -> std::map<int, int>
 {
     std::map<int, int> map;
-    std::ranges::transform
-    (
-        matches,
-        std::inserter(map, map.begin()),
-        [](const auto& match)
-        {
-            return std::make_pair(match.queryIdx, match.trainIdx);
-        }
-    );
+    std::ranges::transform(matches, std::inserter(map, map.begin()), [](const auto& match) { return std::make_pair(match.queryIdx, match.trainIdx); });
     return map;
 }
 
-auto zenslam::utils::to_points
-(
-    const std::vector<cv::KeyPoint>& keypoints0,
-    const std::vector<cv::KeyPoint>& keypoints1,
-    const std::vector<cv::DMatch>&   matches
-) -> std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>>
+auto zenslam::utils::to_points(const std::vector<cv::KeyPoint>& keypoints0, const std::vector<cv::KeyPoint>& keypoints1, const std::vector<cv::DMatch>& matches)
+    -> std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>>
 {
     std::vector<cv::Point2f> points0;
     points0.reserve(matches.size());
@@ -86,13 +63,7 @@ auto zenslam::utils::to_points(const std::vector<cv::KeyPoint>& keypoints) -> st
 
 auto zenslam::utils::to_points(const std::vector<keypoint>& keypoints) -> std::vector<cv::Point2f>
 {
-    return keypoints | std::views::transform
-    (
-        [](const auto& keypoint)
-        {
-            return keypoint.pt;
-        }
-    ) | std::ranges::to<std::vector>();
+    return keypoints | std::views::transform([](const auto& keypoint) { return keypoint.pt; }) | std::ranges::to<std::vector>();
 }
 
 auto zenslam::utils::to_points(const std::map<size_t, keypoint>& keypoints) -> std::vector<cv::Point2f>

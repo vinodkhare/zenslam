@@ -19,6 +19,8 @@ namespace zenslam::frame
             "t_detection_left,t_detection_right,t_klt,t_matching,t_triangulation,"
             "n_keypoints_l,n_keypoints_r,n_tracked_l,n_tracked_r,n_new_l,n_new_r,"
             "n_matches,n_triangulated,"
+            "n_keylines_l,n_keylines_r,n_keylines_tracked_l,n_keylines_tracked_r,n_keylines_new_l,n_keylines_new_r,"
+            "n_keyline_matches,n_lines3d_triangulated,"
             "n_3d3d,n_3d2d,n_2d2d,n_3d3d_inliers,n_3d2d_inliers,n_2d2d_inliers,"
             "klt_error_mean,klt_error_std,klt_success_rate,"
             "match_distance_mean,match_distance_std,"
@@ -36,6 +38,8 @@ namespace zenslam::frame
                 "{:.3f},"
                 "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},"
                 "{:.4f},{:.4f},{:.4f},{:.4f},{:.4f},"
+                "{},{},{},{},{},{},"
+                "{},{},"
                 "{},{},{},{},{},{},"
                 "{},{},"
                 "{},{},{},{},{},{},"
@@ -59,14 +63,23 @@ namespace zenslam::frame
                 std::chrono::duration<double>(frame.durations.matching).count(),
                 std::chrono::duration<double>(frame.durations.triangulation).count(),
                 // Keypoint counts
-                frame.counts.keypoints_l,
-                frame.counts.keypoints_r,
-                frame.counts.keypoints_l_tracked,
-                frame.counts.keypoints_r_tracked,
-                frame.counts.keypoints_l_new,
-                frame.counts.keypoints_r_new,
-                frame.counts.matches,
-                frame.counts.matches_triangulated,
+                frame.counts.points.features_l,
+                frame.counts.points.features_r,
+                frame.counts.points.features_l_tracked,
+                frame.counts.points.features_r_tracked,
+                frame.counts.points.features_l_new,
+                frame.counts.points.features_r_new,
+                frame.counts.points.matches_stereo,
+                frame.counts.points.triangulated_3d,
+                // Keyline counts
+                frame.counts.lines.features_l,
+                frame.counts.lines.features_r,
+                frame.counts.lines.features_l_tracked,
+                frame.counts.lines.features_r_tracked,
+                frame.counts.lines.features_l_new,
+                frame.counts.lines.features_r_new,
+                frame.counts.lines.matches_stereo,
+                frame.counts.lines.triangulated_3d,
                 // Correspondence counts
                 frame.counts.correspondences_3d3d,
                 frame.counts.correspondences_3d2d,
