@@ -7,16 +7,20 @@
 #include "zenslam/frame/tracked.h"
 #include "zenslam/options.h"
 #include "zenslam/pose_data.h"
+#include "zenslam/types/keyline.h"
+#include "zenslam/types/line3d.h"
 #include "zenslam/types/point3d.h"
 
 namespace zenslam
 {
     struct estimate_pose_result
     {
-        pose_data    pose_3d3d;   // 3D-3D result (maybe empty)
-        pose_data    pose_3d2d;   // 3D-2D result (maybe empty)
-        pose_data    pose_2d2d;   // 2D-2D result scaled using previous triangulated points (maybe empty)
-        cv::Affine3d chosen_pose; // Selected pose (or identity)
+        pose_data    pose_3d3d;       // 3D-3D point result (maybe empty)
+        pose_data    pose_3d2d;       // 3D-2D point result (maybe empty)
+        pose_data    pose_2d2d;       // 2D-2D point result scaled using previous triangulated points (maybe empty)
+        pose_data    pose_3d3d_lines; // 3D-3D line result (maybe empty)
+        pose_data    pose_3d2d_lines; // 3D-2D line result (maybe empty)
+        cv::Affine3d chosen_pose;     // Selected pose (or identity)
         size_t       chosen_count{};
     };
 
@@ -50,6 +54,11 @@ namespace zenslam
             const std::map<size_t, keypoint>& map_keypoints_0,
             const std::map<size_t, keypoint>& map_keypoints_1,
             const std::map<size_t, point3d>&  map_points3d_0) const -> pose_data;
+
+        [[nodiscard]] auto estimate_pose_3d2d_lines(const std::map<size_t, line3d>& map_lines_0, const std::map<size_t, keyline>& map_keylines_1) const
+            -> pose_data;
+
+        [[nodiscard]] auto estimate_pose_3d3d_lines(const std::map<size_t, line3d>& map_lines_0, const std::map<size_t, line3d>& map_lines_1) const -> pose_data;
 
     private:
         calibration         _calibration;

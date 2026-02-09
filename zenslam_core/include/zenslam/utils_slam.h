@@ -4,7 +4,6 @@
 #include <ranges>
 
 #include <opencv2/features2d.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include "zenslam/options.h"
 #include "zenslam/types/keyline.h"
@@ -98,7 +97,54 @@ namespace zenslam::utils
         std::vector<cv::Point3d>&        points3d_1,
         std::vector<size_t>&             indexes
     );
+    /**
+     * Returns 3D-2D line correspondences by matching 3D lines to 2D keylines based on indices.
+     * For each matched index, extracts the two endpoints of the 3D line and 2D keyline.
+     * This produces four separate vectors suitable for line-to-point pose estimation.
+     *
+     * @param lines_map Map of 3D lines (each containing two endpoints)
+     * @param keylines_map Map of 2D keylines (each containing two endpoints)
+     * @param lines3d_p1 First endpoints of matched 3D lines
+     * @param lines3d_p2 Second endpoints of matched 3D lines
+     * @param keylines2d_p1 First endpoints of matched 2D keylines
+     * @param keylines2d_p2 Second endpoints of matched 2D keylines
+     * @param indices Indices of matched correspondences
+     */
+    void correspondences_3d2d_lines
+    (
+        const std::map<size_t, line3d>&  lines_map,
+        const std::map<size_t, keyline>& keylines_map,
+        std::vector<cv::Point3d>&        lines3d_p1,
+        std::vector<cv::Point3d>&        lines3d_p2,
+        std::vector<cv::Point2d>&        keylines2d_p1,
+        std::vector<cv::Point2d>&        keylines2d_p2,
+        std::vector<size_t>&             indices
+    );
 
+    /**
+     * Returns 3D-3D line correspondences by matching 3D lines between two frames.
+     * For each matched index, extracts the two endpoints of each line.
+     * This produces four separate 3D point vectors for line endpoint-based pose estimation.
+     *
+     * @param lines_map_0 Map of 3D lines from first frame
+     * @param lines_map_1 Map of 3D lines from second frame
+     * @param lines3d_0_p1 First endpoints from frame 0
+     * @param lines3d_0_p2 Second endpoints from frame 0
+     * @param lines3d_1_p1 First endpoints from frame 1
+     * @param lines3d_1_p2 Second endpoints from frame 1
+     * @param indices Indices of matched correspondences
+     */
+    void correspondences_3d3d_lines
+    (
+        const std::map<size_t, line3d>& lines_map_0,
+        const std::map<size_t, line3d>& lines_map_1,
+        std::vector<cv::Point3d>&       lines3d_0_p1,
+        std::vector<cv::Point3d>&       lines3d_0_p2,
+        std::vector<cv::Point3d>&       lines3d_1_p1,
+        std::vector<cv::Point3d>&       lines3d_1_p2,
+        std::vector<size_t>&            indices
+    );
+    
     /** Estimate rigid transformation (R, t) between two sets of 3D points.
      *
      * @param points3d_0 First set of 3D points
@@ -129,7 +175,7 @@ namespace zenslam::utils
         int                             max_iterations = 1000
     ) -> bool;
 
-    // filters matches using the epipolar crterion given the fundamental matrix
+    // filters matches using the epipolar criterion given the fundamental matrix
     auto filter
     (
         const std::vector<cv::KeyPoint>& keypoints0,

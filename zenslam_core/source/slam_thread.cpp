@@ -173,7 +173,7 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this{ system.durations.estimation };
 
-                auto [pose_3d3d, pose_3d2d, pose_2d2d, chosen_pose, chosen_count] = estimator.estimate_pose(system[0], tracked);
+                auto [pose_3d3d, pose_3d2d, pose_2d2d, pose_3d3d_lines, pose_3d2d_lines, chosen_pose, chosen_count] = estimator.estimate_pose(system[0], tracked);
 
                 SPDLOG_INFO("Chosen count: {}", chosen_count);
 
@@ -189,10 +189,14 @@ void zenslam::slam_thread::loop()
                 const auto err3d3d_mean = utils::mean(pose_3d3d.errors);
                 const auto err3d2d_mean = utils::mean(pose_3d2d.errors);
                 const auto err2d2d_mean = utils::mean(pose_2d2d.errors);
+                const auto err3d3d_lines_mean = utils::mean(pose_3d3d_lines.errors);
+                const auto err3d2d_lines_mean = utils::mean(pose_3d2d_lines.errors);
 
-                SPDLOG_INFO("3D-3D mean error: {:.4f} m", err3d3d_mean);
-                SPDLOG_INFO("3D-2D mean error: {:.4f} px", err3d2d_mean);
-                SPDLOG_INFO("2D-2D mean error: {:.4f} px", err2d2d_mean);
+                SPDLOG_INFO("3D-3D point mean error: {:.4f} m", err3d3d_mean);
+                SPDLOG_INFO("3D-2D point mean error: {:.4f} px", err3d2d_mean);
+                SPDLOG_INFO("2D-2D point mean error: {:.4f} px", err2d2d_mean);
+                SPDLOG_INFO("3D-3D line mean error: {:.4f} m", err3d3d_lines_mean);
+                SPDLOG_INFO("3D-2D line mean error: {:.4f} px", err3d2d_lines_mean);
 
                 if (chosen_count < 10)
                 {

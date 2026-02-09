@@ -211,41 +211,209 @@ namespace zenslam
         return out;
     }
 
+    auto estimator::estimate_pose_3d2d_lines(const std::map<size_t, line3d>& map_lines_0, const std::map<size_t, keyline>& map_keylines_1) const -> pose_data
+    {
+        std::vector<cv::Point3d> lines3d_p1, lines3d_p2;
+        std::vector<cv::Point2d> keylines2d_p1, keylines2d_p2;
+        std::vector<size_t>      indices;
+        utils::correspondences_3d2d_lines(map_lines_0, map_keylines_1, lines3d_p1, lines3d_p2, keylines2d_p1, keylines2d_p2, indices);
+
+        cv::Affine3d pose = cv::Affine3d::Identity();
+        auto         out  = zenslam::pose_data{};
+
+        if (lines3d_p1.size() >= 3)
+        {
+            // Combine all endpoints into single vector for PnP
+            std::vector<cv::Point3d> all_points3d;
+            std::vector<cv::Point2d> all_points2d;
+            all_points3d.reserve(lines3d_p1.size() * 2);
+            all_points2d.reserve(keylines2d_p1.size() * 2);
+
+            for (size_t i = 0; i < lines3d_p1.size(); ++i)
+            {
+                all_points3d.push_back(lines3d_p1[i]);
+                all_points3d.push_back(lines3d_p2[i]);
+                all_points2d.push_back(keylines2d_p1[i]);
+                all_points2d.push_back(keylines2d_p2[i]);
+            }
+
+            cv::Mat          rvec{ pose.rvec() };
+            cv::Mat          tvec{ pose.translation() };
+            std::vector<int> inliers;
+            if (cv::solvePnPRansac(
+                    all_points3d,
+                    all_points2d,
+                    _calibration.camera_matrix[0],
+                    cv::Mat(),
+                    rvec,
+                    tvec,
+                    true,
+                    1000,
+                    gsl::narrow<float>(_options.threshold_3d2d),
+                    0.99,
+                    inliers))
+            {
+                out.pose    = cv::Affine3d(rvec, tvec);
+                out.indices = indices;
+
+                // Map endpoint inlier indices back to line indices
+                std::set<size_t> unique_line_indices;
+                for (auto i : inliers)
+                {
+                    const size_t line_idx = i / 2;
+                    if (line_idx < indices.size())
+                        unique_line_indices.insert(indices[line_idx]);
+                }
+
+                for (const auto& idx : unique_line_indices)
+                    out.inliers.push_back(idx);
+
+                // Outliers
+                std::set<size_t> inlier_set(unique_line_indices.begin(), unique_line_indices.end());
+                for (const auto& idx : indices)
+                {
+                    if (!inlier_set.contains(idx))
+                        out.outliers.push_back(idx);
+                }
+
+                // Reprojection error for each line endpoint
+                std::vector<cv::Point2d> proj;
+                cv::Mat                  rvec_out;
+                cv::Rodrigues(out.pose.rotation(), rvec_out);
+                cv::projectPoints(all_points3d, rvec_out, cv::Mat(out.pose.translation()), _calibration.camera_matrix[0], cv::Mat(), proj);
+                for (size_t i = 0; i < proj.size(); ++i)
+                {
+                    out.errors.push_back(cv::norm(proj[i] - all_points2d[i]));
+                }
+
+                return out;
+            }
+
+            throw std::runtime_error("SolvePnP failed for lines");
+        }
+
+        throw std::runtime_error("Not enough 3D-2D line correspondences to compute pose (need >= 3)");
+    }
+
+    auto estimator::estimate_pose_3d3d_lines(const std::map<size_t, line3d>& map_lines_0, const std::map<size_t, line3d>& map_lines_1) const -> pose_data
+    {
+        std::vector<cv::Point3d> lines3d_0_p1, lines3d_0_p2;
+        std::vector<cv::Point3d> lines3d_1_p1, lines3d_1_p2;
+        std::vector<size_t>      indices;
+        utils::correspondences_3d3d_lines(map_lines_0, map_lines_1, lines3d_0_p1, lines3d_0_p2, lines3d_1_p1, lines3d_1_p2, indices);
+
+        if (lines3d_0_p1.size() >= 2)
+        {
+            // Combine all endpoints into single vectors for RANSAC
+            std::vector<cv::Point3d> all_points_0, all_points_1;
+            all_points_0.reserve(lines3d_0_p1.size() * 2);
+            all_points_1.reserve(lines3d_1_p1.size() * 2);
+
+            for (size_t i = 0; i < lines3d_0_p1.size(); ++i)
+            {
+                all_points_0.push_back(lines3d_0_p1[i]);
+                all_points_0.push_back(lines3d_0_p2[i]);
+                all_points_1.push_back(lines3d_1_p1[i]);
+                all_points_1.push_back(lines3d_1_p2[i]);
+            }
+
+            cv::Matx33d         R;
+            cv::Point3d         t;
+            std::vector<size_t> inliers;
+            std::vector<size_t> outliers;
+            std::vector<double> errors;
+            utils::estimate_rigid_ransac(all_points_0, all_points_1, R, t, inliers, outliers, errors, _options.threshold_3d3d, 1000);
+
+            // Map endpoint inlier indices back to line indices
+            std::set<size_t> unique_line_inliers;
+            for (const auto& idx : inliers)
+            {
+                const size_t line_idx = idx / 2;
+                if (line_idx < indices.size())
+                    unique_line_inliers.insert(indices[line_idx]);
+            }
+
+            // Map endpoint outlier indices back to line indices
+            std::set<size_t> unique_line_outliers;
+            for (const auto& idx : outliers)
+            {
+                const size_t line_idx = idx / 2;
+                if (line_idx < indices.size())
+                    unique_line_outliers.insert(indices[line_idx]);
+            }
+
+            std::vector<size_t> final_inliers(unique_line_inliers.begin(), unique_line_inliers.end());
+            std::vector<size_t> final_outliers(unique_line_outliers.begin(), unique_line_outliers.end());
+
+            return { cv::Affine3d{ R, t }, indices, final_inliers, final_outliers, errors };
+        }
+
+        throw std::runtime_error("Not enough 3D-3D line correspondences to compute pose (need >= 2)");
+    }
+
     auto estimator::estimate_pose(const std::map<size_t, point3d>& points3d_0, const frame::tracked& tracked_1) const -> estimate_pose_result
     {
         estimate_pose_result result{};
 
-        // Attempt 3D-3D
+        // Attempt 3D-3D points
         try
         {
             result.pose_3d3d = estimate_pose_3d3d(points3d_0, tracked_1.points3d);
         }
         catch (const std::runtime_error& e)
         {
-            SPDLOG_WARN("3D-3D pose estimation failed: {}", e.what());
+            SPDLOG_WARN("3D-3D point pose estimation failed: {}", e.what());
         }
 
-        // Attempt 3D-2D (left camera)
+        // Attempt 3D-2D points
         try
         {
             result.pose_3d2d = estimate_pose_3d2d(points3d_0, tracked_1.keypoints[0]);
         }
         catch (const std::runtime_error& e)
         {
-            SPDLOG_WARN("3D-2D pose estimation failed: {}", e.what());
+            SPDLOG_WARN("3D-2D point pose estimation failed: {}", e.what());
+        }
+
+        // Attempt 3D-2D lines (no previous 3D lines available in this overload)
+        try
+        {
+            result.pose_3d2d_lines = estimate_pose_3d2d_lines(tracked_1.lines3d, tracked_1.keylines[0]);
+        }
+        catch (const std::runtime_error& e)
+        {
+            SPDLOG_WARN("3D-2D line pose estimation failed: {}", e.what());
         }
 
         // Choose the pose with more inliers; if tied, prefer 3D-3D; if both invalid, identity
         const auto inliers_3d3d = result.pose_3d3d.inliers.size();
         const auto inliers_3d2d = result.pose_3d2d.inliers.size();
+        const auto inliers_3d2d_lines = result.pose_3d2d_lines.inliers.size();
 
-        // No 2D-2D path in this overload
-        if (inliers_3d3d == 0 && inliers_3d2d == 0)
-            result.chosen_pose = cv::Affine3d::Identity();
-        else if (inliers_3d3d >= inliers_3d2d)
-            result.chosen_pose = result.pose_3d3d.pose;
-        else
-            result.chosen_pose = result.pose_3d2d.pose;
+        // No 2D-2D path or 3D-3D lines in this overload
+        size_t       best_inliers = 0;
+        cv::Affine3d best_pose    = cv::Affine3d::Identity();
+
+        if (inliers_3d3d > best_inliers)
+        {
+            best_inliers = inliers_3d3d;
+            best_pose    = result.pose_3d3d.pose;
+        }
+
+        if (inliers_3d2d > best_inliers)
+        {
+            best_inliers = inliers_3d2d;
+            best_pose    = result.pose_3d2d.pose;
+        }
+
+        if (inliers_3d2d_lines > best_inliers)
+        {
+            best_inliers = inliers_3d2d_lines;
+            best_pose    = result.pose_3d2d_lines.pose;
+        }
+
+        result.chosen_count = best_inliers;
+        result.chosen_pose  = best_pose;
 
         return result;
     }
@@ -254,48 +422,70 @@ namespace zenslam
     {
         estimate_pose_result result{};
 
-        // 3D-3D
+        // 3D-3D points
         try
         {
             result.pose_3d3d = estimate_pose_3d3d(frame_0.points3d, tracked_1.points3d);
         }
         catch (const std::runtime_error& e)
         {
-            SPDLOG_WARN("3D-3D pose estimation failed: {}", e.what());
+            SPDLOG_WARN("3D-3D point pose estimation failed: {}", e.what());
         }
 
-        // 3D-2D (left camera)
+        // 3D-2D points (left camera)
         try
         {
             result.pose_3d2d = estimate_pose_3d2d(frame_0.points3d, tracked_1.keypoints[0]);
         }
         catch (const std::runtime_error& e)
         {
-            SPDLOG_WARN("3D-2D pose estimation failed: {}", e.what());
+            SPDLOG_WARN("3D-2D point pose estimation failed: {}", e.what());
         }
 
-        // 2D-2D with scale from previous triangulated points
+        // 2D-2D points with scale from previous triangulated points
         try
         {
             result.pose_2d2d = estimate_pose_2d2d(frame_0.keypoints[0], tracked_1.keypoints[0], frame_0.points3d);
         }
         catch (const std::runtime_error& e)
         {
-            SPDLOG_WARN("2D-2D pose estimation failed: {}", e.what());
+            SPDLOG_WARN("2D-2D point pose estimation failed: {}", e.what());
+        }
+
+        // 3D-3D lines
+        try
+        {
+            result.pose_3d3d_lines = estimate_pose_3d3d_lines(frame_0.lines3d, tracked_1.lines3d);
+        }
+        catch (const std::runtime_error& e)
+        {
+            SPDLOG_WARN("3D-3D line pose estimation failed: {}", e.what());
+        }
+
+        // 3D-2D lines (left camera)
+        try
+        {
+            result.pose_3d2d_lines = estimate_pose_3d2d_lines(frame_0.lines3d, tracked_1.keylines[0]);
+        }
+        catch (const std::runtime_error& e)
+        {
+            SPDLOG_WARN("3D-2D line pose estimation failed: {}", e.what());
         }
 
         const auto in3d3d = result.pose_3d3d.inliers.size();
         const auto in3d2d = result.pose_3d2d.inliers.size();
         const auto in2d2d = result.pose_2d2d.inliers.size();
+        const auto in3d3d_lines = result.pose_3d3d_lines.inliers.size();
+        const auto in3d2d_lines = result.pose_3d2d_lines.inliers.size();
 
-        // Choose the pose with the most inliers. Tie-breaker: 3D-3D > 3D-2D > 2D-2D
-        if (in3d3d == 0 && in3d2d == 0 && in2d2d == 0)
+        // Choose the pose with the most inliers. Tie-breaker: 3D-3D > 3D-2D > 3D-3D-lines > 3D-2D-lines > 2D-2D
+        if (in3d3d == 0 && in3d2d == 0 && in2d2d == 0 && in3d3d_lines == 0 && in3d2d_lines == 0)
         {
             result.chosen_pose = cv::Affine3d::Identity();
         }
         else
         {
-            // Track best by inlier count with tie-breaker preference: 3D-3D > 3D-2D > 2D-2D
+            // Track best by inlier count with tie-breaker preference
             size_t       best_inliers = 0;
             cv::Affine3d best_pose    = cv::Affine3d::Identity();
 
@@ -311,6 +501,20 @@ namespace zenslam
                 best_inliers = in3d2d;
                 if (!result.pose_3d2d.inliers.empty())
                     best_pose = result.pose_3d2d.pose;
+            }
+
+            if (in3d3d_lines > best_inliers || (in3d3d_lines == best_inliers && best_pose.matrix == cv::Affine3d::Identity().matrix))
+            {
+                best_inliers = in3d3d_lines;
+                if (!result.pose_3d3d_lines.inliers.empty())
+                    best_pose = result.pose_3d3d_lines.pose;
+            }
+
+            if (in3d2d_lines > best_inliers || (in3d2d_lines == best_inliers && best_pose.matrix == cv::Affine3d::Identity().matrix))
+            {
+                best_inliers = in3d2d_lines;
+                if (!result.pose_3d2d_lines.inliers.empty())
+                    best_pose = result.pose_3d2d_lines.pose;
             }
 
             if (in2d2d > best_inliers || (in2d2d == best_inliers && best_pose.matrix == cv::Affine3d::Identity().matrix))

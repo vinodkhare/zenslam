@@ -81,6 +81,60 @@ void zenslam::utils::correspondences_3d3d
     }
 }
 
+void zenslam::utils::correspondences_3d2d_lines
+(
+    const std::map<size_t, line3d>&  lines_map,
+    const std::map<size_t, keyline>& keylines_map,
+    std::vector<cv::Point3d>&        lines3d_p1,
+    std::vector<cv::Point3d>&        lines3d_p2,
+    std::vector<cv::Point2d>&        keylines2d_p1,
+    std::vector<cv::Point2d>&        keylines2d_p2,
+    std::vector<size_t>&             indices
+)
+{
+    for (const auto& index : keylines_map | std::views::keys)
+    {
+        if (lines_map.contains(index))
+        {
+            const auto& line = lines_map.at(index);
+            const auto& keyline = keylines_map.at(index);
+            
+            lines3d_p1.emplace_back(line[0]);
+            lines3d_p2.emplace_back(line[1]);
+            keylines2d_p1.emplace_back(keyline.startPointX, keyline.startPointY);
+            keylines2d_p2.emplace_back(keyline.endPointX, keyline.endPointY);
+            indices.emplace_back(index);
+        }
+    }
+}
+
+void zenslam::utils::correspondences_3d3d_lines
+(
+    const std::map<size_t, line3d>& lines_map_0,
+    const std::map<size_t, line3d>& lines_map_1,
+    std::vector<cv::Point3d>&       lines3d_0_p1,
+    std::vector<cv::Point3d>&       lines3d_0_p2,
+    std::vector<cv::Point3d>&       lines3d_1_p1,
+    std::vector<cv::Point3d>&       lines3d_1_p2,
+    std::vector<size_t>&            indices
+)
+{
+    for (const auto& index : lines_map_1 | std::views::keys)
+    {
+        if (lines_map_0.contains(index))
+        {
+            const auto& line_0 = lines_map_0.at(index);
+            const auto& line_1 = lines_map_1.at(index);
+            
+            lines3d_0_p1.emplace_back(line_0[0]);
+            lines3d_0_p2.emplace_back(line_0[1]);
+            lines3d_1_p1.emplace_back(line_1[0]);
+            lines3d_1_p2.emplace_back(line_1[1]);
+            indices.emplace_back(index);
+        }
+    }
+}
+
 // moved to zenslam::estimator
 
 bool zenslam::utils::estimate_rigid
