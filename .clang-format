@@ -2,15 +2,12 @@
 Language: Cpp
 BasedOnStyle: LLVM
 AccessModifierOffset: -4
-AlignAfterOpenBracket: AlwaysBreak
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignOperands: false
 AlignTrailingComments: true
 AllowShortIfStatementsOnASingleLine: false
 AlwaysBreakTemplateDeclarations: Yes
-BinPackArguments: false
-BinPackParameters: false
 BraceWrapping: 
   AfterCaseLabel: true
   AfterClass: true
@@ -31,7 +28,7 @@ BraceWrapping:
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false
-ColumnLimit: 160
+ColumnLimit: 120
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
 Cpp11BracedListStyle: false
 IncludeCategories: 

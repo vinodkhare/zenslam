@@ -23,20 +23,20 @@ namespace zenslam
          * @param name The name of this option
          * @param description A description of this option
          */
-        explicit option(T default_value, 
-                       std::string name = "", 
-                       std::string description = "")
-            : _value(std::move(default_value))
-            , _default_value(_value)
-            , _name(std::move(name))
-            , _description(std::move(description))
+        explicit option(T default_value, std::string name = "", std::string description = "") :
+            _value(std::move(default_value)),
+            _default_value(_value),
+            _name(std::move(name)),
+            _description(std::move(description))
         {
         }
 
         /**
          * @brief Default constructor (requires T to be default-constructible)
          */
-        option() : _value{}, _default_value{}, _name{}, _description{}
+        option() :
+            _value { },
+            _default_value { }
         {
         }
 
@@ -58,16 +58,16 @@ namespace zenslam
         }
 
         // Copy and move constructors/assignments
-        option(const option&) = default;
-        option(option&&) = default;
+        option(const option&)            = default;
+        option(option&&)                 = default;
         option& operator=(const option&) = default;
-        option& operator=(option&&) = default;
+        option& operator=(option&&)      = default;
 
         /**
          * @brief Get the current value
          * @return Reference to the current value
          */
-        T& value() { return _value; }
+        T&       value() { return _value; }
         const T& value() const { return _value; }
 
         /**
@@ -89,21 +89,6 @@ namespace zenslam
         const std::string& description() const { return _description; }
 
         /**
-         * @brief Set the name of this option
-         * @param name The new name
-         */
-        void set_name(std::string name) { _name = std::move(name); }
-
-        /**
-         * @brief Set the description of this option
-         * @param description The new description
-         */
-        void set_description(std::string description) 
-        { 
-            _description = std::move(description); 
-        }
-
-        /**
          * @brief Reset the value to its default
          */
         void reset() { _value = _default_value; }
@@ -115,10 +100,9 @@ namespace zenslam
         bool is_modified() const { return _value != _default_value; }
 
     private:
-        T           _value;
-        T           _default_value;
-        std::string _name;
-        std::string _description;
+        T           _value         = { };
+        T           _default_value = { };
+        std::string _name          = { };
+        std::string _description   = { };
     };
-
 } // namespace zenslam
