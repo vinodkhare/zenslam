@@ -144,7 +144,7 @@ namespace zenslam::utils
         std::vector<cv::Point3d>&       lines3d_1_p2,
         std::vector<size_t>&            indices
     );
-    
+
     /** Estimate rigid transformation (R, t) between two sets of 3D points.
      *
      * @param points3d_0 First set of 3D points

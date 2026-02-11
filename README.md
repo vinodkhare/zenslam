@@ -211,55 +211,7 @@ The test suite includes Catch2 benchmarks comparing `cv::Mat` (CPU) vs `cv::UMat
 
 ### Tracking Statistics
 
-Simple RUN:
-
-```
-================================================================================
-OVERALL STATISTICS
-================================================================================
-Total frames............................ 5977
-Mean KLT success rate................... 38.29%
-Mean matches............................ 51.2
-Mean triangulated....................... 24.8
-Mean processing time.................... 0.063s
-Mean tracking time...................... 0.044s
-Mean detection time (L+R)............... 0.000s
-Mean matching time...................... 0.000s
-Mean response (L/R)..................... 10.0 / 9.4
-
-================================================================================
-PROBLEM FRAMES SUMMARY
-================================================================================
-
-Found 2020 problem frames (33.8% of total):
-  - Low KLT success rate: 1640 frames
-  - Slow processing (>0.085s): 205 frames
-  - Low triangulated points: 93 frames
-  - Low pose inliers: 82 frames
-```
-
-With CLAHE
-
-```
-================================================================================
-OVERALL STATISTICS
-================================================================================
-Total frames............................ 5990
-Mean KLT success rate................... 36.53%
-Mean matches............................ 50.8
-Mean triangulated....................... 25.4
-Mean processing time.................... 0.072s
-Mean tracking time...................... 0.050s
-Mean detection time (L+R)............... 0.000s
-Mean matching time...................... 0.000s
-Mean response (L/R)..................... 21.7 / 20.7
-
-Found 2312 problem frames (38.6% of total):
-  - Low KLT success rate: 2008 frames
-  - Slow processing (>0.101s): 189 frames
-  - Low triangulated points: 88 frames
-  - Low pose inliers: 27 frames
-```
+See [tracking statistics](zenslam_docs/tracking-statistics.md) for detailed tracking performance metrics and comparisons across different configurations.
 
 **Notes:**
 - **UMat benchmarks** require OpenCL support (check with `cv::ocl::haveOpenCL()`)
@@ -354,6 +306,7 @@ Extended docs live in `zenslam_docs/`:
 | [Epipolar Filtering](zenslam_docs/epipolar_filtering.md)                     | Geometric pruning via fundamental matrix distances         |
 | [Triangulation](zenslam_docs/triangulation.md)                               | 3D reconstruction from filtered correspondences            |
 | [Tracking](zenslam_docs/tracking.md)                                         | Temporal KLT plans & persistent tracks roadmap             |
+| [Tracking Statistics](zenslam_docs/tracking-statistics.md)                   | Performance metrics & configuration comparisons            |
 | [Roadmap](zenslam_docs/roadmap.md)                                           | Short / medium / long-term goals                           |
 | [Build System](zenslam_docs/build_system.md)                                 | CMake, dependencies, dev environment                       |
 
