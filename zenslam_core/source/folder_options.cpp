@@ -19,15 +19,16 @@ namespace zenslam
 
         try
         {
-            options.root                 = option_parser::parse_yaml(options.root, node);
-            options.left                 = option_parser::parse_yaml(options.left, node);
-            options.right                = option_parser::parse_yaml(options.right, node);
-            options.timescale            = option_parser::parse_yaml(options.timescale, node);
-            options.calibration_file     = option_parser::parse_yaml(options.calibration_file, node);
-            options.groundtruth_file     = option_parser::parse_yaml(options.groundtruth_file, node);
-            options.output               = option_parser::parse_yaml(options.output, node);
-            options.imu_calibration_file = option_parser::parse_yaml(options.imu_calibration_file, node);
-            options.imu_file             = option_parser::parse_yaml(options.imu_file, node);
+            // Use auto-generated all_options() to parse all fields in a loop
+            std::apply
+            (
+                [&node](auto&... opts)
+                {
+                    ((opts = option_parser::parse_yaml(opts, node)), ...);
+                },
+
+                options.all_options()
+            );
         }
         catch (const YAML::Exception& e)
         {
@@ -116,14 +117,10 @@ namespace zenslam
 
     void folder_options::print() const
     {
-        option_printer::print(root);
-        option_printer::print(left);
-        option_printer::print(right);
-        option_printer::print(output);
-        option_printer::print(timescale);
-        option_printer::print(calibration_file);
-        option_printer::print(groundtruth_file);
-        option_printer::print(imu_calibration_file);
-        option_printer::print(imu_file);
+        // Use auto-generated all_options() to print all fields in a loop
+        std::apply([](const auto&... opts)
+        {
+            (option_printer::print(opts), ...);
+        }, all_options());
     }
 } // namespace zenslam
