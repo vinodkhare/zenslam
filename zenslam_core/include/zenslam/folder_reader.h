@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <vector>
 
-#include "options.h"
+#include "folder_options.h"
 #include "frame/sensor.h"
 
 namespace zenslam
@@ -21,7 +21,7 @@ namespace zenslam
             const path_type& imu_file  = ""
         );
 
-        explicit folder_reader(const class options::folder& options);
+        explicit folder_reader(const class folder_options& options);
 
         [[nodiscard]] std::size_t size() const noexcept
         {

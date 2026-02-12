@@ -9,6 +9,7 @@
 #include <spdlog/common.h>
 
 #include "detection_types.h"
+#include "folder_options.h"
 #include "integrator.h"
 #include "verb.h"
 #include "zenslam/option.h"
@@ -39,24 +40,7 @@ namespace zenslam
         ZENSLAM_OPTION(std::string, log_pattern, "[%Y-%b-%d %T.%e] [%^%l%$] %v", "Logging pattern");
         ZENSLAM_OPTION(verb, verb, verb::RUN, "Verbosity level");
 
-        class folder
-        {
-        public:
-            static options_description description();
-
-            std::filesystem::path root                 = { "." };
-            std::filesystem::path left                 = { "cam0" };
-            std::filesystem::path right                = { "cam1" };
-            std::filesystem::path output               = { "output" };
-            double                timescale            = { 1.0 };
-            std::filesystem::path calibration_file     = { "camchain.yaml" };
-            std::filesystem::path groundtruth_file     = { "groundtruth.csv" };
-            std::filesystem::path imu_calibration_file = { "imu_config.yaml" };
-            std::filesystem::path imu_file             = { "" };
-
-            void validate() const;
-            void print() const;
-        } folder;
+        folder_options folder;
 
         class slam
         {

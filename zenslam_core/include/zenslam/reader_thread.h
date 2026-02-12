@@ -5,9 +5,9 @@
 
 #include <spdlog/spdlog.h>
 
+#include "zenslam/folder_options.h"
 #include "zenslam/folder_reader.h"
 #include "zenslam/frame/sensor.h"
-#include "zenslam/options.h"
 #include "zenslam/types/event.h"
 
 namespace zenslam
@@ -17,7 +17,7 @@ namespace zenslam
     public:
         event<frame::sensor> on_frame = {};
 
-        explicit reader_thread(class options::folder options, const size_t batch_size = 8, const size_t num_threads = 4) :
+        explicit reader_thread(class folder_options options, const size_t batch_size = 8, const size_t num_threads = 4) :
             _options{ std::move(options) }, _batch_size{ batch_size }, _num_threads{ num_threads }
         {
         }
@@ -25,7 +25,7 @@ namespace zenslam
         ~reader_thread() { _stop_source.request_stop(); }
 
     private:
-        class options::folder _options     = {};
+        class folder_options _options     = {};
         size_t                _batch_size  = 4;
         size_t                _num_threads = 4;
 
