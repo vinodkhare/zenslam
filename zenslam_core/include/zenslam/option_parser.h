@@ -21,5 +21,25 @@ namespace zenslam
 
             return result;
         }
+
+        template <typename E> requires std::is_enum_v<E>
+        static auto parse_yaml(const option<E>& option, const YAML::Node& node) -> zenslam::option<E>
+        {
+            zenslam::option<E> result = option;
+            
+            if (const auto n = node[option.name()])
+            {
+                if (auto v = magic_enum::enum_cast<E>(n.template as<std::string>()))
+                {
+                    result = v.value();
+                }
+                else 
+                {
+                    throw std::runtime_error("Invalid enum value for " + option.name() + ": " + n.template as<std::string>());
+                }
+            }
+
+            return result;
+        };
     };
 }

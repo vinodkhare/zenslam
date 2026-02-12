@@ -258,9 +258,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
 
         if (const auto& application = config["application"])
         {
-            if (const auto x      = application["log_level"])
-                options.log_level = utils::log_levels_from_string[x.as<std::string>()];
-            
+            options.log_level   = option_parser::parse_yaml(options.log_level, application);
             options.log_pattern = option_parser::parse_yaml(options.log_pattern, application);
         }
 
