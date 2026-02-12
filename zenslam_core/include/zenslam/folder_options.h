@@ -35,5 +35,4 @@ namespace zenslam
         void validate() const;
         void print() const;
     };
-
 } // namespace zenslam

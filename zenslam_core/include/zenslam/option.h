@@ -80,13 +80,13 @@ namespace zenslam
          * @brief Get the name of this option
          * @return The name string
          */
-        const std::string& name() const { return _name; }
+        [[nodiscard]] const std::string& name() const { return _name; }
 
         /**
          * @brief Get the description of this option
          * @return The description string
          */
-        const std::string& description() const { return _description; }
+        [[nodiscard]] const std::string& description() const { return _description; }
 
         /**
          * @brief Reset the value to its default
@@ -97,7 +97,7 @@ namespace zenslam
          * @brief Check if the current value differs from the default
          * @return true if the value has been modified from the default
          */
-        bool is_modified() const { return _value != _default_value; }
+        [[nodiscard]] bool is_modified() const { return _value != _default_value; }
 
     private:
         T           _value         = { };

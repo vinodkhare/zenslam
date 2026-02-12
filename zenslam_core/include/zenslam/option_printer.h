@@ -2,8 +2,8 @@
 
 #include <spdlog/spdlog.h>
 
-#include "zenslam/option.h"
 #include "zenslam/formatters.h"
+#include "zenslam/option.h"
 
 namespace zenslam
 {
@@ -16,5 +16,4 @@ namespace zenslam
             SPDLOG_INFO("{}: {}", option.name(), option.value());
         }
     };
-
 }

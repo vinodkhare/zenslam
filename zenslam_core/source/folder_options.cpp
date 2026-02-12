@@ -5,14 +5,15 @@
 #include <boost/program_options.hpp>
 
 #include <spdlog/spdlog.h>
-#include "zenslam/option_parser.h"
-#include "zenslam/option_printer.h"
 
 #include <yaml-cpp/yaml.h>
 
+#include "zenslam/option_parser.h"
+#include "zenslam/option_printer.h"
+
 namespace zenslam
 {
-    auto parser_yaml(const YAML::Node& node) -> folder_options
+    auto folder_options::parse_yaml(const YAML::Node& node) -> folder_options
     {
         folder_options options;
 
@@ -40,7 +41,7 @@ namespace zenslam
     {
         const folder_options opts;
 
-        boost::program_options::options_description description{ "folder options" };
+        boost::program_options::options_description description { "folder options" };
 
         description.add_options()("folder-root",
                                   boost::program_options::value<std::string>()->default_value(opts.root.value()),
@@ -74,8 +75,7 @@ namespace zenslam
             throw std::invalid_argument("folder.timescale must be > 0");
 
         // Non-fatal warnings for non-existent paths
-        auto resolve = [this](const std::filesystem::path& p) -> std::filesystem::path
-        { return p.is_absolute() ? p : root / p; };
+        auto resolve = [this](const std::filesystem::path& p) -> std::filesystem::path { return p.is_absolute() ? p : root / p; };
 
         const auto root_path = root.value();
         if (!root_path.empty() && !std::filesystem::exists(root_path))
@@ -126,5 +126,4 @@ namespace zenslam
         option_printer::print(imu_calibration_file);
         option_printer::print(imu_file);
     }
-
 } // namespace zenslam

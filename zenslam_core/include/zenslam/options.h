@@ -71,11 +71,11 @@ namespace zenslam
             int        keyline_thickness    = { 1 };
             int        keyline_mask_margin  = { 10 };
 
-            double triangulation_min_disparity = { 2.0 };
-            double triangulation_min_angle = { 15 };
+            double triangulation_min_disparity          = { 2.0 };
+            double triangulation_min_angle              = { 15 };
             double triangulation_reprojection_threshold = { 1.0 };
-            double triangulation_min_depth = { 1.0 };
-            double triangulation_max_depth = { 50.0 };
+            double triangulation_min_depth              = { 1.0 };
+            double triangulation_max_depth              = { 50.0 };
 
             void validate() const;
             void print() const;
@@ -85,5 +85,5 @@ namespace zenslam
         void print() const;
     };
 
-    #undef OPTION
+#undef OPTION
 } // namespace zenslam

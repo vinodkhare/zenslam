@@ -21,9 +21,11 @@ struct fmt::formatter<cv::Affine3d> : formatter<std::string>
         const auto& t      = value.translation();
         const auto& angles = zenslam::utils::matrix_to_euler(R) * (180.0 / std::numbers::pi);
 
-        return formatter<std::string>::format(
+        return formatter<std::string>::format
+        (
             fmt::format("{{ x: {{ {:+.4f}, {:+.4f}, {:+.4f} }}, 𝜭: {{ {:+.4f}, {:+.4f}, {:+.4f} }} }}", t[0], t[1], t[2], angles[0], angles[1], angles[2]),
-            context);
+            context
+        );
     }
 };
 
@@ -46,7 +48,7 @@ struct fmt::formatter<std::filesystem::path> : formatter<std::string>
 {
     template <typename FormatContext>
     auto format(const std::filesystem::path& value, FormatContext& context) const
-    {  
+    {
         return formatter<std::string>::format(value.string(), context);
     }
 };
