@@ -268,7 +268,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
             yaml_set_path(folder, "root", options.folder.root);
             yaml_set_path(folder, "left", options.folder.left);
             yaml_set_path(folder, "right", options.folder.right);
-            yaml_set_if_present(folder, "timescale", options.folder.timescale);
+            options.folder.timescale = option_parser::parse_yaml(options.folder.timescale, folder);
             yaml_set_path(folder, "calibration_file", options.folder.calibration_file);
             yaml_set_path(folder, "groundtruth_file", options.folder.groundtruth_file);
             yaml_set_path(folder, "output", options.folder.output);

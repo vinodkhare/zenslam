@@ -5,6 +5,7 @@
 #include <boost/program_options.hpp>
 
 #include <spdlog/spdlog.h>
+#include "zenslam/option_printer.h"
 
 namespace zenslam
 {
@@ -17,17 +18,17 @@ namespace zenslam
         description.add_options()
         (
             "folder-root",
-            boost::program_options::value<std::string>()->default_value(opts.root),
+            boost::program_options::value<std::string>()->default_value(opts.root.value()),
             "Root folder"
         )
         (
             "folder-left",
-            boost::program_options::value<std::string>()->default_value(opts.left),
+            boost::program_options::value<std::string>()->default_value(opts.left.value()),
             "Left folder relative to root (or absolute)"
         )
         (
             "folder-right",
-            boost::program_options::value<std::string>()->default_value(opts.right),
+            boost::program_options::value<std::string>()->default_value(opts.right.value()),
             "Right folder relative to root (or absolute)"
         )
         (
@@ -37,27 +38,27 @@ namespace zenslam
         )
         (
             "calibration-file",
-            boost::program_options::value<std::string>()->default_value(opts.calibration_file),
+            boost::program_options::value<std::string>()->default_value(opts.calibration_file.value()),
             "calibration file path"
         )
         (
             "groundtruth-file",
-            boost::program_options::value<std::string>()->default_value(opts.groundtruth_file),
+            boost::program_options::value<std::string>()->default_value(opts.groundtruth_file.value()),
             "groundtruth file path"
         )
         (
             "imu-calibration-file",
-            boost::program_options::value<std::string>()->default_value(opts.imu_calibration_file),
+            boost::program_options::value<std::string>()->default_value(opts.imu_calibration_file.value()),
             "IMU calibration file path"
         )
         (
             "imu-file",
-            boost::program_options::value<std::string>()->default_value(opts.imu_file),
+            boost::program_options::value<std::string>()->default_value(opts.imu_file.value()),
             "IMU data CSV file path"
         )
         (
             "folder-output",
-            boost::program_options::value<std::string>()->default_value(opts.output),
+            boost::program_options::value<std::string>()->default_value(opts.output.value()),
             "Output folder for results"
         );
 
@@ -75,7 +76,7 @@ namespace zenslam
             return p.is_absolute() ? p : root / p;
         };
 
-        const auto root_path = root;
+        const auto root_path = root.value();
         if (!root_path.empty() && !std::filesystem::exists(root_path))
         {
             SPDLOG_WARN("folder.root does not exist: {}", root_path.string());
@@ -114,15 +115,15 @@ namespace zenslam
 
     void folder_options::print() const
     {
-        SPDLOG_INFO("folder root: {}", root.string());
-        SPDLOG_INFO("folder left: {}", left.string());
-        SPDLOG_INFO("folder right: {}", right.string());
-        SPDLOG_INFO("folder output: {}", output.string());
-        SPDLOG_INFO("folder timescale: {}", timescale);
-        SPDLOG_INFO("calibration file: {}", calibration_file.string());
-        SPDLOG_INFO("groundtruth file: {}", groundtruth_file.string());
-        SPDLOG_INFO("IMU calibration file: {}", imu_calibration_file.string());
-        SPDLOG_INFO("IMU data file: {}", imu_file.string());
+        option_printer::print(root);
+        option_printer::print(left);
+        option_printer::print(right);
+        option_printer::print(output);
+        option_printer::print(timescale);
+        option_printer::print(calibration_file);
+        option_printer::print(groundtruth_file);
+        option_printer::print(imu_calibration_file);
+        option_printer::print(imu_file);
     }
 
 } // namespace zenslam

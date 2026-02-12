@@ -23,8 +23,6 @@ namespace zenslam
         FLANN
     };
 
-    #define ZENSLAM_OPTION(type, name, default_val, description) option<type> name = { default_val, #name, description }
-
     class options
     {
     public:

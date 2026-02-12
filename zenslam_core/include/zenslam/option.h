@@ -106,3 +106,5 @@ namespace zenslam
         std::string _description   = { };
     };
 } // namespace zenslam
+
+#define ZENSLAM_OPTION(type, name, default_val, description) zenslam::option<type> name = { default_val, #name, description }
