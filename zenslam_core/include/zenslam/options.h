@@ -11,6 +11,7 @@
 #include "detection_types.h"
 #include "integrator.h"
 #include "verb.h"
+#include "zenslam/option.h"
 
 namespace zenslam
 {
@@ -31,7 +32,7 @@ namespace zenslam
         static options parse(int argc, char** argv);
         static options parse(const std::filesystem::path& path);
 
-        std::filesystem::path     file        = { "options.yaml" };
+        option<std::filesystem::path> file    = { "options.yaml", "file", "Path to the options YAML file" };
         spdlog::level::level_enum log_level   = { spdlog::level::trace };
         std::string               log_pattern = { "[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v" };
         verb                      verb        = { verb::RUN };

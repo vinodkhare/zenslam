@@ -160,7 +160,7 @@ boost::program_options::options_description zenslam::options::description()
     description.add_options()
         (
             "options-file",
-            boost::program_options::value<std::string>()->default_value(options.file),
+            boost::program_options::value<std::string>()->default_value(options.file.value()),
             "options file"
         )
         (
@@ -595,7 +595,7 @@ void zenslam::options::validate() const
 
 void zenslam::options::print() const
 {
-    SPDLOG_INFO("file: {}", file.string());
+    SPDLOG_INFO("file: {}", file.value().string());
     SPDLOG_INFO("log level: {}", magic_enum::enum_name(log_level));
     SPDLOG_INFO("log pattern: {}", log_pattern);
 

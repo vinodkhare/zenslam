@@ -23,7 +23,7 @@ namespace zenslam
          * @param name The name of this option
          * @param description A description of this option
          */
-        explicit option(T default_value, std::string name = "", std::string description = "") :
+        option(T default_value, std::string name = "", std::string description = "") :
             _value(std::move(default_value)),
             _default_value(_value),
             _name(std::move(name)),
