@@ -22,6 +22,8 @@ namespace zenslam
         FLANN
     };
 
+    #define ZENSLAM_OPTION(type, name, default_val, description) option<type> name = { default_val, #name, description }
+
     class options
     {
     public:
@@ -32,10 +34,10 @@ namespace zenslam
         static options parse(int argc, char** argv);
         static options parse(const std::filesystem::path& path);
 
-        option<std::filesystem::path> file    = { "options.yaml", "file", "Path to the options YAML file" };
-        spdlog::level::level_enum log_level   = { spdlog::level::trace };
-        std::string               log_pattern = { "[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v" };
-        verb                      verb        = { verb::RUN };
+        ZENSLAM_OPTION(std::filesystem::path, file, "options.yaml", "Path to the options YAML file");
+        ZENSLAM_OPTION(spdlog::level::level_enum, log_level, spdlog::level::trace, "Logging level");
+        ZENSLAM_OPTION(std::string, log_pattern, "[%Y-%b-%d %T.%e] [%^%l%$] %v", "Logging pattern");
+        ZENSLAM_OPTION(verb, verb, verb::RUN, "Verbosity level");
 
         class folder
         {
@@ -59,18 +61,16 @@ namespace zenslam
         class slam
         {
         public:
-            // Returns the options description for SLAM-related CLI options
             static options_description description();
 
             bool            clahe_enabled         = { false };
             bool            stereo_rectify        = { false };
-            bool            use_parallel_detector = { true }; // Use parallel grid detector
+            bool            use_parallel_detector = { true };
             cv::Size        cell_size             = { 16, 16 };
             feature_type    feature               = { feature_type::FAST };
             descriptor_type descriptor            = { descriptor_type::ORB };
             matcher_type    matcher               = { matcher_type::BRUTE };
 
-            // IMU preintegration backend method (ugpm or lpm)
             integrator::method integrator_method = { integrator::method::ugpm };
             double             matcher_ratio     = { 0.8 };
             int                fast_threshold    = { 10 };
@@ -79,28 +79,21 @@ namespace zenslam
             double             klt_threshold     = { 1.0 };
 
             double epipolar_threshold = { 1.0 };
-            double threshold_3d3d     = { 0.005 }; // in meters - for 3D-3D RANSAC pose estimation
-            double threshold_3d2d     = { 1.0 };   // in pixels - for 3D-2D RANSAC pose estimation
-            bool   show_keypoints     = { true };  // show keypoints in visualization
-            bool   show_keylines      = { true };  // show keylines in visualization
+            double threshold_3d3d     = { 0.005 };
+            double threshold_3d2d     = { 1.0 };
+            bool   show_keypoints     = { true };
+            bool   show_keylines      = { true };
 
-            // Visualization options for keylines
-            cv::Scalar keyline_single_color = { 0, 255, 0 }; // default green (BGR)
-            cv::Scalar keyline_match_color  = { 0, 0, 255 }; // default red (BGR)
-            int        keyline_thickness    = { 1 };         // line thickness in pixels
-            int        keyline_mask_margin  = { 10 };        // margin around existing keylines for masking (pixels)
+            cv::Scalar keyline_single_color = { 0, 255, 0 };
+            cv::Scalar keyline_match_color  = { 0, 0, 255 };
+            int        keyline_thickness    = { 1 };
+            int        keyline_mask_margin  = { 10 };
 
-            // Keyline triangulation thresholds (configurable; previously hard-coded)
-            // Minimum acceptable average disparity between matched endpoints (pixels)
             double triangulation_min_disparity = { 2.0 };
-            // Minimum acceptable triangulation angle at endpoints (degrees)
             double triangulation_min_angle = { 15 };
-            // Maximum allowable reprojection error after triangulation (pixels)
-            double triangulation_reprojection_threshold = { 1.0 }; // in pixels
-            // Valid depth range for triangulated keylines (meters)
-            double triangulation_min_depth = { 1.0 }; // in meters
-            // Maximum depth for triangulated keylines (meters)
-            double triangulation_max_depth = { 50.0 }; // in meters
+            double triangulation_reprojection_threshold = { 1.0 };
+            double triangulation_min_depth = { 1.0 };
+            double triangulation_max_depth = { 50.0 };
 
             void validate() const;
             void print() const;
@@ -109,4 +102,6 @@ namespace zenslam
         void validate() const;
         void print() const;
     };
+
+    #undef OPTION
 } // namespace zenslam

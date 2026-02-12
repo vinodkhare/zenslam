@@ -11,6 +11,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "zenslam/option_parser.h"
 #include "zenslam/option_printer.h"
 #include "zenslam/utils.h"
 
@@ -259,7 +260,8 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
         {
             if (const auto x      = application["log_level"])
                 options.log_level = utils::log_levels_from_string[x.as<std::string>()];
-            yaml_set_if_present(application, "log_pattern", options.log_pattern);
+            
+            options.log_pattern = option_parser::parse_yaml(options.log_pattern, application);
         }
 
         if (const auto& folder = config["folder"])
@@ -597,8 +599,9 @@ void zenslam::options::validate() const
 void zenslam::options::print() const
 {
     option_printer::print(file);
-    SPDLOG_INFO("log level: {}", magic_enum::enum_name(log_level));
-    SPDLOG_INFO("log pattern: {}", log_pattern);
+    option_printer::print(log_level);
+    option_printer::print(log_pattern);
+    option_printer::print(verb);
 
     folder.print();
     slam.print();

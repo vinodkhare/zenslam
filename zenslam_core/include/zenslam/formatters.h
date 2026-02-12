@@ -50,3 +50,14 @@ struct fmt::formatter<std::filesystem::path> : formatter<std::string>
         return formatter<std::string>::format(value.string(), context);
     }
 };
+
+/** SPDLOG formatter for enums using magic_enum */
+template <typename E> requires std::is_enum_v<E>
+struct fmt::formatter<E> : formatter<std::string>
+{
+    template <typename FormatContext>
+    auto format(const E& value, FormatContext& context) const
+    {
+        return formatter<std::string>::format(magic_enum::enum_name(value), context);
+    }
+};
