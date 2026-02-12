@@ -11,6 +11,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "zenslam/option_printer.h"
 #include "zenslam/utils.h"
 
 namespace
@@ -595,7 +596,7 @@ void zenslam::options::validate() const
 
 void zenslam::options::print() const
 {
-    SPDLOG_INFO("file: {}", file.value().string());
+    option_printer::print(file);
     SPDLOG_INFO("log level: {}", magic_enum::enum_name(log_level));
     SPDLOG_INFO("log pattern: {}", log_pattern);
 

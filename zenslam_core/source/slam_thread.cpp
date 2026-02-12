@@ -20,6 +20,7 @@
 #include "zenslam/utils.h"
 #include "zenslam/utils_slam.h"
 #include "zenslam/utils_std.h"
+#include "zenslam/formatters.h"
 
 zenslam::slam_thread::slam_thread(options options) : _options{ std::move(options) } { vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF); }
 

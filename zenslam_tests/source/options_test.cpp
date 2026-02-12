@@ -131,9 +131,6 @@ TEST_CASE("option class basic functionality", "[option]")
     {
         option<std::string> opt("default");
         
-        opt.set_name("my_option");
-        opt.set_description("This is my option");
-        
         REQUIRE(opt.name() == "my_option");
         REQUIRE(opt.description() == "This is my option");
     }

@@ -10,6 +10,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "zenslam/utils.h"
+#include "zenslam/formatters.h"
 
 // read camera calibration from a kalibr yaml file
 auto zenslam::camera_calibration::parse(const std::filesystem::path& path, const std::string& camera_name) -> camera_calibration
