@@ -1,8 +1,10 @@
 #pragma once
 
 #include "zenslam/option.h"
+#include "zenslam/folder_options.h"
 
 #include <yaml-cpp/yaml.h>
+#include <filesystem>
 
 namespace zenslam
 {
@@ -17,6 +19,19 @@ namespace zenslam
             if (const auto n = node[option.name()])
             {
                 result = n.template as<T>();
+            }
+
+            return result;
+        }
+
+        /** YAML parser for std::filesystem::path */
+        static auto parse_yaml(const option<std::filesystem::path>& option, const YAML::Node& node) -> zenslam::option<std::filesystem::path>
+        {
+            zenslam::option<std::filesystem::path> result = option;
+
+            if (const auto n = node[option.name()])
+            {
+                result = n.template as<std::string>();
             }
 
             return result;

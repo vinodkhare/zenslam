@@ -265,15 +265,7 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
 
         if (const auto& folder = config["folder"])
         {
-            yaml_set_path(folder, "root", options.folder.root);
-            yaml_set_path(folder, "left", options.folder.left);
-            yaml_set_path(folder, "right", options.folder.right);
-            options.folder.timescale = option_parser::parse_yaml(options.folder.timescale, folder);
-            yaml_set_path(folder, "calibration_file", options.folder.calibration_file);
-            yaml_set_path(folder, "groundtruth_file", options.folder.groundtruth_file);
-            yaml_set_path(folder, "output", options.folder.output);
-            yaml_set_path(folder, "imu_calibration_file", options.folder.imu_calibration_file);
-            yaml_set_path(folder, "imu_file", options.folder.imu_file);
+            options.folder = folder_options::parse_yaml(folder);
         }
 
         if (const auto& slam = config["slam"])
