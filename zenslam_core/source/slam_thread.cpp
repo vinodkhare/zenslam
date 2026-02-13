@@ -182,35 +182,27 @@ void zenslam::slam_thread::loop()
                 auto weighted_result = estimator.estimate_pose_weighted(estimate_result);
 
                 SPDLOG_INFO("\n========== POSE ESTIMATION RESULTS ==========");
-                SPDLOG_INFO("Original best-method selection:");
-                SPDLOG_INFO("  Method: {} with {} inliers",
-                    (estimate_result.chosen_count == estimate_result.pose_3d3d.inliers.size()) ? "3D-3D" :
-                    (estimate_result.chosen_count == estimate_result.pose_3d2d.inliers.size()) ? "3D-2D" :
-                    (estimate_result.chosen_count == estimate_result.pose_2d2d.inliers.size()) ? "2D-2D" :
-                    (estimate_result.chosen_count == estimate_result.pose_3d3d_lines.inliers.size()) ? "3D-3D-Lines" :
-                    (estimate_result.chosen_count == estimate_result.pose_3d2d_lines.inliers.size()) ? "3D-2D-Lines" : "None",
-                    estimate_result.chosen_count);
+                SPDLOG_INFO("Individual method results:");
+                SPDLOG_INFO("  3D-3D Combined:   {} correspondences, {} inliers (points+lines unified)",
+                    estimate_result.pose_3d3d.indices.size(), estimate_result.pose_3d3d.inliers.size());
+                SPDLOG_INFO("  3D-2D Combined:   {} correspondences, {} inliers (points+lines unified)",
+                    estimate_result.pose_3d2d.indices.size(), estimate_result.pose_3d2d.inliers.size());
+                SPDLOG_INFO("  2D-2D Combined:   {} correspondences, {} inliers (points+lines unified)",
+                    estimate_result.pose_2d2d.indices.size(), estimate_result.pose_2d2d.inliers.size());
                 
                 SPDLOG_INFO("Weighted fusion results:");
-                SPDLOG_INFO("  Best method: {} ({} inliers, weight={:.3f})", 
-                    weighted_result.best_method, weighted_result.best_method_inliers,
-                    weighted_result.weight_3d3d > weighted_result.weight_3d2d ? weighted_result.weight_3d3d :
-                    weighted_result.weight_3d2d > weighted_result.weight_2d2d ? weighted_result.weight_3d2d :
-                    weighted_result.weight_2d2d > weighted_result.weight_3d3d_lines ? weighted_result.weight_2d2d :
-                    weighted_result.weight_3d3d_lines > weighted_result.weight_3d2d_lines ? weighted_result.weight_3d3d_lines : weighted_result.weight_3d2d_lines);
+                SPDLOG_INFO("  Best method: {} ({} inliers)", 
+                    weighted_result.best_method, weighted_result.best_method_inliers);
                 SPDLOG_INFO("  Total inliers (all methods): {}", weighted_result.total_inliers);
                 SPDLOG_INFO("  Overall confidence: {:.3f}", weighted_result.confidence);
                 SPDLOG_INFO("  Weight breakdown:");
                 if (weighted_result.weight_3d3d > 0.01)
-                    SPDLOG_INFO("    3D-3D Points:   {:.3f}", weighted_result.weight_3d3d);
+                    SPDLOG_INFO("    3D-3D Combined:  {:.3f} (unified points+lines)", weighted_result.weight_3d3d);
                 if (weighted_result.weight_3d2d > 0.01)
-                    SPDLOG_INFO("    3D-2D Points:   {:.3f}", weighted_result.weight_3d2d);
+                    SPDLOG_INFO("    3D-2D Combined:  {:.3f} (unified points+lines)", weighted_result.weight_3d2d);
                 if (weighted_result.weight_2d2d > 0.01)
-                    SPDLOG_INFO("    2D-2D Points:   {:.3f}", weighted_result.weight_2d2d);
-                if (weighted_result.weight_3d3d_lines > 0.01)
-                    SPDLOG_INFO("    3D-3D Lines:    {:.3f}", weighted_result.weight_3d3d_lines);
-                if (weighted_result.weight_3d2d_lines > 0.01)
-                    SPDLOG_INFO("    3D-2D Lines:    {:.3f}", weighted_result.weight_3d2d_lines);
+                    SPDLOG_INFO("    2D-2D Combined:  {:.3f} (unified points+lines)", weighted_result.weight_2d2d);
+                // Note: All _lines weights are now combined with corresponding point methods
 
                 // Log covariance information
                 SPDLOG_INFO("Pose uncertainty estimates:");
@@ -264,13 +256,17 @@ void zenslam::slam_thread::loop()
                 if (!use_weighted)
                 {
                     chosen_pose = estimate_result.chosen_pose;
+                    
+                    std::string method_name = "Unknown";
+                    if (estimate_result.chosen_count == estimate_result.pose_3d3d.inliers.size())
+                        method_name = "3D-3D Combined";
+                    else if (estimate_result.chosen_count == estimate_result.pose_3d2d.inliers.size())
+                        method_name = "3D-2D Combined";
+                    else if (estimate_result.chosen_count == estimate_result.pose_2d2d.inliers.size())
+                        method_name = "2D-2D Combined";
+                    
                     SPDLOG_INFO("Falling back to best single method: {} ({} inliers)",
-                        (estimate_result.chosen_count == estimate_result.pose_3d3d.inliers.size()) ? "3D-3D" :
-                        (estimate_result.chosen_count == estimate_result.pose_3d2d.inliers.size()) ? "3D-2D" :
-                        (estimate_result.chosen_count == estimate_result.pose_2d2d.inliers.size()) ? "2D-2D" :
-                        (estimate_result.chosen_count == estimate_result.pose_3d3d_lines.inliers.size()) ? "3D-3D-Lines" :
-                        (estimate_result.chosen_count == estimate_result.pose_3d2d_lines.inliers.size()) ? "3D-2D-Lines" : "None",
-                        estimate_result.chosen_count);
+                        method_name, estimate_result.chosen_count);
 
                     // Final fallback: if single method also weak, use prediction
                     if (estimate_result.chosen_count < 5)

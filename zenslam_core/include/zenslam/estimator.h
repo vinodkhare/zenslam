@@ -97,6 +97,55 @@ namespace zenslam
 
         [[nodiscard]] auto estimate_pose_3d3d_lines(const std::map<size_t, line3d>& map_lines_0, const std::map<size_t, line3d>& map_lines_1) const -> pose_data;
 
+        /** Combined 3D-2D pose estimation using both points and line endpoints.
+         * 
+         * Treats line endpoints as additional point correspondences, increasing the constraint count
+         * for more robust RANSAC estimation. This is more efficient and robust than separate estimation.
+         * 
+         * @param map_points_0 3D points from previous frame
+         * @param map_keypoints_1 2D keypoints in current frame
+         * @param map_lines_0 3D lines from previous frame
+         * @param map_keylines_1 2D keylines in current frame
+         * @return Unified pose estimate with all inliers
+         */
+        [[nodiscard]] auto estimate_pose_3d2d_combined(
+            const std::map<size_t, point3d>& map_points_0,
+            const std::map<size_t, keypoint>& map_keypoints_1,
+            const std::map<size_t, line3d>& map_lines_0,
+            const std::map<size_t, keyline>& map_keylines_1) const -> pose_data;
+
+        /** Combined 3D-3D pose estimation using both points and line endpoints.
+         * 
+         * @param map_points_0 3D points from frame 0
+         * @param map_points_1 3D points from frame 1
+         * @param map_lines_0 3D lines from frame 0
+         * @param map_lines_1 3D lines from frame 1
+         * @return Unified pose estimate with all inliers
+         */
+        [[nodiscard]] auto estimate_pose_3d3d_combined(
+            const std::map<size_t, point3d>& map_points_0,
+            const std::map<size_t, point3d>& map_points_1,
+            const std::map<size_t, line3d>& map_lines_0,
+            const std::map<size_t, line3d>& map_lines_1) const -> pose_data;
+
+        /** Combined 2D-2D pose estimation using both points and line endpoints.
+         * 
+         * @param map_keypoints_0 2D keypoints from frame 0
+         * @param map_keypoints_1 2D keypoints from frame 1
+         * @param map_points3d_0 3D points from frame 0 for scale recovery
+         * @param map_lines_0 3D lines from frame 0 for line endpoint scale recovery
+         * @param map_keylines_0 2D keylines from frame 0
+         * @param map_keylines_1 2D keylines from frame 1
+         * @return Unified pose estimate with all inliers
+         */
+        [[nodiscard]] auto estimate_pose_2d2d_combined(
+            const std::map<size_t, keypoint>& map_keypoints_0,
+            const std::map<size_t, keypoint>& map_keypoints_1,
+            const std::map<size_t, point3d>& map_points3d_0,
+            const std::map<size_t, line3d>& map_lines_0,
+            const std::map<size_t, keyline>& map_keylines_0,
+            const std::map<size_t, keyline>& map_keylines_1) const -> pose_data;
+
     private:
         calibration  _calibration;
         slam_options _options;
