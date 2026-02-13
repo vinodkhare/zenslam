@@ -73,6 +73,13 @@ namespace zenslam
             return _value == other;
         }
 
+        /**
+         * @brief Overloaded -> operator to access members of T directly
+         * @return Pointer to the current value
+         */
+        T*       operator->() { return &_value; }
+        const T* operator->() const { return &_value; }
+
         // Copy and move constructors/assignments
         option(const option&)            = default;
         option(option&&)                 = default;

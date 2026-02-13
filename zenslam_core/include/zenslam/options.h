@@ -24,13 +24,15 @@ namespace zenslam
         static options parse(int argc, char** argv);
         static options parse(const std::filesystem::path& path);
 
-        ZENSLAM_OPTION(std::filesystem::path, file, "options.yaml", "Path to the options YAML file");
-        ZENSLAM_OPTION(spdlog::level::level_enum, log_level, spdlog::level::trace, "Logging level");
-        ZENSLAM_OPTION(std::string, log_pattern, "[%Y-%b-%d %T.%e] [%^%l%$] %v", "Logging pattern");
-        ZENSLAM_OPTION(verb, verb, verb::RUN, "Verbosity level");
-
-        folder_options folder;
-        slam_options slam;
+        ZENSLAM_DEFINE_OPTIONS
+        (
+            ((std::filesystem::path, file, "options.yaml", "Path to the options YAML file"))
+            ((spdlog::level::level_enum, log_level, spdlog::level::info, "Logging verbosity level"))
+            ((std::string, log_pattern, "[%Y-%b-%d %T.%e] [%^%l%$] %v", "Logging pattern"))
+            ((verb, verb, verb::RUN, ""))
+            ((folder_options, folder, {}, "Folder and file path options"))
+            ((slam_options, slam, {}, "SLAM algorithm configuration options"))
+        )
 
         void validate() const;
         void print() const;

@@ -5,8 +5,6 @@
 #include <map>
 #include <string>
 
-#include <boost/program_options.hpp>
-
 #include <magic_enum/magic_enum.hpp>
 
 #include <opencv2/core/types.hpp>

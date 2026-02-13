@@ -117,8 +117,8 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
 
 void zenslam::options::validate() const
 {
-    folder.validate();
-    slam.validate();
+    folder.value().validate();
+    slam.value().validate();
 }
 
 void zenslam::options::print() const
@@ -128,6 +128,6 @@ void zenslam::options::print() const
     option_printer::print(log_pattern);
     option_printer::print(verb);
 
-    folder.print();
-    slam.print();
+    folder.value().print();
+    slam.value().print();
 }

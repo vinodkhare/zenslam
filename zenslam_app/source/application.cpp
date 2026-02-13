@@ -34,7 +34,8 @@
 #include <vtkTransform.h>
 #include <vtkVertexGlyphFilter.h>
 
-zenslam::application::application(options options) : _options { std::move(options) }
+zenslam::application::application(options options) :
+    _options { std::move(options) }
 {
     _slam_thread.on_frame += [this](const frame::system& frame)
     {
@@ -288,11 +289,11 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         S.renderer->AddActor(S.linesActor);
 
         // Trajectory pipeline (estimated)
-        S.trajectoryPoints  = vtkSmartPointer<vtkPoints>::New();
-        S.trajectoryCells   = vtkSmartPointer<vtkCellArray>::New();
-        S.trajectoryPoly    = vtkSmartPointer<vtkPolyData>::New();
-        S.trajectoryMapper  = vtkSmartPointer<vtkPolyDataMapper>::New();
-        S.trajectoryActor   = vtkSmartPointer<vtkActor>::New();
+        S.trajectoryPoints = vtkSmartPointer<vtkPoints>::New();
+        S.trajectoryCells  = vtkSmartPointer<vtkCellArray>::New();
+        S.trajectoryPoly   = vtkSmartPointer<vtkPolyData>::New();
+        S.trajectoryMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        S.trajectoryActor  = vtkSmartPointer<vtkActor>::New();
 
         S.trajectoryPoly->SetPoints(S.trajectoryPoints);
         S.trajectoryPoly->SetLines(S.trajectoryCells);
@@ -303,11 +304,11 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
         S.renderer->AddActor(S.trajectoryActor);
 
         // Trajectory pipeline (ground truth)
-        S.trajectoryGtPoints  = vtkSmartPointer<vtkPoints>::New();
-        S.trajectoryGtCells   = vtkSmartPointer<vtkCellArray>::New();
-        S.trajectoryGtPoly    = vtkSmartPointer<vtkPolyData>::New();
-        S.trajectoryGtMapper  = vtkSmartPointer<vtkPolyDataMapper>::New();
-        S.trajectoryGtActor   = vtkSmartPointer<vtkActor>::New();
+        S.trajectoryGtPoints = vtkSmartPointer<vtkPoints>::New();
+        S.trajectoryGtCells  = vtkSmartPointer<vtkCellArray>::New();
+        S.trajectoryGtPoly   = vtkSmartPointer<vtkPolyData>::New();
+        S.trajectoryGtMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        S.trajectoryGtActor  = vtkSmartPointer<vtkActor>::New();
 
         S.trajectoryGtPoly->SetPoints(S.trajectoryGtPoints);
         S.trajectoryGtPoly->SetLines(S.trajectoryGtCells);
@@ -366,7 +367,7 @@ void zenslam::application::draw_scene_vtk(const frame::system& system)
     }
 
     // Update or hide lines
-    if (_options.slam.show_keylines)
+    if (_options.slam->show_keylines)
     {
         S.linesActor->SetVisibility(1);
         S.linePoints->Reset();
@@ -455,7 +456,7 @@ void zenslam::application::draw_viz_controls()
 {
     ImGui::Text("Hello Metal!");
     ImGui::Separator();
-    
+
     // Get current system state
     frame::system system { };
     {
@@ -473,19 +474,19 @@ void zenslam::application::draw_viz_controls()
     // Pose Information
     if (!std::isnan(system[1].timestamp))
     {
-        const auto& pose = system[1].pose;
+        const auto& pose        = system[1].pose;
         const auto& translation = pose.translation();
-        
+
         // Extract Euler angles from rotation matrix (returns [roll, pitch, yaw] in radians)
         const auto euler_rad = zenslam::utils::matrix_to_euler(pose.rotation());
-        
+
         // Convert to degrees
         const auto euler_deg = euler_rad * (180.0 / CV_PI);
-        
+
         ImGui::Text("Pose:");
-        ImGui::Text("  Position [x, y, z]: [%.3f, %.3f, %.3f] m", 
+        ImGui::Text("  Position [x, y, z]: [%.3f, %.3f, %.3f] m",
                     translation[0], translation[1], translation[2]);
-        ImGui::Text("  Euler [roll, pitch, yaw]: [%.2f, %.2f, %.2f] deg", 
+        ImGui::Text("  Euler [roll, pitch, yaw]: [%.2f, %.2f, %.2f] deg",
                     euler_deg[0], euler_deg[1], euler_deg[2]);
         ImGui::Spacing();
     }
@@ -494,7 +495,7 @@ void zenslam::application::draw_viz_controls()
     if (!system[1].imu_data.empty())
     {
         const auto& imu = system[1].imu_data.back(); // Show latest IMU measurement
-        
+
         ImGui::Text("IMU Data (%zu samples):", system[1].imu_data.size());
         ImGui::Text("  Angular Vel [wx, wy, wz]: [%.3f, %.3f, %.3f] rad/s",
                     imu.gyr[0], imu.gyr[1], imu.gyr[2]);
@@ -516,26 +517,26 @@ void zenslam::application::draw_viz_controls()
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
     ImGui::BeginChild("viz_section", ImVec2(0, 160.0f), true);
 
-    ImGui::Checkbox("Show Keypoints", &_options.slam.show_keypoints.value());
-    ImGui::Checkbox("Show Keylines", &_options.slam.show_keylines.value());
+    ImGui::Checkbox("Show Keypoints", &_options.slam->show_keypoints.value());
+    ImGui::Checkbox("Show Keylines", &_options.slam->show_keylines.value());
     ImGui::SliderFloat("Point Cloud Opacity", &_point_cloud_opacity, 0.0f, 1.0f, "%.2f");
 
     // Color picker for keylines (single keyline color)
-    const auto& s = _options.slam.keyline_single_color; // B, G, R
+    const auto& s = _options.slam->keyline_single_color; // B, G, R
     ImVec4      color_rgba(static_cast<float>(s.value()[2]) / 255.0f,
-                           // R
-                           static_cast<float>(s.value()[1]) / 255.0f,
-                           // G
-                           static_cast<float>(s.value()[0]) / 255.0f,
-                           // B
-                           1.0f);
+                      // R
+                      static_cast<float>(s.value()[1]) / 255.0f,
+                      // G
+                      static_cast<float>(s.value()[0]) / 255.0f,
+                      // B
+                      1.0f);
 
     if (ImGui::ColorEdit3("Keyline Color", reinterpret_cast<float*>(&color_rgba)))
     {
-        const auto r                       = static_cast<int>(std::round(color_rgba.x * 255.0f));
-        const auto g                       = static_cast<int>(std::round(color_rgba.y * 255.0f));
-        const auto b                       = static_cast<int>(std::round(color_rgba.z * 255.0f));
-        _options.slam.keyline_single_color = cv::Scalar(b, g, r);
+        const auto r                        = static_cast<int>(std::round(color_rgba.x * 255.0f));
+        const auto g                        = static_cast<int>(std::round(color_rgba.y * 255.0f));
+        const auto b                        = static_cast<int>(std::round(color_rgba.z * 255.0f));
+        _options.slam->keyline_single_color = cv::Scalar(b, g, r);
     }
 
     ImGui::EndChild();
