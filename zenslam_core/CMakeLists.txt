@@ -58,6 +58,7 @@ add_library(${PROJECT_NAME}
         source/imu_calibration.cpp
         source/integrator.cpp
         source/estimator.cpp
+        source/keyframe_selector.cpp
         source/pose_estimation/point_estimator.cpp
         source/pose_estimation/line_estimator.cpp
         source/pose_estimation/combined_estimator.cpp

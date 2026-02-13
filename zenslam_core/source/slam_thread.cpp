@@ -14,6 +14,7 @@
 #include "zenslam/gravity_estimator.h"
 #include "zenslam/groundtruth.h"
 #include "zenslam/inertial_predictor.h"
+#include "zenslam/keyframe_selector.h"
 #include "zenslam/motion_predictor.h"
 #include "zenslam/processor.h"
 #include "zenslam/time_this.h"
@@ -54,6 +55,7 @@ void zenslam::slam_thread::loop()
     motion_predictor   motion{};
     inertial_predictor inertial{ cv::Vec3d{ 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
     gravity_estimator  gravity_estimator{};
+    keyframe_selector  keyframes{ _options.slam->keyframe };
 
     auto ground_truth = groundtruth::read(_options.folder->groundtruth_file);
     auto writer       = frame::writer(_options.folder->output / "frame_data.csv");
@@ -310,6 +312,24 @@ void zenslam::slam_thread::loop()
 
                 system.counts.map_points = system.points3d.size();
                 system.counts.map_lines  = system.lines3d.size();
+
+                const auto decision = keyframes.decide(system[1], system.counts);
+                system[1].is_keyframe = decision.is_keyframe;
+
+                if (decision.is_keyframe)
+                {
+                    SPDLOG_INFO(
+                        "Keyframe selected (frames_since_last={}, trans={:.3f}m, rot={:.2f}deg, tracked={:.2f}, inliers={}, forced={}, motion={}, quality={})",
+                        decision.frames_since_last,
+                        decision.translation,
+                        decision.rotation_deg,
+                        decision.tracked_ratio,
+                        decision.inliers,
+                        decision.forced,
+                        decision.motion_triggered,
+                        decision.quality_triggered
+                    );
+                }
 
                 writer.write(system);
             }

@@ -36,7 +36,8 @@ namespace zenslam
                         // Check if this is a nested options class
                         if constexpr (std::is_base_of_v<pnp_options, T> || 
                                       std::is_base_of_v<essential_options, T> ||
-                                      std::is_base_of_v<rigid_options, T>)
+                                      std::is_base_of_v<rigid_options, T> ||
+                                      std::is_base_of_v<keyframe_options, T>)
                         {
                             // Parse nested options class using its own parse_yaml
                             if (const auto nested_node = node[opt.name()])
@@ -75,7 +76,8 @@ namespace zenslam
                 // Check if this is a nested options class
                 if constexpr (std::is_base_of_v<pnp_options, T> || 
                               std::is_base_of_v<essential_options, T> ||
-                              std::is_base_of_v<rigid_options, T>)
+                              std::is_base_of_v<rigid_options, T> ||
+                              std::is_base_of_v<keyframe_options, T>)
                 {
                     // Print nested options using their own print() method
                     SPDLOG_INFO("{}:", opt.name());
@@ -106,7 +108,8 @@ namespace zenslam
             // Check if this is a nested options class
             if constexpr (std::is_base_of_v<pnp_options, T> || 
                           std::is_base_of_v<essential_options, T> ||
-                          std::is_base_of_v<rigid_options, T>)
+                          std::is_base_of_v<rigid_options, T> ||
+                          std::is_base_of_v<keyframe_options, T>)
             {
                 // Recursively add nested options
                 std::apply([&description, &flag_prefix, &opt](const auto&... nested_opts)
@@ -210,6 +213,18 @@ namespace zenslam
             throw std::invalid_argument("slam.klt_window_size must be positive");
         if (klt_max_level < 0)
             throw std::invalid_argument("slam.klt_max_level must be >= 0");
+        if (keyframe.value().min_frames < 1)
+            throw std::invalid_argument("slam.keyframe.min_frames must be >= 1");
+        if (keyframe.value().max_frames < keyframe.value().min_frames)
+            throw std::invalid_argument("slam.keyframe.max_frames must be >= min_frames");
+        if (keyframe.value().min_translation < 0.0)
+            throw std::invalid_argument("slam.keyframe.min_translation must be >= 0");
+        if (keyframe.value().min_rotation_deg < 0.0)
+            throw std::invalid_argument("slam.keyframe.min_rotation_deg must be >= 0");
+        if (keyframe.value().min_tracked_ratio < 0.0 || keyframe.value().min_tracked_ratio > 1.0)
+            throw std::invalid_argument("slam.keyframe.min_tracked_ratio must be in [0, 1]");
+        if (keyframe.value().min_inliers < 0)
+            throw std::invalid_argument("slam.keyframe.min_inliers must be >= 0");
     }
 
     // print() is now inherited from options_base

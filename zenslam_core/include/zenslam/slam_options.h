@@ -62,6 +62,20 @@ namespace zenslam
         )
     };
 
+    /// Keyframe selection configuration
+    class keyframe_options : public options_base<keyframe_options, "keyframe options", "keyframe.">
+    {
+    public:
+        ZENSLAM_DEFINE_OPTIONS(
+            ((int, min_frames, 5, "Minimum frames between keyframes"))
+            ((int, max_frames, 30, "Maximum frames between keyframes"))
+            ((double, min_translation, 0.15, "Minimum translation (m) to trigger a keyframe"))
+            ((double, min_rotation_deg, 10.0, "Minimum rotation (deg) to trigger a keyframe"))
+            ((double, min_tracked_ratio, 0.6, "Minimum tracked ratio before forcing a keyframe"))
+            ((int, min_inliers, 20, "Minimum inliers before forcing a keyframe"))
+        )
+    };
+
     /// SLAM algorithm configuration options
     class slam_options : public options_base<slam_options, "slam options", "slam.">
     {
@@ -113,6 +127,7 @@ namespace zenslam
             ((double, triangulation_reprojection_threshold, 1.0, "Keyline maximum average reprojection error across endpoints in pixels"))
             ((double, triangulation_min_depth, 1.0, "Minimum triangulation depth in meters"))
             ((double, triangulation_max_depth, 50.0, "Maximum triangulation depth in meters"))
+            ((keyframe_options, keyframe, {}, "Keyframe selection configuration"))
             ((pnp_options, pnp, {}, "PnP RANSAC configuration"))
             ((essential_options, essential, {}, "Essential matrix configuration"))
             ((rigid_options, rigid, {}, "3D-3D rigid transformation configuration"))
