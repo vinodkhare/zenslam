@@ -1,9 +1,7 @@
 #pragma once
 
-#include <map>
 #include <string>
 
-#include <boost/program_options/option.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 
@@ -12,6 +10,7 @@
 #include "zenslam/detection_types.h"
 #include "zenslam/integrator.h"
 #include "zenslam/option.h"
+#include "zenslam/options_base.h"
 
 namespace YAML
 {
@@ -29,14 +28,19 @@ namespace zenslam
     };
 
     /// SLAM algorithm configuration options
-    class slam_options
+    class slam_options : public options_base<slam_options, "slam options", "slam.">
     {
     public:
         using options_description = boost::program_options::options_description;
 
         static auto description() -> options_description;
-        static auto parse_yaml(const YAML::Node& node) -> slam_options;
-        static void parse_cli(slam_options& options, const std::map<std::string, boost::program_options::basic_option<char>>& options_map, const boost::program_options::variables_map& vm);
+
+        // Inherited from options_base:
+        // static constexpr auto name() - returns "slam options"
+        // static constexpr auto prefix() - returns "slam."
+        // static auto parse_yaml(const YAML::Node& node) -> slam_options;
+        // static void parse_cli(slam_options& options, const std::map<std::string, boost::program_options::basic_option<char>>& options_map, const boost::program_options::variables_map& vm);
+        // void print() const;
 
         // Define all options using the auto-registration macro
         // Format: ((type, name, default_value, "description"))
@@ -71,7 +75,6 @@ namespace zenslam
         )
 
         void validate() const;
-        void print() const;
     };
 } // namespace zenslam
 

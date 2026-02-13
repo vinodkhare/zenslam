@@ -1,14 +1,13 @@
 #pragma once
 
 #include <filesystem>
-#include <map>
 #include <string>
 
-#include <boost/program_options/option.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 
 #include "zenslam/option.h"
+#include "zenslam/options_base.h"
 
 namespace YAML
 {
@@ -18,14 +17,19 @@ namespace YAML
 namespace zenslam
 {
     /// File and folder path configuration
-    class folder_options
+    class folder_options : public options_base<folder_options, "folder options", "folder.">
     {
     public:
         using options_description = boost::program_options::options_description;
 
         static auto description() -> options_description;
-        static auto parse_yaml(const YAML::Node& node) -> folder_options;
-        static void parse_cli(folder_options& options, const std::map<std::string, boost::program_options::basic_option<char>>& options_map, const boost::program_options::variables_map& vm);
+
+        // Inherited from options_base:
+        // static constexpr auto name() - returns "folder options"
+        // static constexpr auto prefix() - returns "folder."
+        // static auto parse_yaml(const YAML::Node& node) -> folder_options;
+        // static void parse_cli(folder_options& options, const std::map<std::string, boost::program_options::basic_option<char>>& options_map, const boost::program_options::variables_map& vm);
+        // void print() const;
 
         // Define all options using the auto-registration macro
         // Format: ((type, name, default_value, "description"))
@@ -43,6 +47,5 @@ namespace zenslam
         )
 
         void validate() const;
-        void print() const;
     };
 } // namespace zenslam

@@ -6,66 +6,14 @@
 
 #include <magic_enum/magic_enum.hpp>
 
-#include <spdlog/spdlog.h>
-
 #include <yaml-cpp/yaml.h>
 
 #include "zenslam/option_parser.h"
-#include "zenslam/option_parser_cli.h"
-#include "zenslam/option_printer.h"
 #include "zenslam/utils.h"
 
 namespace zenslam
 {
-    auto slam_options::parse_yaml(const YAML::Node& node) -> slam_options
-    {
-        slam_options options;
-
-        try
-        {
-            // Use auto-generated all_options() to parse all fields in a loop
-            std::apply([&node](auto&... opts)
-            {
-                ((opts = option_parser::parse_yaml(opts, node)), ...);
-            }, options.all_options());
-        }
-        catch (const YAML::Exception& e)
-        {
-            SPDLOG_ERROR("Error parsing slam options from YAML: {}", e.what());
-        }
-
-        return options;
-    }
-
-    void slam_options::parse_cli(
-        slam_options&                                                            options,
-        const std::map<std::string, boost::program_options::basic_option<char>>& options_map,
-        const boost::program_options::variables_map&                             vm)
-    {
-        try
-        {
-            // Use auto-generated all_options() to parse all fields in a loop
-            std::apply
-            (
-                [&options_map, &vm](auto&... opts)
-                {
-                    // All slam options use "slam." prefix
-                    auto parse_field = [&options_map, &vm](auto& opt)
-                    {
-                        opt = option_parser_cli::parse_cli(opt, "slam.", options_map, vm);
-                    };
-
-                    (parse_field(opts), ...);
-                },
-
-                options.all_options()
-            );
-        }
-        catch (const std::exception& e)
-        {
-            SPDLOG_ERROR("Error parsing slam options from CLI: {}", e.what());
-        }
-    }
+    // parse_yaml() and parse_cli() are now inherited from options_base
 
     boost::program_options::options_description slam_options::description()
     {
@@ -151,13 +99,6 @@ namespace zenslam
             throw std::invalid_argument("slam.klt_max_level must be >= 0");
     }
 
-    void slam_options::print() const
-    {
-        // Use auto-generated all_options() to print all fields in a loop
-        std::apply([](const auto&... opts)
-        {
-            (option_printer::print(opts), ...);
-        }, all_options());
-    }
+    // print() is now inherited from options_base
 } // namespace zenslam
 

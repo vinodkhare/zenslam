@@ -6,68 +6,11 @@
 
 #include <spdlog/spdlog.h>
 
-#include <yaml-cpp/yaml.h>
-
 #include "zenslam/option_parser.h"
-#include "zenslam/option_parser_cli.h"
-#include "zenslam/option_printer.h"
 
 namespace zenslam
 {
-    auto folder_options::parse_yaml(const YAML::Node& node) -> folder_options
-    {
-        folder_options options;
-
-        try
-        {
-            // Use auto-generated all_options() to parse all fields in a loop
-            std::apply
-            (
-                [&node](auto&... opts)
-                {
-                    ((opts = option_parser::parse_yaml(opts, node)), ...);
-                },
-
-                options.all_options()
-            );
-        }
-        catch (const YAML::Exception& e)
-        {
-            SPDLOG_ERROR("Error parsing folder options from YAML: {}", e.what());
-        }
-
-        return options;
-    }
-
-    void folder_options::parse_cli(
-        folder_options&                                                          options,
-        const std::map<std::string, boost::program_options::basic_option<char>>& options_map,
-        const boost::program_options::variables_map&                             vm)
-    {
-        try
-        {
-            // Use auto-generated all_options() to parse all fields in a loop
-            std::apply
-            (
-                [&options_map, &vm](auto&... opts)
-                {
-                    // All folder options use "folder." prefix
-                    auto parse_field = [&options_map, &vm](auto& opt)
-                    {
-                        opt = option_parser_cli::parse_cli(opt, "folder.", options_map, vm);
-                    };
-
-                    (parse_field(opts), ...);
-                },
-
-                options.all_options()
-            );
-        }
-        catch (const std::exception& e)
-        {
-            SPDLOG_ERROR("Error parsing folder options from CLI: {}", e.what());
-        }
-    }
+    // parse_yaml() and parse_cli() are now inherited from options_base
 
     boost::program_options::options_description folder_options::description()
     {
@@ -167,12 +110,5 @@ namespace zenslam
         }
     }
 
-    void folder_options::print() const
-    {
-        // Use auto-generated all_options() to print all fields in a loop
-        std::apply([](const auto&... opts)
-        {
-            (option_printer::print(opts), ...);
-        }, all_options());
-    }
+    // print() is now inherited from options_base
 } // namespace zenslam
