@@ -211,7 +211,7 @@ The test suite includes Catch2 benchmarks comparing `cv::Mat` (CPU) vs `cv::UMat
 
 ### Tracking Statistics
 
-See [tracking statistics](zenslam_docs/tracking-statistics.md) for detailed tracking performance metrics and comparisons across different configurations.
+See [tracking statistics](zenslam_docs/features/tracking-statistics.md) for detailed tracking performance metrics and comparisons across different configurations.
 
 **Notes:**
 - **UMat benchmarks** require OpenCL support (check with `cv::ocl::haveOpenCL()`)
@@ -293,22 +293,33 @@ Notes:
 
 ## Documentation
 
-Extended docs live in `zenslam_docs/`:
+Comprehensive documentation is available in [`zenslam_docs/`](zenslam_docs/) with organized categories:
 
-| Topic                                                                        | Summary                                                    |
-|------------------------------------------------------------------------------|------------------------------------------------------------|
-| [Overview](zenslam_docs/overview.md)                                         | High-level architecture & data flow                        |
-| [Calibration](zenslam_docs/calibration.md)                                   | Parsing Kalibr YAML, intrinsics, projection, F computation |
-| [IMU Calibration](zenslam_docs/imu_calibration.md)                           | IMU noise parameters & integration with options system     |
-| [Feature Pipeline](zenslam_docs/feature_pipeline.md)                         | Grid-based detection + descriptor backends                 |
-| [Line Segment Libraries](zenslam_docs/line_segment_libraries_research.md)    | Research on C++ line detection libraries & alternatives    |
-| [Stereo Matching](zenslam_docs/stereo_matching.md)                           | Descriptor matching strategy & future improvements         |
-| [Epipolar Filtering](zenslam_docs/epipolar_filtering.md)                     | Geometric pruning via fundamental matrix distances         |
-| [Triangulation](zenslam_docs/triangulation.md)                               | 3D reconstruction from filtered correspondences            |
-| [Tracking](zenslam_docs/tracking.md)                                         | Temporal KLT plans & persistent tracks roadmap             |
-| [Tracking Statistics](zenslam_docs/tracking-statistics.md)                   | Performance metrics & configuration comparisons            |
-| [Roadmap](zenslam_docs/roadmap.md)                                           | Short / medium / long-term goals                           |
-| [Build System](zenslam_docs/build_system.md)                                 | CMake, dependencies, dev environment                       |
+### Getting Started
+- **[Overview](zenslam_docs/getting-started/overview.md)** - System architecture and pipeline
+- **[Build System](zenslam_docs/getting-started/build-system.md)** - CMake, dependencies, development environment
+- **[Roadmap](zenslam_docs/getting-started/roadmap.md)** - Development priorities and future plans
+
+### Core Concepts
+- **[Calibration](zenslam_docs/core/calibration.md)** - Camera models and Kalibr YAML parsing
+- **[Feature Pipeline](zenslam_docs/core/feature-pipeline.md)** - Grid-based keypoint detection
+- **[Stereo Matching](zenslam_docs/core/stereo-matching.md)** - Descriptor matching strategies
+- **[Tracking](zenslam_docs/core/tracking.md)** - Temporal correspondence and KLT tracking
+- **[IMU Preintegration](zenslam_docs/core/imu-preintegration.md)** - UGPM-based IMU integration
+
+### Advanced Topics
+- **[Epipolar Filtering](zenslam_docs/advanced/epipolar-filtering.md)** - Geometric consistency pruning
+- **[Triangulation](zenslam_docs/advanced/triangulation.md)** - 3D point reconstruction
+- **[Pose Estimation](zenslam_docs/advanced/pose-estimation.md)** - Multi-method weighted fusion
+- **[IMU Calibration](zenslam_docs/advanced/imu-calibration.md)** - IMU intrinsic parameters
+- **[Matcher Options](zenslam_docs/advanced/matcher-options.md)** - Matching configurations
+
+### Features & Research
+- **[Keylines](zenslam_docs/features/keylines.md)** - Line feature detection and tracking
+- **[Tracking Statistics](zenslam_docs/features/tracking-statistics.md)** - Performance metrics
+- **[Line Segment Libraries](zenslam_docs/research/line-segments.md)** - Library comparisons
+
+See the [full documentation index](zenslam_docs/README.md) for complete navigation.
 
 These documents are evolving—contributions and corrections are welcome.
 
