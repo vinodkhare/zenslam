@@ -1,8 +1,12 @@
 #pragma once
 
 #include <filesystem>
+#include <map>
+#include <string>
 
+#include <boost/program_options/option.hpp>
 #include <boost/program_options/options_description.hpp>
+#include <boost/program_options/variables_map.hpp>
 
 #include "zenslam/option.h"
 
@@ -21,6 +25,7 @@ namespace zenslam
 
         static auto description() -> options_description;
         static auto parse_yaml(const YAML::Node& node) -> folder_options;
+        static void parse_cli(folder_options& options, const std::map<std::string, boost::program_options::basic_option<char>>& options_map, const boost::program_options::variables_map& vm);
 
         // Define all options using the auto-registration macro
         // Format: ((type, name, default_value, "description"))

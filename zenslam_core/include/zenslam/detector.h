@@ -27,7 +27,7 @@ namespace zenslam
          * @param options The SLAM options containing the desired feature detector type and cell size
          * @return A configured grid_detector instance
          */
-        static auto create(const class options::slam& options) -> detector;
+        static auto create(const slam_options& options) -> detector;
 
         /**
          * @brief Detect keypoints in the image using grid-based detection

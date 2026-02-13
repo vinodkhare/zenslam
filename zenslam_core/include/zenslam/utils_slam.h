@@ -53,7 +53,6 @@ inline auto operator*
 
 namespace zenslam::utils
 {
-
     /**
      * Returns 2D-2D correspondences between two sets of keypoints based on matching indices.
      * @param keypoints_0 0th set of keypoints
@@ -196,8 +195,8 @@ namespace zenslam::utils
      */
     auto create_matcher
     (
-        const class options::slam& options,
-        bool                       is_binary
+        const slam_options& options,
+        bool                is_binary
     ) -> cv::Ptr<cv::DescriptorMatcher>;
 
     /**
@@ -286,7 +285,7 @@ namespace zenslam::utils
         const std::vector<cv::Mat>& pyramid_0,
         const std::vector<cv::Mat>& pyramid_1,
         const map<keyline>&         keylines_map_0,
-        const class options::slam&  options
+        const slam_options&         options
     ) -> std::vector<keyline>;
 
     /**
@@ -304,12 +303,12 @@ namespace zenslam::utils
      */
     auto triangulate_keylines
     (
-        const map<keyline>&        keylines_0,
-        const map<keyline>&        keylines_1,
-        const cv::Matx34d&         projection_0,
-        const cv::Matx34d&         projection_1,
-        const class options::slam& options,
-        const cv::Vec3d&           translation_of_camera1_in_camera0
+        const map<keyline>& keylines_0,
+        const map<keyline>& keylines_1,
+        const cv::Matx34d&  projection_0,
+        const cv::Matx34d&  projection_1,
+        const slam_options& options,
+        const cv::Vec3d&    translation_of_camera1_in_camera0
     ) -> std::vector<line3d>;
 
     /** Triangulate 3D points from matched 2D keypoints in stereo images.

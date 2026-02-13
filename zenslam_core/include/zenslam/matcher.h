@@ -14,7 +14,7 @@ namespace zenslam
     class matcher
     {
     public:
-        matcher(const class options::slam& opts, bool is_binary);
+        matcher(const slam_options& opts, bool is_binary);
 
         /** Match keypoints between two frames using their descriptors.
          *
@@ -25,7 +25,7 @@ namespace zenslam
         [[nodiscard]] auto match_keypoints(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1) const -> std::vector<cv::DMatch>;
 
     private:
-        class options::slam            _options = { };
+        slam_options                   _options = { };
         cv::Ptr<cv::DescriptorMatcher> _matcher = { };
     };
 }

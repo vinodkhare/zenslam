@@ -20,7 +20,7 @@ namespace zenslam
     class tracker
     {
     public:
-        tracker(calibration calib, class options::slam opts);
+        tracker(calibration calib, slam_options opts);
 
         /** Track keypoints from frame_0 to frame_1 and augment with new stereo keypoints and triangulated 3D points.
          *
@@ -44,11 +44,11 @@ namespace zenslam
         [[nodiscard]] auto track(const frame::estimated& frame_0, const frame::processed& frame_1, const cv::Affine3d& pose_predicted) const -> frame::tracked;
 
     private:
-        calibration         _calibration  = { };
-        class options::slam _options      = { };
-        matcher             _matcher      = { _options, false };
-        triangulator        _triangulator = { _calibration, _options };
-        detector            _detector     = { };
+        calibration  _calibration  = { };
+        slam_options _options      = { };
+        matcher      _matcher      = { _options, false };
+        triangulator _triangulator = { _calibration, _options };
+        detector     _detector     = { };
 
         /** Track keypoints from pyramid_0 to pyramid_1 using KLT optical flow.
          *

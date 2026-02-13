@@ -322,7 +322,7 @@ auto zenslam::utils::draw_matches_spatial(const frame::estimated& frame, const m
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, const frame::estimated& frame_1, const class options::slam& options) -> cv::Mat
+auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, const frame::estimated& frame_1, const slam_options& options) -> cv::Mat
 {
     // Prepare images with keylines
     auto image_0 = frame_0.undistorted[0].clone();
@@ -420,8 +420,8 @@ auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, cons
             utils::cast<cv::line_descriptor::KeyLine>(keylines_1_matched),
             line_matches,
             matches_image,
-            options.keyline_match_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : options.keyline_match_color,
-            options.keyline_single_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : options.keyline_single_color,
+            options.keyline_match_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : options.keyline_match_color.value(),
+            options.keyline_single_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : options.keyline_single_color.value(),
             std::vector<char>(line_matches.size(), true),
             cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG,
             options.keyline_thickness
@@ -513,7 +513,7 @@ auto zenslam::utils::projection_decompose(const cv::Matx34d& projection) -> std:
     return { K, R, t };
 }
 
-auto zenslam::utils::pyramid(const cv::Mat& image, const class options::slam& options) -> std::vector<cv::Mat>
+auto zenslam::utils::pyramid(const cv::Mat& image, const slam_options& options) -> std::vector<cv::Mat>
 {
     std::vector<cv::Mat> pyramid { };
     cv::buildOpticalFlowPyramid(image, pyramid, options.klt_window_size, options.klt_max_level);

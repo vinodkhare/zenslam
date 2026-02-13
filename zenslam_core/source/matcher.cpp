@@ -8,7 +8,7 @@
 
 namespace zenslam
 {
-    matcher::matcher(const class options::slam& opts, const bool is_binary)
+    matcher::matcher(const slam_options& opts, const bool is_binary)
         : _options(opts)
     {
         _matcher = utils::create_matcher(_options, is_binary);

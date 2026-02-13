@@ -28,7 +28,7 @@ namespace
 
 namespace zenslam
 {
-    triangulator::triangulator(const calibration& calib, const class options::slam& opts)
+    triangulator::triangulator(const calibration& calib, const slam_options& opts)
         : _calibration(calib), _options(opts)
     {
     }

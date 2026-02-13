@@ -62,9 +62,9 @@ void zenslam::slam_thread::loop()
     frame::system system{};
 
     // Set configuration strings once
-    system.counts.detector_type   = magic_enum::enum_name(_options.slam.feature);
-    system.counts.descriptor_type = magic_enum::enum_name(_options.slam.descriptor);
-    system.counts.matcher_type    = magic_enum::enum_name(_options.slam.matcher);
+    system.counts.detector_type   = magic_enum::enum_name(_options.slam.feature.value());
+    system.counts.descriptor_type = magic_enum::enum_name(_options.slam.descriptor.value());
+    system.counts.matcher_type    = magic_enum::enum_name(_options.slam.matcher.value());
 
     while (!_stop_token.stop_requested())
     {

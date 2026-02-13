@@ -15,7 +15,7 @@ namespace zenslam
     class triangulator
     {
     public:
-        triangulator(const calibration& calib, const class options::slam& opts);
+        triangulator(const calibration& calib, const slam_options& opts);
 
         /**
          * Triangulate keypoints between stereo frames using their indices.
@@ -29,7 +29,7 @@ namespace zenslam
         [[nodiscard]] auto triangulate_keypoints(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1) const -> std::vector<point3d>;
 
     private:
-        calibration         _calibration { };
-        class options::slam _options { };
+        calibration  _calibration { };
+        slam_options _options { };
     };
 }

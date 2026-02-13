@@ -516,17 +516,17 @@ void zenslam::application::draw_viz_controls()
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
     ImGui::BeginChild("viz_section", ImVec2(0, 160.0f), true);
 
-    ImGui::Checkbox("Show Keypoints", &_options.slam.show_keypoints);
-    ImGui::Checkbox("Show Keylines", &_options.slam.show_keylines);
+    ImGui::Checkbox("Show Keypoints", &_options.slam.show_keypoints.value());
+    ImGui::Checkbox("Show Keylines", &_options.slam.show_keylines.value());
     ImGui::SliderFloat("Point Cloud Opacity", &_point_cloud_opacity, 0.0f, 1.0f, "%.2f");
 
     // Color picker for keylines (single keyline color)
     const auto& s = _options.slam.keyline_single_color; // B, G, R
-    ImVec4      color_rgba(static_cast<float>(s[2]) / 255.0f,
+    ImVec4      color_rgba(static_cast<float>(s.value()[2]) / 255.0f,
                            // R
-                           static_cast<float>(s[1]) / 255.0f,
+                           static_cast<float>(s.value()[1]) / 255.0f,
                            // G
-                           static_cast<float>(s[0]) / 255.0f,
+                           static_cast<float>(s.value()[0]) / 255.0f,
                            // B
                            1.0f);
 

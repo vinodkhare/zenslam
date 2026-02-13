@@ -42,6 +42,7 @@ namespace zenslam::utils
      * @param singleLineColor Color for drawing unmatched lines.
      * @param matchesMask Mask to indicate which matches to draw.
      * @param flags Drawing flags (e.g., default behavior).
+     * @param lineThickness Thickness of the lines to be drawn in pixels.
      */
     void draw_line_matches
     (
@@ -70,9 +71,9 @@ namespace zenslam::utils
     auto draw_matches_spatial(const frame::estimated& frame, const map<point3d>& points) -> cv::Mat;
     auto draw_matches_temporal
     (
-        const frame::estimated&    frame_0,
-        const frame::estimated&    frame_1,
-        const class options::slam& options
+        const frame::estimated& frame_0,
+        const frame::estimated& frame_1,
+        const slam_options&     options
     ) -> cv::Mat;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;
 
@@ -83,7 +84,7 @@ namespace zenslam::utils
      */
     auto projection_decompose(const cv::Matx34d& projection) -> std::tuple<cv::Matx33d, cv::Matx33d, cv::Vec3d>;
 
-    auto pyramid(const cv::Mat& image, const class options::slam& options) -> std::vector<cv::Mat>;
+    auto pyramid(const cv::Mat& image, const slam_options& options) -> std::vector<cv::Mat>;
 
     auto matches(size_t n) -> std::vector<cv::DMatch>;
 }

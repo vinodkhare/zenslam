@@ -14,11 +14,11 @@
 
 namespace zenslam
 {
-    tracker::tracker(calibration calib, class options::slam opts)
-        : _calibration(std::move(calib)),
-          _options(std::move(opts)),
-          _matcher(_options, _options.descriptor == descriptor_type::ORB || _options.descriptor == descriptor_type::FREAK),
-          _detector(detector::create(_options))
+    tracker::tracker(calibration calib, slam_options opts) :
+        _calibration(std::move(calib)),
+        _options(std::move(opts)),
+        _matcher(_options, _options.descriptor == descriptor_type::ORB || _options.descriptor == descriptor_type::FREAK),
+        _detector(detector::create(_options))
     {
     }
 
@@ -83,7 +83,7 @@ namespace zenslam
 
         // Match keypoints
         keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
-        points3d += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
+        points3d    += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
 
         // Match keylines using the fundamental matrix
         const auto keyline_matches = utils::match_keylines
@@ -108,7 +108,7 @@ namespace zenslam
             _calibration.cameras[1].pose_in_cam0.translation()
         );
 
-        return { frame_1, {keypoints_0, keypoints_1}, {keylines_0, keylines_1}, points3d, lines3d };
+        return { frame_1, { keypoints_0, keypoints_1 }, { keylines_0, keylines_1 }, points3d, lines3d };
     }
 
     auto tracker::track(const frame::estimated& frame_0, const frame::processed& frame_1, const cv::Affine3d& pose_predicted) const -> frame::tracked
@@ -215,7 +215,7 @@ namespace zenslam
 
         // Match keypoints
         keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
-        points3d += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
+        points3d    += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
 
         // Match keylines using the fundamental matrix
         const auto keyline_matches = utils::match_keylines
@@ -240,7 +240,7 @@ namespace zenslam
             _calibration.cameras[1].pose_in_cam0.translation()
         );
 
-        return { frame_1, {keypoints_0, keypoints_1}, {keylines_0, keylines_1}, points3d, lines3d };
+        return { frame_1, { keypoints_0, keypoints_1 }, { keylines_0, keylines_1 }, points3d, lines3d };
     }
 
     // Moved from utils::track_keypoints

@@ -6,7 +6,7 @@
 #include "zenslam/utils.h"
 #include "zenslam/utils_opencv.h"
 
-zenslam::processor::processor(class options::slam options, calibration calibration) :
+zenslam::processor::processor(slam_options options, calibration calibration) :
     _options { std::move(options) },
     _calibration { std::move(calibration) },
     _integrator { _calibration.imu, _options.integrator_method }

@@ -21,13 +21,13 @@ namespace zenslam
         pose_data    pose_3d3d_lines; // 3D-3D line result (maybe empty)
         pose_data    pose_3d2d_lines; // 3D-2D line result (maybe empty)
         cv::Affine3d chosen_pose;     // Selected pose (or identity)
-        size_t       chosen_count{};
+        size_t       chosen_count { };
     };
 
     class estimator
     {
     public:
-        estimator(calibration calib, class options::slam opts);
+        estimator(calibration calib, slam_options opts);
 
         /** Estimate the pose of frame 1 relative to frame 0 using 3D-2D and 3D-3D correspondences.
          *
@@ -61,7 +61,7 @@ namespace zenslam
         [[nodiscard]] auto estimate_pose_3d3d_lines(const std::map<size_t, line3d>& map_lines_0, const std::map<size_t, line3d>& map_lines_1) const -> pose_data;
 
     private:
-        calibration         _calibration;
-        class options::slam _options;
+        calibration  _calibration;
+        slam_options _options;
     };
 } // namespace zenslam

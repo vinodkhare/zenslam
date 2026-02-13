@@ -1,10 +1,14 @@
 #pragma once
 
-#include "zenslam/option.h"
-#include "zenslam/folder_options.h"
+#include <filesystem>
+
+#include <magic_enum/magic_enum.hpp>
+
+#include <opencv2/core/types.hpp>
 
 #include <yaml-cpp/yaml.h>
-#include <filesystem>
+
+#include "zenslam/option.h"
 
 namespace zenslam
 {
@@ -37,6 +41,38 @@ namespace zenslam
             return result;
         }
 
+        /** YAML parser for cv::Size */
+        static auto parse_yaml(const option<cv::Size>& option, const YAML::Node& node) -> zenslam::option<cv::Size>
+        {
+            zenslam::option<cv::Size> result = option;
+
+            if (const auto n = node[option.name()])
+            {
+                if (n.IsSequence() && n.size() == 2)
+                {
+                    result = cv::Size(n[0].as<int>(), n[1].as<int>());
+                }
+            }
+
+            return result;
+        }
+
+        /** YAML parser for cv::Scalar */
+        static auto parse_yaml(const option<cv::Scalar>& option, const YAML::Node& node) -> zenslam::option<cv::Scalar>
+        {
+            zenslam::option<cv::Scalar> result = option;
+
+            if (const auto n = node[option.name()])
+            {
+                if (n.IsSequence() && n.size() >= 3)
+                {
+                    result = cv::Scalar(n[0].as<double>(), n[1].as<double>(), n[2].as<double>());
+                }
+            }
+
+            return result;
+        }
+
         template <typename E> requires std::is_enum_v<E>
         static auto parse_yaml(const option<E>& option, const YAML::Node& node) -> zenslam::option<E>
         {
@@ -58,3 +94,5 @@ namespace zenslam
         };
     };
 }
+
+

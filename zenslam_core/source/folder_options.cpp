@@ -9,6 +9,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "zenslam/option_parser.h"
+#include "zenslam/option_parser_cli.h"
 #include "zenslam/option_printer.h"
 
 namespace zenslam
@@ -38,34 +39,85 @@ namespace zenslam
         return options;
     }
 
+    void folder_options::parse_cli(
+        folder_options&                                                          options,
+        const std::map<std::string, boost::program_options::basic_option<char>>& options_map,
+        const boost::program_options::variables_map&                             vm)
+    {
+        try
+        {
+            // Use auto-generated all_options() to parse all fields in a loop
+            std::apply
+            (
+                [&options_map, &vm](auto&... opts)
+                {
+                    // All folder options use "folder." prefix
+                    auto parse_field = [&options_map, &vm](auto& opt)
+                    {
+                        opt = option_parser_cli::parse_cli(opt, "folder.", options_map, vm);
+                    };
+
+                    (parse_field(opts), ...);
+                },
+
+                options.all_options()
+            );
+        }
+        catch (const std::exception& e)
+        {
+            SPDLOG_ERROR("Error parsing folder options from CLI: {}", e.what());
+        }
+    }
+
     boost::program_options::options_description folder_options::description()
     {
         const folder_options opts;
 
         boost::program_options::options_description description { "folder options" };
 
-        description.add_options()("folder-root",
-                                  boost::program_options::value<std::string>()->default_value(opts.root.value()),
-                                  "Root folder")(
-            "folder-left", boost::program_options::value<std::string>()->default_value(opts.left.value()),
-            "Left folder relative to root (or absolute)")(
-            "folder-right", boost::program_options::value<std::string>()->default_value(opts.right.value()),
-            "Right folder relative to root (or absolute)")(
-            "folder-timescale", boost::program_options::value<double>()->default_value(opts.timescale),
-            "Timescale for folder timestamps")(
-            "calibration-file",
-            boost::program_options::value<std::string>()->default_value(opts.calibration_file.value()),
-            "calibration file path")(
-            "groundtruth-file",
-            boost::program_options::value<std::string>()->default_value(opts.groundtruth_file.value()),
-            "groundtruth file path")(
-            "imu-calibration-file",
-            boost::program_options::value<std::string>()->default_value(opts.imu_calibration_file.value()),
-            "IMU calibration file path")(
-            "imu-file", boost::program_options::value<std::string>()->default_value(opts.imu_file.value()),
-            "IMU data CSV file path")("folder-output",
-                                      boost::program_options::value<std::string>()->default_value(opts.output.value()),
-                                      "Output folder for results");
+        // Helper to add an option to boost description with proper CLI flag name
+        auto add_option = [&description](const auto& opt)
+        {
+            using T = std::decay_t<decltype(opt.value())>;
+
+            // Build the CLI flag name with "folder-" prefix and dashes instead of underscores
+            const std::string flag_name = "folder." + opt.name();
+
+            if constexpr (std::is_same_v<T, std::filesystem::path>)
+            {
+                description.add_options()
+                (
+                    flag_name.c_str(),
+                    boost::program_options::value<std::string>()->default_value(opt.value().string()),
+                    opt.description().c_str()
+                );
+            }
+            else if constexpr (std::is_same_v<T, double>)
+            {
+                description.add_options()
+                (
+                    flag_name.c_str(),
+                    boost::program_options::value<double>()->default_value(opt.value()),
+                    opt.description().c_str()
+                );
+            }
+            else
+            {
+                // Generic case for other types
+                description.add_options()
+                (
+                    flag_name.c_str(),
+                    boost::program_options::value<T>()->default_value(opt.value()),
+                    opt.description().c_str()
+                );
+            }
+        };
+
+        // Use all_options() to automatically add all fields
+        std::apply([&add_option](const auto&... options)
+        {
+            (add_option(options), ...);
+        }, opts.all_options());
 
         return description;
     }

@@ -96,9 +96,9 @@ void zenslam::utils::correspondences_3d2d_lines
     {
         if (lines_map.contains(index))
         {
-            const auto& line = lines_map.at(index);
+            const auto& line    = lines_map.at(index);
             const auto& keyline = keylines_map.at(index);
-            
+
             lines3d_p1.emplace_back(line[0]);
             lines3d_p2.emplace_back(line[1]);
             keylines2d_p1.emplace_back(keyline.startPointX, keyline.startPointY);
@@ -125,7 +125,7 @@ void zenslam::utils::correspondences_3d3d_lines
         {
             const auto& line_0 = lines_map_0.at(index);
             const auto& line_1 = lines_map_1.at(index);
-            
+
             lines3d_0_p1.emplace_back(line_0[0]);
             lines3d_0_p2.emplace_back(line_0[1]);
             lines3d_1_p1.emplace_back(line_1[0]);
@@ -198,7 +198,7 @@ bool zenslam::utils::estimate_rigid
     // SVD
     cv::Mat Sigma_mat(3, 3, CV_64F);
     for (auto r = 0; r < 3; ++r)
-        for (auto c                    = 0; c < 3; ++c)
+        for (auto c = 0; c < 3; ++c)
             Sigma_mat.at<double>(r, c) = Sigma(r, c);
     cv::Mat U, S, Vt;
     cv::SVD::compute(Sigma_mat, S, U, Vt);
@@ -356,8 +356,8 @@ auto zenslam::utils::filter
 
 auto zenslam::utils::create_matcher
 (
-    const class options::slam& options,
-    bool                       is_binary
+    const slam_options& options,
+    bool                is_binary
 )
     -> cv::Ptr<cv::DescriptorMatcher>
 {
@@ -466,7 +466,7 @@ auto zenslam::utils::match_keypoints3d
             descriptors3d.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2,
             true
         )
-        .match(descriptors3d, descriptors2d, matches_cv);
+       .match(descriptors3d, descriptors2d, matches_cv);
 
     // TODO: add reprojection filtering
     std::vector<cv::DMatch> matches           = { };
@@ -795,7 +795,7 @@ auto zenslam::utils::track_keylines
     const std::vector<cv::Mat>& pyramid_0,
     const std::vector<cv::Mat>& pyramid_1,
     const map<keyline>&         keylines_map_0,
-    const class options::slam&  options
+    const slam_options&         options
 )
     -> std::vector<keyline>
 {
@@ -1014,12 +1014,12 @@ auto points_1()
 
 auto zenslam::utils::triangulate_keylines
 (
-    const map<keyline>&        keylines_0,
-    const map<keyline>&        keylines_1,
-    const cv::Matx34d&         projection_0,
-    const cv::Matx34d&         projection_1,
-    const class options::slam& options,
-    const cv::Vec3d&           translation_of_camera1_in_camera0
+    const map<keyline>& keylines_0,
+    const map<keyline>& keylines_1,
+    const cv::Matx34d&  projection_0,
+    const cv::Matx34d&  projection_1,
+    const slam_options& options,
+    const cv::Vec3d&    translation_of_camera1_in_camera0
 ) -> std::vector<line3d>
 {
     const auto& points2f_0_0 = keylines_0.values_matched(keylines_1) |
@@ -1174,8 +1174,8 @@ void zenslam::utils::umeyama
     {
         // Covariance should be E[(dst - mean_dst) * (src - mean_src)^T]
         // i.e. outer product b * a^T so that SVD(C) = U S V^T and R = U * V^T
-        auto a = cv::Vec3d(src[i].x, src[i].y, src[i].z) - mean_src;
-        auto b = cv::Vec3d(dst[i].x, dst[i].y, dst[i].z) - mean_dst;
+        auto a      = cv::Vec3d(src[i].x, src[i].y, src[i].z) - mean_src;
+        auto b      = cv::Vec3d(dst[i].x, dst[i].y, dst[i].z) - mean_dst;
         Sigma(0, 0) += b[0] * a[0];
         Sigma(0, 1) += b[0] * a[1];
         Sigma(0, 2) += b[0] * a[2];
@@ -1190,7 +1190,7 @@ void zenslam::utils::umeyama
 
     cv::Mat Sigma_mat(3, 3, CV_64F);
     for (auto r = 0; r < 3; ++r)
-        for (auto c                    = 0; c < 3; ++c)
+        for (auto c = 0; c < 3; ++c)
             Sigma_mat.at<double>(r, c) = Sigma(r, c);
 
     cv::Mat U_mat, S_mat, Vt_mat;

@@ -63,6 +63,16 @@ namespace zenslam
             return *this;
         }
 
+        /**
+         * @brief Overloaded == operator to compare option with T
+         * @param other The value to compare with
+         * @return true if the current value equals the other value
+         */
+        bool operator==(const T& other) const
+        {
+            return _value == other;
+        }
+
         // Copy and move constructors/assignments
         option(const option&)            = default;
         option(option&&)                 = default;

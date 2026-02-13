@@ -1,0 +1,77 @@
+#pragma once
+
+#include <map>
+#include <string>
+
+#include <boost/program_options/option.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/variables_map.hpp>
+
+#include <opencv2/core/types.hpp>
+
+#include "zenslam/detection_types.h"
+#include "zenslam/integrator.h"
+#include "zenslam/option.h"
+
+namespace YAML
+{
+    class Node;
+}
+
+
+namespace zenslam
+{
+    enum class matcher_type
+    {
+        BRUTE,
+        KNN,
+        FLANN
+    };
+
+    /// SLAM algorithm configuration options
+    class slam_options
+    {
+    public:
+        using options_description = boost::program_options::options_description;
+
+        static auto description() -> options_description;
+        static auto parse_yaml(const YAML::Node& node) -> slam_options;
+        static void parse_cli(slam_options& options, const std::map<std::string, boost::program_options::basic_option<char>>& options_map, const boost::program_options::variables_map& vm);
+
+        // Define all options using the auto-registration macro
+        // Format: ((type, name, default_value, "description"))
+        ZENSLAM_DEFINE_OPTIONS(
+            ((bool, clahe_enabled, false, "Enable CLAHE (Contrast Limited Adaptive Histogram Equalization)"))
+            ((bool, stereo_rectify, false, "Enable stereo rectification"))
+            ((bool, use_parallel_detector, true, "Use parallel grid detector for feature detection"))
+            ((cv::Size, cell_size, cv::Size(16, 16), "Grid cell size for feature detection"))
+            ((feature_type, feature, feature_type::FAST, "Feature detector type"))
+            ((descriptor_type, descriptor, descriptor_type::ORB, "Feature descriptor type"))
+            ((matcher_type, matcher, matcher_type::BRUTE, "Feature matcher type"))
+            ((integrator::method, integrator_method, integrator::method::ugpm, "IMU integration method"))
+            ((double, matcher_ratio, 0.8, "Matcher ratio test threshold for kNN matching (0.0-1.0)"))
+            ((int, fast_threshold, 10, "FAST feature detector threshold"))
+            ((cv::Size, klt_window_size, cv::Size(31, 31), "KLT optical flow window size"))
+            ((int, klt_max_level, 3, "KLT optical flow maximum pyramid level"))
+            ((double, klt_threshold, 1.0, "KLT tracking threshold"))
+            ((double, epipolar_threshold, 1.0, "Epipolar constraint threshold in pixels"))
+            ((double, threshold_3d3d, 0.005, "3D-3D RANSAC pose estimation threshold in meters"))
+            ((double, threshold_3d2d, 1.0, "3D-2D RANSAC pose estimation threshold in pixels"))
+            ((bool, show_keypoints, true, "Show keypoints in visualization"))
+            ((bool, show_keylines, true, "Show keylines in visualization"))
+            ((cv::Scalar, keyline_single_color, cv::Scalar(0, 255, 0), "Keyline single color (BGR)"))
+            ((cv::Scalar, keyline_match_color, cv::Scalar(0, 0, 255), "Keyline match color (BGR)"))
+            ((int, keyline_thickness, 1, "Keyline line thickness in pixels"))
+            ((int, keyline_mask_margin, 10, "Keyline mask margin in pixels"))
+            ((double, triangulation_min_disparity, 2.0, "Keyline minimum average disparity across endpoints in pixels"))
+            ((double, triangulation_min_angle, 15.0, "Keyline minimum triangulation angle at endpoints in degrees"))
+            ((double, triangulation_reprojection_threshold, 1.0, "Keyline maximum average reprojection error across endpoints in pixels"))
+            ((double, triangulation_min_depth, 1.0, "Minimum triangulation depth in meters"))
+            ((double, triangulation_max_depth, 50.0, "Maximum triangulation depth in meters"))
+        )
+
+        void validate() const;
+        void print() const;
+    };
+} // namespace zenslam
+

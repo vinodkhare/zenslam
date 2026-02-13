@@ -53,6 +53,7 @@ add_library(${PROJECT_NAME}
         source/camera_calibration.cpp
         source/detector.cpp
         source/folder_options.cpp
+        source/slam_options.cpp
         source/groundtruth.cpp
         source/imu_calibration.cpp
         source/integrator.cpp

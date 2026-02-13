@@ -10,7 +10,7 @@
 
 namespace zenslam
 {
-    auto detector::create(const class options::slam& options) -> detector
+    auto detector::create(const slam_options& options) -> detector
     {
         auto feature_detector  = cv::Ptr<cv::Feature2D>();
         auto feature_describer = cv::Ptr<cv::Feature2D>();
