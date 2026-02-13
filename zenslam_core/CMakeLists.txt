@@ -60,6 +60,7 @@ add_library(${PROJECT_NAME}
         source/estimator.cpp
         source/keyframe_selector.cpp
         source/keyframe_database.cpp
+        source/keyframe_lba.cpp
         source/pose_estimation/point_estimator.cpp
         source/pose_estimation/line_estimator.cpp
         source/pose_estimation/combined_estimator.cpp

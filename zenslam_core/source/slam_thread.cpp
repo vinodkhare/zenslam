@@ -15,6 +15,7 @@
 #include "zenslam/groundtruth.h"
 #include "zenslam/inertial_predictor.h"
 #include "zenslam/keyframe_database.h"
+#include "zenslam/keyframe_lba.h"
 #include "zenslam/keyframe_selector.h"
 #include "zenslam/motion_predictor.h"
 #include "zenslam/processor.h"
@@ -58,6 +59,7 @@ void zenslam::slam_thread::loop()
     gravity_estimator  gravity_estimator{};
     keyframe_selector  keyframes{ _options.slam->keyframe };
     keyframe_database  keyframe_db{};
+    keyframe_lba        keyframe_lba{ calibration, _options.slam->lba };
 
     auto ground_truth = groundtruth::read(_options.folder->groundtruth_file);
     auto writer       = frame::writer(_options.folder->output / "frame_data.csv");
@@ -322,6 +324,21 @@ void zenslam::slam_thread::loop()
                 {
                     const auto& keyframe = keyframe_db.add(system[1]);
                     const auto covisible = keyframe_db.covisible(keyframe.index);
+                    const auto lba_result = keyframe_lba.optimize(keyframe_db);
+
+                    if (lba_result.keyframes > 0)
+                    {
+                        if (keyframe_db.contains(system[1].index))
+                        {
+                            const auto& updated = keyframe_db.get(system[1].index);
+                            system[1].pose = updated.pose;
+                        }
+
+                        SPDLOG_INFO("LBA optimized {} keyframes with {} residuals (converged={})",
+                            lba_result.keyframes,
+                            lba_result.residuals,
+                            lba_result.converged);
+                    }
 
                     SPDLOG_INFO(
                         "Keyframe selected (frames_since_last={}, trans={:.3f}m, rot={:.2f}deg, tracked={:.2f}, inliers={}, forced={}, motion={}, quality={})",

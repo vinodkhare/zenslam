@@ -20,11 +20,12 @@ namespace zenslam
         [[nodiscard]] auto empty() const -> bool;
         [[nodiscard]] auto size() const -> size_t;
         [[nodiscard]] auto contains(size_t id) const -> bool;
-        [[nodiscard]] auto get(size_t id) const -> const frame::estimated*;
+        [[nodiscard]] auto get(size_t id) const -> const frame::estimated&;
         [[nodiscard]] auto last() const -> const frame::estimated*;
         [[nodiscard]] auto recent(size_t max_count) const -> std::vector<const frame::estimated*>;
 
         auto add(const frame::estimated& frame) -> const frame::estimated&;
+        auto update_pose(size_t id, const cv::Affine3d& pose) -> bool;
         [[nodiscard]] auto covisible(size_t id) const -> std::vector<std::pair<size_t, size_t>>;
 
     private:

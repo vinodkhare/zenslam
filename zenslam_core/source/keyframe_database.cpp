@@ -31,13 +31,9 @@ namespace zenslam
         return _keyframes.contains(id);
     }
 
-    auto keyframe_database::get(size_t id) const -> const frame::estimated*
+    auto keyframe_database::get(size_t id) const -> const frame::estimated&
     {
-        if (const auto it = _keyframes.find(id); it != _keyframes.end())
-        {
-            return &it->second;
-        }
-        return nullptr;
+        return _keyframes.at(id);
     }
 
     auto keyframe_database::last() const -> const frame::estimated*
@@ -47,7 +43,7 @@ namespace zenslam
             return nullptr;
         }
 
-        return get(_order.back());
+        return &_keyframes.at(_order.back());
     }
 
     auto keyframe_database::recent(size_t max_count) const -> std::vector<const frame::estimated*>
@@ -62,10 +58,7 @@ namespace zenslam
         result.reserve(_order.size() - start);
         for (size_t i = start; i < _order.size(); ++i)
         {
-            if (const auto* entry = get(_order[i]))
-            {
-                result.push_back(entry);
-            }
+            result.push_back(&_keyframes.at(_order[i]));
         }
         return result;
     }
@@ -93,6 +86,17 @@ namespace zenslam
         _order.push_back(frame.index);
 
         return _keyframes.at(frame.index);
+    }
+
+    auto keyframe_database::update_pose(size_t id, const cv::Affine3d& pose) -> bool
+    {
+        if (!_keyframes.contains(id))
+        {
+            return false;
+        }
+
+        _keyframes.at(id).pose = pose;
+        return true;
     }
 
     auto keyframe_database::covisible(size_t id) const -> std::vector<std::pair<size_t, size_t>>
