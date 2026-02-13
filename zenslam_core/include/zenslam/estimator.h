@@ -24,6 +24,25 @@ namespace zenslam
         size_t       chosen_count { };
     };
 
+    /// Result from weighted pose fusion combining multiple estimation methods
+    struct weighted_pose_result
+    {
+        cv::Affine3d pose;                    // Fused pose estimate
+        double       confidence { 0.0 };      // Overall confidence score (0-1)
+        int          total_inliers { 0 };     // Total inliers across all methods
+        
+        // Individual method contributions
+        double       weight_3d3d { 0.0 };
+        double       weight_3d2d { 0.0 };
+        double       weight_2d2d { 0.0 };
+        double       weight_3d3d_lines { 0.0 };
+        double       weight_3d2d_lines { 0.0 };
+        
+        // Best contributing method
+        std::string  best_method;
+        size_t       best_method_inliers { 0 };
+    };
+
     class estimator
     {
     public:
@@ -43,6 +62,18 @@ namespace zenslam
          * @param tracked_1 Current tracked frame
          */
         [[nodiscard]] auto estimate_pose(const frame::estimated& frame_0, const frame::tracked& tracked_1) const -> estimate_pose_result;
+
+        /** Compute weighted fusion of multiple pose estimation methods.
+         *
+         * Combines all available pose estimates (3D-3D, 3D-2D, 2D-2D, lines) using confidence weights based on:
+         * - Inlier ratio (inliers vs total correspondences)
+         * - Mean reprojection error (lower error = higher confidence)
+         * - Feature type reliability (points > lines)
+         *
+         * @param result Standard pose estimation result containing all methods
+         * @return Fused pose with confidence scores and method contributions
+         */
+        [[nodiscard]] auto estimate_pose_weighted(const estimate_pose_result& result) const -> weighted_pose_result;
 
     private:
         [[nodiscard]] auto estimate_pose_3d2d(const std::map<size_t, point3d>& map_points_0, const std::map<size_t, keypoint>& map_keypoints_1) const

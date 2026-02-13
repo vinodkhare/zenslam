@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <set>
 #include <utility>
+#include <numeric>
+#include <cmath>
 
 #include <gsl/narrow>
 
@@ -534,4 +536,218 @@ namespace zenslam
 
         return result;
     }
-} // namespace zenslam
+
+    /** Helper: Compute confidence weight for a single pose estimate
+     *
+     * Weight prioritizes:
+     * 1. Absolute inlier count (must have meaningful data)
+     * 2. Inlier ratio (consistency quality)
+     * 3. Error magnitude (accuracy)
+     *
+     * @param pose_data The pose estimate with inliers/outliers/errors
+     * @param method_type "3d3d", "3d2d", "2d2d", "3d3d_lines", "3d2d_lines"
+     * @return Confidence weight in range [0, 1]
+     */
+    static auto compute_pose_weight(const pose_data& pose, const std::string& method_type) -> double
+    {
+        // Must have meaningful data
+        const size_t inliers = pose.inliers.size();
+        if (inliers < 3)  // Minimum 3 inliers needed
+            return 0.0;
+
+        const size_t total_corr = pose.indices.size();
+        if (total_corr == 0)
+            return 0.0;
+
+        // Inlier ratio: strict requirement
+        const double inlier_ratio = static_cast<double>(inliers) / static_cast<double>(total_corr);
+        
+        // Penalize low inlier ratios heavily - quality matters
+        if (inlier_ratio < 0.3)
+            return 0.01 * inlier_ratio;  // Very low confidence if ratio too poor
+        
+        // Error quality component: lower error = higher quality
+        double error_quality = 1.0;
+        if (!pose.errors.empty())
+        {
+            const double mean_error = utils::mean(pose.errors);
+            const double std_error  = utils::std_dev(pose.errors);
+            
+            // Check for outlier errors (indicates bad estimates)
+            double error_threshold = mean_error + 2.0 * std_error;
+            size_t good_errors = 0;
+            for (const auto& err : pose.errors)
+            {
+                if (err <= error_threshold)
+                    good_errors++;
+            }
+            
+            // If too many outlier errors, reduce confidence
+            double error_consistency = static_cast<double>(good_errors) / pose.errors.size();
+            if (error_consistency < 0.7)
+                error_quality *= 0.5;
+            
+            // Error scale: tuned for typical SLAM reprojection errors
+            const double error_scale = (method_type == "3d3d" || method_type == "3d3d_lines") ? 0.1 : 3.0;
+            error_quality *= std::exp(-mean_error / error_scale);
+        }
+
+        // Feature type reliability: points more reliable than lines
+        double type_weight = 1.0;
+        if (method_type.find("lines") != std::string::npos)
+            type_weight = 0.9;  // Lines only slightly less (was 0.8)
+        
+        // Scale by absolute inlier count (prefer methods with more data)
+        double inlier_boost = std::min(1.0, static_cast<double>(inliers) / 50.0);
+
+        // Combine: inlier_ratio (0.4) + error_quality (0.4) + inlier_boost (0.2)
+        const double confidence = (inlier_ratio * 0.4 + error_quality * 0.4 + inlier_boost * 0.2) * type_weight;
+
+        return std::max(0.0, std::min(1.0, confidence));
+    }
+
+    auto estimator::estimate_pose_weighted(const estimate_pose_result& result) const -> weighted_pose_result
+    {
+        weighted_pose_result fused{};
+
+        // Compute individual weights
+        const double w_3d3d       = compute_pose_weight(result.pose_3d3d, "3d3d");
+        const double w_3d2d       = compute_pose_weight(result.pose_3d2d, "3d2d");
+        const double w_2d2d       = compute_pose_weight(result.pose_2d2d, "2d2d");
+        const double w_3d3d_lines = compute_pose_weight(result.pose_3d3d_lines, "3d3d_lines");
+        const double w_3d2d_lines = compute_pose_weight(result.pose_3d2d_lines, "3d2d_lines");
+
+        // Sum and normalize weights
+        const double weight_sum = w_3d3d + w_3d2d + w_2d2d + w_3d3d_lines + w_3d2d_lines;
+
+        // If no valid poses, return identity
+        if (weight_sum < 1e-9)
+        {
+            fused.pose       = cv::Affine3d::Identity();
+            fused.confidence = 0.0;
+            fused.best_method = "none";
+            return fused;
+        }
+
+        // Normalize to sum to 1.0
+        fused.weight_3d3d       = w_3d3d / weight_sum;
+        fused.weight_3d2d       = w_3d2d / weight_sum;
+        fused.weight_2d2d       = w_2d2d / weight_sum;
+        fused.weight_3d3d_lines = w_3d3d_lines / weight_sum;
+        fused.weight_3d2d_lines = w_3d2d_lines / weight_sum;
+
+        // Find best contributing method
+        fused.best_method_inliers = result.chosen_count;  // From original selection
+        if (fused.weight_3d3d >= fused.weight_3d2d && fused.weight_3d3d >= fused.weight_2d2d && 
+            fused.weight_3d3d >= fused.weight_3d3d_lines && fused.weight_3d3d >= fused.weight_3d2d_lines)
+        {
+            fused.best_method = "3D-3D Points";
+            fused.best_method_inliers = result.pose_3d3d.inliers.size();
+        }
+        else if (fused.weight_3d2d >= fused.weight_2d2d && fused.weight_3d2d >= fused.weight_3d3d_lines && 
+                 fused.weight_3d2d >= fused.weight_3d2d_lines)
+        {
+            fused.best_method = "3D-2D Points";
+            fused.best_method_inliers = result.pose_3d2d.inliers.size();
+        }
+        else if (fused.weight_2d2d >= fused.weight_3d3d_lines && fused.weight_2d2d >= fused.weight_3d2d_lines)
+        {
+            fused.best_method = "2D-2D Points";
+            fused.best_method_inliers = result.pose_2d2d.inliers.size();
+        }
+        else if (fused.weight_3d3d_lines >= fused.weight_3d2d_lines)
+        {
+            fused.best_method = "3D-3D Lines";
+            fused.best_method_inliers = result.pose_3d3d_lines.inliers.size();
+        }
+        else
+        {
+            fused.best_method = "3D-2D Lines";
+            fused.best_method_inliers = result.pose_3d2d_lines.inliers.size();
+        }
+
+        // Fuse translation: weighted average
+        cv::Vec3d fused_translation = cv::Vec3d::zeros();
+        if (fused.weight_3d3d > 0) fused_translation += result.pose_3d3d.pose.translation() * fused.weight_3d3d;
+        if (fused.weight_3d2d > 0) fused_translation += result.pose_3d2d.pose.translation() * fused.weight_3d2d;
+        if (fused.weight_2d2d > 0) fused_translation += result.pose_2d2d.pose.translation() * fused.weight_2d2d;
+        if (fused.weight_3d3d_lines > 0) fused_translation += result.pose_3d3d_lines.pose.translation() * fused.weight_3d3d_lines;
+        if (fused.weight_3d2d_lines > 0) fused_translation += result.pose_3d2d_lines.pose.translation() * fused.weight_3d2d_lines;
+
+        // For rotation fusion, use weighted selection instead of averaging
+        // (Rotation vector averaging is mathematically problematic)
+        // Select rotation from method with highest weight
+        cv::Matx33d fused_rotmat = cv::Matx33d::eye();
+        
+        if (fused.weight_3d3d > fused.weight_3d2d && fused.weight_3d3d > fused.weight_2d2d &&
+            fused.weight_3d3d > fused.weight_3d3d_lines && fused.weight_3d3d > fused.weight_3d2d_lines)
+        {
+            fused_rotmat = result.pose_3d3d.pose.rotation();
+        }
+        else if (fused.weight_3d2d > fused.weight_2d2d && fused.weight_3d2d > fused.weight_3d3d_lines && 
+                 fused.weight_3d2d > fused.weight_3d2d_lines)
+        {
+            fused_rotmat = result.pose_3d2d.pose.rotation();
+        }
+        else if (fused.weight_2d2d > fused.weight_3d3d_lines && fused.weight_2d2d > fused.weight_3d2d_lines)
+        {
+            fused_rotmat = result.pose_2d2d.pose.rotation();
+        }
+        else if (fused.weight_3d3d_lines > fused.weight_3d2d_lines)
+        {
+            fused_rotmat = result.pose_3d3d_lines.pose.rotation();
+        }
+        else if (fused.weight_3d2d_lines > 0.0)
+        {
+            fused_rotmat = result.pose_3d2d_lines.pose.rotation();
+        }
+
+        // Construct fused pose: best rotation + weighted average translation
+        fused.pose = cv::Affine3d(fused_rotmat, fused_translation);
+
+        // Compute overall confidence as weighted average of individual confidences
+        fused.confidence = fused.weight_3d3d * w_3d3d +
+                          fused.weight_3d2d * w_3d2d +
+                          fused.weight_2d2d * w_2d2d +
+                          fused.weight_3d3d_lines * w_3d3d_lines +
+                          fused.weight_3d2d_lines * w_3d2d_lines;
+
+        // Count total inliers across all methods
+        fused.total_inliers = result.pose_3d3d.inliers.size() +
+                             result.pose_3d2d.inliers.size() +
+                             result.pose_2d2d.inliers.size() +
+                             result.pose_3d3d_lines.inliers.size() +
+                             result.pose_3d2d_lines.inliers.size();
+
+        SPDLOG_TRACE("Weighted pose fusion details:");
+        SPDLOG_TRACE("  3D-3D Points:   inliers={}, ratio={:.2f}, weight={:.3f}",
+            result.pose_3d3d.inliers.size(),
+            result.pose_3d3d.indices.empty() ? 0.0 : static_cast<double>(result.pose_3d3d.inliers.size()) / result.pose_3d3d.indices.size(),
+            fused.weight_3d3d);
+        SPDLOG_TRACE("  3D-2D Points:   inliers={}, ratio={:.2f}, weight={:.3f}",
+            result.pose_3d2d.inliers.size(),
+            result.pose_3d2d.indices.empty() ? 0.0 : static_cast<double>(result.pose_3d2d.inliers.size()) / result.pose_3d2d.indices.size(),
+            fused.weight_3d2d);
+        SPDLOG_TRACE("  2D-2D Points:   inliers={}, ratio={:.2f}, weight={:.3f}",
+            result.pose_2d2d.inliers.size(),
+            result.pose_2d2d.indices.empty() ? 0.0 : static_cast<double>(result.pose_2d2d.inliers.size()) / result.pose_2d2d.indices.size(),
+            fused.weight_2d2d);
+        SPDLOG_TRACE("  3D-3D Lines:    inliers={}, ratio={:.2f}, weight={:.3f}",
+            result.pose_3d3d_lines.inliers.size(),
+            result.pose_3d3d_lines.indices.empty() ? 0.0 : static_cast<double>(result.pose_3d3d_lines.inliers.size()) / result.pose_3d3d_lines.indices.size(),
+            fused.weight_3d3d_lines);
+        SPDLOG_TRACE("  3D-2D Lines:    inliers={}, ratio={:.2f}, weight={:.3f}",
+            result.pose_3d2d_lines.inliers.size(),
+            result.pose_3d2d_lines.indices.empty() ? 0.0 : static_cast<double>(result.pose_3d2d_lines.inliers.size()) / result.pose_3d2d_lines.indices.size(),
+            fused.weight_3d2d_lines);
+        
+        SPDLOG_DEBUG("Pose fusion: best={} (inliers={}, weight={:.3f}), confidence={:.3f}, total_inliers={}",
+            fused.best_method, fused.best_method_inliers, 
+            fused.weight_3d3d > fused.weight_3d2d ? fused.weight_3d3d :
+            fused.weight_3d2d > fused.weight_2d2d ? fused.weight_3d2d :
+            fused.weight_2d2d > fused.weight_3d3d_lines ? fused.weight_2d2d :
+            fused.weight_3d3d_lines > fused.weight_3d2d_lines ? fused.weight_3d3d_lines : fused.weight_3d2d_lines,
+            fused.confidence, fused.total_inliers);
+
+        return fused;
+    }} // namespace zenslam

@@ -1,5 +1,6 @@
 #include "zenslam/slam_thread.h"
 
+#include <cmath>
 #include <spdlog/spdlog.h>
 #include <utility>
 #include <vtk-9.3/vtkLogger.h>
@@ -174,35 +175,68 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this{ system.durations.estimation };
 
-                auto [pose_3d3d, pose_3d2d, pose_2d2d, pose_3d3d_lines, pose_3d2d_lines, chosen_pose, chosen_count] = estimator.estimate_pose(system[0], tracked);
+                // Original estimation method - tries all 5 approaches
+                auto estimate_result = estimator.estimate_pose(system[0], tracked);
 
-                SPDLOG_INFO("Chosen count: {}", chosen_count);
+                // Apply weighted fusion to combine all pose estimates
+                auto weighted_result = estimator.estimate_pose_weighted(estimate_result);
+
+                SPDLOG_INFO("\n========== POSE ESTIMATION RESULTS ==========");
+                SPDLOG_INFO("Original best-method selection:");
+                SPDLOG_INFO("  Method: {} with {} inliers",
+                    (estimate_result.chosen_count == estimate_result.pose_3d3d.inliers.size()) ? "3D-3D" :
+                    (estimate_result.chosen_count == estimate_result.pose_3d2d.inliers.size()) ? "3D-2D" :
+                    (estimate_result.chosen_count == estimate_result.pose_2d2d.inliers.size()) ? "2D-2D" :
+                    (estimate_result.chosen_count == estimate_result.pose_3d3d_lines.inliers.size()) ? "3D-3D-Lines" :
+                    (estimate_result.chosen_count == estimate_result.pose_3d2d_lines.inliers.size()) ? "3D-2D-Lines" : "None",
+                    estimate_result.chosen_count);
+                
+                SPDLOG_INFO("Weighted fusion results:");
+                SPDLOG_INFO("  Best method: {} ({} inliers, weight={:.3f})", 
+                    weighted_result.best_method, weighted_result.best_method_inliers,
+                    weighted_result.weight_3d3d > weighted_result.weight_3d2d ? weighted_result.weight_3d3d :
+                    weighted_result.weight_3d2d > weighted_result.weight_2d2d ? weighted_result.weight_3d2d :
+                    weighted_result.weight_2d2d > weighted_result.weight_3d3d_lines ? weighted_result.weight_2d2d :
+                    weighted_result.weight_3d3d_lines > weighted_result.weight_3d2d_lines ? weighted_result.weight_3d3d_lines : weighted_result.weight_3d2d_lines);
+                SPDLOG_INFO("  Total inliers (all methods): {}", weighted_result.total_inliers);
+                SPDLOG_INFO("  Overall confidence: {:.3f}", weighted_result.confidence);
+                SPDLOG_INFO("  Weight breakdown:");
+                if (weighted_result.weight_3d3d > 0.01)
+                    SPDLOG_INFO("    3D-3D Points:   {:.3f}", weighted_result.weight_3d3d);
+                if (weighted_result.weight_3d2d > 0.01)
+                    SPDLOG_INFO("    3D-2D Points:   {:.3f}", weighted_result.weight_3d2d);
+                if (weighted_result.weight_2d2d > 0.01)
+                    SPDLOG_INFO("    2D-2D Points:   {:.3f}", weighted_result.weight_2d2d);
+                if (weighted_result.weight_3d3d_lines > 0.01)
+                    SPDLOG_INFO("    3D-3D Lines:    {:.3f}", weighted_result.weight_3d3d_lines);
+                if (weighted_result.weight_3d2d_lines > 0.01)
+                    SPDLOG_INFO("    3D-2D Lines:    {:.3f}", weighted_result.weight_3d2d_lines);
 
                 // Update counts
-                system.counts.correspondences_3d2d         = pose_3d2d.indices.size();
-                system.counts.correspondences_3d3d         = pose_3d3d.indices.size();
-                system.counts.correspondences_2d2d         = pose_2d2d.indices.size();
-                system.counts.correspondences_3d2d_inliers = pose_3d2d.inliers.size();
-                system.counts.correspondences_3d3d_inliers = pose_3d3d.inliers.size();
-                system.counts.correspondences_2d2d_inliers = pose_2d2d.inliers.size();
+                system.counts.correspondences_3d2d         = estimate_result.pose_3d2d.indices.size();
+                system.counts.correspondences_3d3d         = estimate_result.pose_3d3d.indices.size();
+                system.counts.correspondences_2d2d         = estimate_result.pose_2d2d.indices.size();
+                system.counts.correspondences_3d2d_inliers = estimate_result.pose_3d2d.inliers.size();
+                system.counts.correspondences_3d3d_inliers = estimate_result.pose_3d3d.inliers.size();
+                system.counts.correspondences_2d2d_inliers = estimate_result.pose_2d2d.inliers.size();
 
-                // Logging
-                const auto err3d3d_mean = utils::mean(pose_3d3d.errors);
-                const auto err3d2d_mean = utils::mean(pose_3d2d.errors);
-                const auto err2d2d_mean = utils::mean(pose_2d2d.errors);
-                const auto err3d3d_lines_mean = utils::mean(pose_3d3d_lines.errors);
-                const auto err3d2d_lines_mean = utils::mean(pose_3d2d_lines.errors);
-
-                SPDLOG_INFO("3D-3D point mean error: {:.4f} m", err3d3d_mean);
-                SPDLOG_INFO("3D-2D point mean error: {:.4f} px", err3d2d_mean);
-                SPDLOG_INFO("2D-2D point mean error: {:.4f} px", err2d2d_mean);
-                SPDLOG_INFO("3D-3D line mean error: {:.4f} m", err3d3d_lines_mean);
-                SPDLOG_INFO("3D-2D line mean error: {:.4f} px", err3d2d_lines_mean);
-
-                if (chosen_count < 10)
+                // Use weighted pose if confidence is sufficient, otherwise fall back to prediction
+                cv::Affine3d chosen_pose = weighted_result.pose;
+                if (weighted_result.confidence < 0.15 || weighted_result.total_inliers < 6)
                 {
-                    chosen_pose = pose_predicted;
+                    SPDLOG_WARN("Low pose confidence ({:.3f}) or insufficient inliers ({}), using best single method",
+                        weighted_result.confidence, weighted_result.total_inliers);
+                    chosen_pose = estimate_result.chosen_pose;
+                    
+                    // Only fall back to prediction as last resort
+                    if (estimate_result.chosen_count < 5)
+                    {
+                        SPDLOG_WARN("Best single method also too weak, falling back to motion prediction");
+                        chosen_pose = pose_predicted;
+                    }
                 }
+
+                SPDLOG_INFO("================================================\n");
 
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated{ tracked, system[0].pose * chosen_pose.inv() };
