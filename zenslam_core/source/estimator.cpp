@@ -606,6 +606,76 @@ namespace zenslam
         return std::max(0.0, std::min(1.0, confidence));
     }
 
+    /** Helper: Compute covariance uncertainty for a single pose estimate
+     *
+     * Uncertainty is based on:
+     * 1. Error magnitude and consistency (higher error = higher uncertainty)
+     * 2. Number of inliers (fewer inliers = higher uncertainty)
+     * 3. Inlier ratio (more outliers = higher uncertainty)
+     *
+     * @param pose_data The pose estimate with errors and inliers
+     * @param method_weight The weight assigned to this method (0-1)
+     * @param method_type Method identifier for scale adjustment
+     * @return Pair of (translation_std, rotation_std) in meters and radians
+     */
+    static auto compute_pose_covariance(const pose_data& pose, double method_weight, const std::string& method_type) 
+        -> std::pair<double, double>
+    {
+        const size_t inliers = pose.inliers.size();
+        const size_t total_corr = pose.indices.size();
+        
+        // No valid pose = maximum uncertainty
+        if (inliers < 3 || total_corr == 0 || method_weight < 1e-6)
+            return {10.0, 0.5};  // Large uncertainty
+        
+        // Base uncertainty from inlier ratio
+        // More inliers = lower uncertainty (inverse relationship)
+        const double inlier_ratio = static_cast<double>(inliers) / static_cast<double>(total_corr);
+        const double ratio_uncertainty = (1.0 - inlier_ratio) / std::sqrt(inlier_ratio);
+        
+        // Error-based uncertainty
+        double error_std = 0.0;
+        if (pose.errors.size() > 2)
+        {
+            double mean_error = utils::mean(pose.errors);
+            error_std = utils::std_dev(pose.errors);
+            
+            // For 3D methods, errors are in meters; for 2D, in pixels
+            // Normalize to meters equivalent
+            if (method_type == "3d3d" || method_type == "3d3d_lines")
+            {
+                // Already in meters
+            }
+            else
+            {
+                // 2D reprojection error in pixels -> estimate 3D uncertainty
+                // Typical: 1 pixel ≈ 0.01 m at 1m depth (depends on focal length)
+                const double pixel_to_meter = 0.01;
+                mean_error *= pixel_to_meter;
+                error_std *= pixel_to_meter;
+            }
+        }
+        
+        // Combined translation uncertainty (meters)
+        // Combines error magnitude with sampling uncertainty
+        double trans_std = std::sqrt(error_std * error_std + ratio_uncertainty * ratio_uncertainty);
+        
+        // Rotation uncertainty (radians)
+        // Typically much smaller than translation
+        // Depends on 3D error magnitude
+        double rot_std = 0.1 * trans_std;  // Rough scaling: 1cm translation ≈ 1mrad rotation
+        
+        // Scale by method weight and confidence (less confident = more uncertainty)
+        trans_std /= (method_weight + 0.1);  // Avoid division by zero
+        rot_std /= (method_weight + 0.1);
+        
+        // Clamp to reasonable ranges
+        trans_std = std::min(5.0, std::max(0.001, trans_std));
+        rot_std = std::min(1.0, std::max(0.0001, rot_std));
+        
+        return {trans_std, rot_std};
+    }
+
     auto estimator::estimate_pose_weighted(const estimate_pose_result& result) const -> weighted_pose_result
     {
         weighted_pose_result fused{};
@@ -748,6 +818,47 @@ namespace zenslam
             fused.weight_2d2d > fused.weight_3d3d_lines ? fused.weight_2d2d :
             fused.weight_3d3d_lines > fused.weight_3d2d_lines ? fused.weight_3d3d_lines : fused.weight_3d2d_lines,
             fused.confidence, fused.total_inliers);
+
+        // === Compute covariance from all methods ===
+        // Weighted combination of uncertainty estimates
+        const auto [cov_3d3d_t, cov_3d3d_r]       = compute_pose_covariance(result.pose_3d3d, fused.weight_3d3d, "3d3d");
+        const auto [cov_3d2d_t, cov_3d2d_r]       = compute_pose_covariance(result.pose_3d2d, fused.weight_3d2d, "3d2d");
+        const auto [cov_2d2d_t, cov_2d2d_r]       = compute_pose_covariance(result.pose_2d2d, fused.weight_2d2d, "2d2d");
+        const auto [cov_3d3d_lines_t, cov_3d3d_lines_r] = compute_pose_covariance(result.pose_3d3d_lines, fused.weight_3d3d_lines, "3d3d_lines");
+        const auto [cov_3d2d_lines_t, cov_3d2d_lines_r] = compute_pose_covariance(result.pose_3d2d_lines, fused.weight_3d2d_lines, "3d2d_lines");
+
+        // Weighted average of uncertainties
+        fused.translation_std = fused.weight_3d3d * cov_3d3d_t +
+                               fused.weight_3d2d * cov_3d2d_t +
+                               fused.weight_2d2d * cov_2d2d_t +
+                               fused.weight_3d3d_lines * cov_3d3d_lines_t +
+                               fused.weight_3d2d_lines * cov_3d2d_lines_t;
+
+        fused.rotation_std = fused.weight_3d3d * cov_3d3d_r +
+                            fused.weight_3d2d * cov_3d2d_r +
+                            fused.weight_2d2d * cov_2d2d_r +
+                            fused.weight_3d3d_lines * cov_3d3d_lines_r +
+                            fused.weight_3d2d_lines * cov_3d2d_lines_r;
+
+        // Build diagonal 6x6 covariance matrix (simplified: assumes independent x,y,z and roll,pitch,yaw)
+        fused.pose_covariance = cv::Matx66d::zeros();
+        const double trans_var = fused.translation_std * fused.translation_std;
+        const double rot_var = fused.rotation_std * fused.rotation_std;
+        
+        // Translation components (x, y, z)
+        fused.pose_covariance(0, 0) = trans_var;
+        fused.pose_covariance(1, 1) = trans_var;
+        fused.pose_covariance(2, 2) = trans_var;
+        
+        // Rotation components (roll, pitch, yaw)
+        fused.pose_covariance(3, 3) = rot_var;
+        fused.pose_covariance(4, 4) = rot_var;
+        fused.pose_covariance(5, 5) = rot_var;
+        
+        fused.has_valid_covariance = (fused.total_inliers >= 5);
+
+        SPDLOG_DEBUG("Pose covariance: translation_std={:.4f}m, rotation_std={:.6f}rad ({:.4f}deg)",
+            fused.translation_std, fused.rotation_std, fused.rotation_std * 180.0 / M_PI);
 
         return fused;
     }} // namespace zenslam

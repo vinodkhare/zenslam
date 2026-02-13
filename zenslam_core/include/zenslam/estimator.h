@@ -41,6 +41,12 @@ namespace zenslam
         // Best contributing method
         std::string  best_method;
         size_t       best_method_inliers { 0 };
+        
+        // Uncertainty quantification
+        cv::Matx66d  pose_covariance { };              // 6x6 uncertainty matrix (SE(3))
+        double       translation_std { 0.0 };          // Translation std dev (meters)
+        double       rotation_std { 0.0 };             // Rotation std dev (radians)
+        bool         has_valid_covariance { false };   // Whether covariance is valid
     };
 
     class estimator

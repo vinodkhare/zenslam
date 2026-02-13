@@ -212,6 +212,19 @@ void zenslam::slam_thread::loop()
                 if (weighted_result.weight_3d2d_lines > 0.01)
                     SPDLOG_INFO("    3D-2D Lines:    {:.3f}", weighted_result.weight_3d2d_lines);
 
+                // Log covariance information
+                SPDLOG_INFO("Pose uncertainty estimates:");
+                if (weighted_result.has_valid_covariance)
+                {
+                    SPDLOG_INFO("  Translation std: {:.4f}m, Rotation std: {:.6f}rad ({:.4f}deg)",
+                        weighted_result.translation_std, weighted_result.rotation_std,
+                        weighted_result.rotation_std * 180.0 / M_PI);
+                }
+                else
+                {
+                    SPDLOG_WARN("  Covariance estimation failed (insufficient inliers for reliable uncertainty)");
+                }
+
                 // Update counts
                 system.counts.correspondences_3d2d         = estimate_result.pose_3d2d.indices.size();
                 system.counts.correspondences_3d3d         = estimate_result.pose_3d3d.indices.size();
@@ -220,20 +233,56 @@ void zenslam::slam_thread::loop()
                 system.counts.correspondences_3d3d_inliers = estimate_result.pose_3d3d.inliers.size();
                 system.counts.correspondences_2d2d_inliers = estimate_result.pose_2d2d.inliers.size();
 
-                // Use weighted pose if confidence is sufficient, otherwise fall back to prediction
+                // Smart pose selection using confidence + covariance
                 cv::Affine3d chosen_pose = weighted_result.pose;
-                if (weighted_result.confidence < 0.15 || weighted_result.total_inliers < 6)
+                bool use_weighted = true;
+
+                // Check if covariance is valid and translation uncertainty is reasonable
+                if (!weighted_result.has_valid_covariance)
                 {
-                    SPDLOG_WARN("Low pose confidence ({:.3f}) or insufficient inliers ({}), using best single method",
-                        weighted_result.confidence, weighted_result.total_inliers);
+                    SPDLOG_WARN("Covariance invalid (inliers < 5), cannot assess uncertainty reliably");
+                    use_weighted = false;
+                }
+                else if (weighted_result.translation_std > 0.5)
+                {
+                    SPDLOG_WARN("Translation uncertainty too high ({:.3f}m > 0.5m), using motion prediction instead",
+                        weighted_result.translation_std);
+                    use_weighted = false;
+                }
+                else if (weighted_result.confidence < 0.15)
+                {
+                    SPDLOG_WARN("Confidence too low ({:.3f} < 0.15)", weighted_result.confidence);
+                    use_weighted = false;
+                }
+                else if (weighted_result.total_inliers < 6)
+                {
+                    SPDLOG_WARN("Insufficient inliers ({} < 6)", weighted_result.total_inliers);
+                    use_weighted = false;
+                }
+
+                // Fallback strategy: weighted → best single method → motion prediction
+                if (!use_weighted)
+                {
                     chosen_pose = estimate_result.chosen_pose;
-                    
-                    // Only fall back to prediction as last resort
+                    SPDLOG_INFO("Falling back to best single method: {} ({} inliers)",
+                        (estimate_result.chosen_count == estimate_result.pose_3d3d.inliers.size()) ? "3D-3D" :
+                        (estimate_result.chosen_count == estimate_result.pose_3d2d.inliers.size()) ? "3D-2D" :
+                        (estimate_result.chosen_count == estimate_result.pose_2d2d.inliers.size()) ? "2D-2D" :
+                        (estimate_result.chosen_count == estimate_result.pose_3d3d_lines.inliers.size()) ? "3D-3D-Lines" :
+                        (estimate_result.chosen_count == estimate_result.pose_3d2d_lines.inliers.size()) ? "3D-2D-Lines" : "None",
+                        estimate_result.chosen_count);
+
+                    // Final fallback: if single method also weak, use prediction
                     if (estimate_result.chosen_count < 5)
                     {
-                        SPDLOG_WARN("Best single method also too weak, falling back to motion prediction");
+                        SPDLOG_WARN("Single method too weak (< 5 inliers), using motion prediction as last resort");
                         chosen_pose = pose_predicted;
                     }
+                }
+                else
+                {
+                    SPDLOG_INFO("Using weighted fusion pose (confidence={:.3f}, translation_std={:.4f}m)",
+                        weighted_result.confidence, weighted_result.translation_std);
                 }
 
                 SPDLOG_INFO("================================================\n");
