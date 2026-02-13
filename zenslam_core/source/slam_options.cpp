@@ -6,14 +6,91 @@
 
 #include <magic_enum/magic_enum.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <yaml-cpp/yaml.h>
 
 #include "zenslam/option_parser.h"
+#include "zenslam/option_printer.h"
 #include "zenslam/utils.h"
 
 namespace zenslam
 {
-    // parse_yaml() and parse_cli() are now inherited from options_base
+    // Override parse_yaml to handle nested structures
+    slam_options slam_options::parse_yaml(const YAML::Node& node)
+    {
+        slam_options options;
+
+        try
+        {
+            // Parse all options including nested ones
+            std::apply
+            (
+                [&node](auto&... opts)
+                {
+                    // Parse each option, handling nested options classes specially
+                    auto parse_opt = [&node](auto& opt)
+                    {
+                        using T = std::decay_t<decltype(opt.value())>;
+                        
+                        // Check if this is a nested options class
+                        if constexpr (std::is_base_of_v<pnp_options, T> || 
+                                      std::is_base_of_v<essential_options, T> ||
+                                      std::is_base_of_v<rigid_options, T>)
+                        {
+                            // Parse nested options class using its own parse_yaml
+                            if (const auto nested_node = node[opt.name()])
+                            {
+                                opt = T::parse_yaml(nested_node);
+                            }
+                        }
+                        else
+                        {
+                            // Parse regular option
+                            opt = option_parser::parse_yaml(opt, node);
+                        }
+                    };
+                    
+                    (parse_opt(opts), ...);
+                },
+                options.all_options()
+            );
+        }
+        catch (const YAML::Exception& e)
+        {
+            SPDLOG_ERROR("Error parsing {} from YAML: {}", std::string(slam_options::name()), e.what());
+        }
+
+        return options;
+    }
+
+    void slam_options::print() const
+    {
+        std::apply([](const auto&... opts)
+        {
+            auto print_opt = [](const auto& opt)
+            {
+                using T = std::decay_t<decltype(opt.value())>;
+                
+                // Check if this is a nested options class
+                if constexpr (std::is_base_of_v<pnp_options, T> || 
+                              std::is_base_of_v<essential_options, T> ||
+                              std::is_base_of_v<rigid_options, T>)
+                {
+                    // Print nested options using their own print() method
+                    SPDLOG_INFO("{}:", opt.name());
+                    opt.value().print();
+                }
+                else
+                {
+                    // Print regular option
+                    option_printer::print(opt);
+                }
+            };
+            
+            (print_opt(opts), ...);
+        }, all_options());
+    }
 
     boost::program_options::options_description slam_options::description()
     {
@@ -22,15 +99,51 @@ namespace zenslam
         boost::program_options::options_description description { "slam options" };
 
         // Helper to add an option to boost description with proper CLI flag name
-        auto add_option = [&description](const auto& opt, const std::string& flag_prefix = "")
+        auto add_option = [&description](const auto& opt, const std::string& flag_prefix = "slam.")
         {
             using T = std::decay_t<decltype(opt.value())>;
 
-            if constexpr (std::is_same_v<T, bool>)
+            // Check if this is a nested options class
+            if constexpr (std::is_base_of_v<pnp_options, T> || 
+                          std::is_base_of_v<essential_options, T> ||
+                          std::is_base_of_v<rigid_options, T>)
+            {
+                // Recursively add nested options
+                std::apply([&description, &flag_prefix, &opt](const auto&... nested_opts)
+                {
+                    auto add_nested = [&description, &flag_prefix, &opt](const auto& nested_opt)
+                    {
+                        using NestedT = std::decay_t<decltype(nested_opt.value())>;
+                        const std::string nested_prefix = flag_prefix + opt.name() + ".";
+                        
+                        if constexpr (std::is_same_v<NestedT, bool>)
+                        {
+                            description.add_options()
+                            (
+                                std::string(nested_prefix + nested_opt.name()).c_str(),
+                                boost::program_options::bool_switch()->default_value(nested_opt.value()),
+                                nested_opt.description().c_str()
+                            );
+                        }
+                        else
+                        {
+                            description.add_options()
+                            (
+                                std::string(nested_prefix + nested_opt.name()).c_str(),
+                                boost::program_options::value<NestedT>()->default_value(nested_opt.value()),
+                                nested_opt.description().c_str()
+                            );
+                        }
+                    };
+                    
+                    (add_nested(nested_opts), ...);
+                }, opt.value().all_options());
+            }
+            else if constexpr (std::is_same_v<T, bool>)
             {
                 description.add_options()
                 (
-                    std::string("slam." + opt.name()).c_str(),
+                    std::string(flag_prefix + opt.name()).c_str(),
                     boost::program_options::bool_switch()->default_value(opt.value()),
                     opt.description().c_str()
                 );
@@ -51,7 +164,7 @@ namespace zenslam
 
                 description.add_options()
                 (
-                    std::string("slam." + opt.name()).c_str(),
+                    std::string(flag_prefix + opt.name()).c_str(),
                     boost::program_options::value<std::string>()->default_value(std::string(magic_enum::enum_name(opt.value()))),
                     enum_desc.c_str()
                 );
@@ -61,14 +174,14 @@ namespace zenslam
                 // Generic case for other types
                 description.add_options()
                 (
-                    std::string("slam." + opt.name()).c_str(),
+                    std::string(flag_prefix + opt.name()).c_str(),
                     boost::program_options::value<T>()->default_value(opt.value()),
                     opt.description().c_str()
                 );
             }
         };
 
-        // Use all_options() to automatically add all fields
+        // Use all_options() to automatically add all fields (including nested ones)
         std::apply([&add_option](const auto&... options)
         {
             (add_option(options), ...);

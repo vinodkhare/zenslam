@@ -239,6 +239,86 @@ if (method_type.find("lines") != std::string::npos)
     type_weight = 0.9;  // Reduce if lines problematic
 ```
 
+## Configuration Options
+
+### PnP RANSAC Configuration
+
+The PnP (Perspective-n-Point) RANSAC parameters can be configured via YAML or command line using nested structure:
+
+```yaml
+slam:
+  pnp:
+    iterations: 1000                # Maximum RANSAC iterations
+    threshold: 3.0                  # Inlier threshold in pixels
+    confidence: 0.99                # RANSAC confidence level (0.0-1.0)
+    use_refinement: true            # Enable Levenberg-Marquardt refinement
+    min_refinement_inliers: 4       # Minimum inliers for LM refinement
+```
+
+**Command line:**
+```bash
+./zenslam --slam.pnp.iterations=1500 --slam.pnp.threshold=2.5 --slam.pnp.use_refinement=true
+```
+
+**Parameter descriptions:**
+- `pnp.iterations`: Maximum number of RANSAC iterations. Higher values increase robustness but computation time.
+- `pnp.threshold`: Reprojection error threshold in pixels. Points with errors below this are considered inliers.
+- `pnp.confidence`: Desired confidence level for RANSAC. Typical range: 0.95-0.999.
+- `pnp.use_refinement`: If true, performs iterative Levenberg-Marquardt refinement on inliers after RANSAC.
+- `pnp.min_refinement_inliers`: Minimum inliers required to trigger Levenberg-Marquardt refinement.
+
+### Essential Matrix Configuration
+
+Essential matrix estimation parameters (used for 2D-2D pose estimation):
+
+```yaml
+slam:
+  essential:
+    confidence: 0.999               # RANSAC confidence level
+    threshold: 1.0                  # Inlier threshold in pixels
+    min_inliers: 5                  # Minimum required inliers
+```
+
+**Command line:**
+```bash
+./zenslam --slam.essential.confidence=0.999 --slam.essential.threshold=1.5
+```
+
+### 3D-3D Rigid Transformation Configuration
+
+Configuration for 3D-3D point cloud registration:
+
+```yaml
+slam:
+  rigid:
+    threshold: 0.1                  # RANSAC threshold in meters
+    iterations: 1000                # Maximum RANSAC iterations
+    min_correspondences: 3          # Minimum required correspondences
+```
+
+**Command line:**
+```bash
+./zenslam --slam.rigid.threshold=0.05 --slam.rigid.iterations=1500
+```
+
+### Tuning Guidelines
+
+**For high-precision scenarios:**
+- Reduce `pnp.threshold` (e.g., 1.5-2.0 pixels)
+- Increase `pnp.confidence` (e.g., 0.999)
+- Increase `pnp.iterations` (e.g., 2000-5000)
+- Enable `pnp.use_refinement`
+
+**For real-time/fast operation:**
+- Increase `pnp.threshold` (e.g., 3.0-5.0 pixels)
+- Reduce `pnp.iterations` (e.g., 500-1000)
+- Lower `pnp.confidence` (e.g., 0.95)
+
+**For noisy environments:**
+- Increase `pnp.min_refinement_inliers` (e.g., 8-10)
+- Tighten thresholds after initial estimation
+- Use higher confidence levels
+
 ## Known Issues and Fixes
 
 ### Issue: Fused Pose Not Used ✅ FIXED

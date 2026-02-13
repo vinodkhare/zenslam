@@ -42,17 +42,9 @@ namespace zenslam::pose_estimation
             all_points2d.push_back(keylines2d_p2[i]);
         }
 
-        // Run PnP RANSAC on endpoints
-        const pnp_config config{
-            .iterations = 1000,
-            .threshold = gsl::narrow<float>(_options.threshold_3d2d),
-            .confidence = 0.99,
-            .use_refinement = _options.use_pose_refinement,
-            .min_refinement_inliers = 6
-        };
-
+        // Run PnP RANSAC on endpoints using slam_options directly
         const cv::Mat K(_calibration.camera_matrix[0]);
-        auto pnp = solve_pnp_ransac(all_points3d, all_points2d, K, config);
+        auto pnp = solve_pnp_ransac(all_points3d, all_points2d, K, _options);
 
         if (!pnp.success)
         {

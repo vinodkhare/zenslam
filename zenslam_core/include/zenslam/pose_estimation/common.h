@@ -4,33 +4,13 @@
 #include <opencv2/core.hpp>
 #include <opencv2/calib3d.hpp>
 
+namespace zenslam
+{
+    class slam_options;
+}
+
 namespace zenslam::pose_estimation
 {
-    /// Configuration for PnP RANSAC estimation
-    struct pnp_config
-    {
-        int iterations{ 1000 };
-        float threshold{ 3.0f };
-        double confidence{ 0.99 };
-        bool use_refinement{ true };
-        int min_refinement_inliers{ 4 };
-    };
-
-    /// Configuration for essential matrix estimation
-    struct essential_config
-    {
-        double confidence{ 0.999 };
-        double threshold{ 1.0 };
-        int min_inliers{ 5 };
-    };
-
-    /// Configuration for 3D-3D rigid transformation
-    struct rigid_config
-    {
-        double threshold{ 0.1 };
-        int iterations{ 1000 };
-        int min_correspondences{ 3 };
-    };
 
     /// Result of PnP estimation with optional refinement
     struct pnp_result
@@ -47,7 +27,7 @@ namespace zenslam::pose_estimation
         const std::vector<cv::Point3d>& points3d,
         const std::vector<cv::Point2d>& points2d,
         const cv::Mat& camera_matrix,
-        const pnp_config& config = {}) -> pnp_result
+        const slam_options& options) -> pnp_result
     {
         if (points3d.size() < 6)
             return {};
@@ -64,16 +44,16 @@ namespace zenslam::pose_estimation
             result.rvec,
             result.tvec,
             false,
-            config.iterations,
-            config.threshold,
-            config.confidence,
+            options.pnp->iterations,
+            options.pnp->threshold,
+            options.pnp->confidence,
             result.inliers);
 
         if (!result.success)
             return result;
 
         // Refine using inliers with LM optimization
-        if (config.use_refinement && result.inliers.size() >= static_cast<size_t>(config.min_refinement_inliers))
+        if (options.pnp->use_refinement && result.inliers.size() >= static_cast<size_t>(options.pnp->min_refinement_inliers))
         {
             std::vector<cv::Point3d> inlier_points3d;
             std::vector<cv::Point2d> inlier_points2d;
@@ -143,3 +123,6 @@ namespace zenslam::pose_estimation
     }
 
 } // namespace zenslam::pose_estimation
+
+// Include slam_options after other definitions to avoid circular dependencies
+#include "zenslam/slam_options.h"

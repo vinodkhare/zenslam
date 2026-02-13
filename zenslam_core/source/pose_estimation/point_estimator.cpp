@@ -26,17 +26,9 @@ namespace zenslam::pose_estimation
             return std::nullopt;
         }
 
-        // Configure and run PnP RANSAC
-        const pnp_config config{
-            .iterations = 1000,
-            .threshold = gsl::narrow<float>(_options.threshold_3d2d),
-            .confidence = 0.99,
-            .use_refinement = _options.use_pose_refinement,
-            .min_refinement_inliers = 4
-        };
-
+        // Run PnP RANSAC using slam_options directly
         const cv::Mat K(_calibration.camera_matrix[0]);
-        auto pnp = solve_pnp_ransac(points3d, points2d, K, config);
+        auto pnp = solve_pnp_ransac(points3d, points2d, K, _options);
 
         if (!pnp.success)
         {

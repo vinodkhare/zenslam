@@ -27,6 +27,41 @@ namespace zenslam
         FLANN
     };
 
+    /// PnP RANSAC estimation configuration
+    class pnp_options : public options_base<pnp_options, "pnp options", "pnp.">
+    {
+    public:
+        ZENSLAM_DEFINE_OPTIONS(
+            ((int, iterations, 1000, "PnP RANSAC maximum iterations"))
+            ((float, threshold, 3.0f, "PnP RANSAC inlier threshold in pixels"))
+            ((double, confidence, 0.99, "PnP RANSAC confidence level (0.0-1.0)"))
+            ((bool, use_refinement, true, "Use iterative LM refinement after RANSAC pose estimation"))
+            ((int, min_refinement_inliers, 4, "Minimum inliers required for PnP refinement"))
+        )
+    };
+
+    /// Essential matrix estimation configuration
+    class essential_options : public options_base<essential_options, "essential options", "essential.">
+    {
+    public:
+        ZENSLAM_DEFINE_OPTIONS(
+            ((double, confidence, 0.999, "Essential matrix RANSAC confidence level (0.0-1.0)"))
+            ((double, threshold, 1.0, "Essential matrix RANSAC threshold in pixels"))
+            ((int, min_inliers, 5, "Essential matrix minimum inliers"))
+        )
+    };
+
+    /// 3D-3D rigid transformation configuration
+    class rigid_options : public options_base<rigid_options, "rigid options", "rigid.">
+    {
+    public:
+        ZENSLAM_DEFINE_OPTIONS(
+            ((double, threshold, 0.1, "3D-3D rigid transformation RANSAC threshold in meters"))
+            ((int, iterations, 1000, "3D-3D rigid transformation RANSAC maximum iterations"))
+            ((int, min_correspondences, 3, "3D-3D rigid transformation minimum correspondences"))
+        )
+    };
+
     /// SLAM algorithm configuration options
     class slam_options : public options_base<slam_options, "slam options", "slam.">
     {
@@ -34,6 +69,12 @@ namespace zenslam
         using options_description = boost::program_options::options_description;
 
         static auto description() -> options_description;
+
+        // Override parse_yaml to handle nested structures
+        static auto parse_yaml(const YAML::Node& node) -> slam_options;
+
+        // Override print to handle nested structures
+        void print() const;
 
         // Inherited from options_base:
         // static constexpr auto name() - returns "slam options"
@@ -72,7 +113,9 @@ namespace zenslam
             ((double, triangulation_reprojection_threshold, 1.0, "Keyline maximum average reprojection error across endpoints in pixels"))
             ((double, triangulation_min_depth, 1.0, "Minimum triangulation depth in meters"))
             ((double, triangulation_max_depth, 50.0, "Maximum triangulation depth in meters"))
-            ((bool, use_pose_refinement, true, "Use iterative LM refinement after RANSAC pose estimation"))
+            ((pnp_options, pnp, {}, "PnP RANSAC configuration"))
+            ((essential_options, essential, {}, "Essential matrix configuration"))
+            ((rigid_options, rigid, {}, "3D-3D rigid transformation configuration"))
         )
 
         void validate() const;
