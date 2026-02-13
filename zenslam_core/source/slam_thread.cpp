@@ -14,6 +14,7 @@
 #include "zenslam/gravity_estimator.h"
 #include "zenslam/groundtruth.h"
 #include "zenslam/inertial_predictor.h"
+#include "zenslam/keyframe_database.h"
 #include "zenslam/keyframe_selector.h"
 #include "zenslam/motion_predictor.h"
 #include "zenslam/processor.h"
@@ -56,6 +57,7 @@ void zenslam::slam_thread::loop()
     inertial_predictor inertial{ cv::Vec3d{ 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
     gravity_estimator  gravity_estimator{};
     keyframe_selector  keyframes{ _options.slam->keyframe };
+    keyframe_database  keyframe_db{};
 
     auto ground_truth = groundtruth::read(_options.folder->groundtruth_file);
     auto writer       = frame::writer(_options.folder->output / "frame_data.csv");
@@ -318,6 +320,9 @@ void zenslam::slam_thread::loop()
 
                 if (decision.is_keyframe)
                 {
+                    const auto& keyframe = keyframe_db.add(system[1]);
+                    const auto covisible = keyframe_db.covisible(keyframe.index);
+
                     SPDLOG_INFO(
                         "Keyframe selected (frames_since_last={}, trans={:.3f}m, rot={:.2f}deg, tracked={:.2f}, inliers={}, forced={}, motion={}, quality={})",
                         decision.frames_since_last,
@@ -329,6 +334,12 @@ void zenslam::slam_thread::loop()
                         decision.motion_triggered,
                         decision.quality_triggered
                     );
+
+                    if (!covisible.empty())
+                    {
+                        SPDLOG_INFO("Keyframe {} covisible with {} (shared features={})",
+                            keyframe.index, covisible.front().first, covisible.front().second);
+                    }
                 }
 
                 writer.write(system);
