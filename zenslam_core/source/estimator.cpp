@@ -51,6 +51,31 @@ namespace zenslam
                 0.99,
                 inliers))
             {
+                // Refine pose using Levenberg-Marquardt optimization on inliers
+                if (_options.use_pose_refinement && inliers.size() >= 4)
+                {
+                    std::vector<cv::Point3d> inlier_points3d;
+                    std::vector<cv::Point2d> inlier_points2d;
+                    inlier_points3d.reserve(inliers.size());
+                    inlier_points2d.reserve(inliers.size());
+                    
+                    for (auto i : inliers)
+                    {
+                        inlier_points3d.push_back(points3d[i]);
+                        inlier_points2d.push_back(points2d[i]);
+                    }
+                    
+                    // Refine using all inliers with LM optimization
+                    cv::solvePnPRefineLM(
+                        inlier_points3d,
+                        inlier_points2d,
+                        _calibration.camera_matrix[0],
+                        cv::Mat(),
+                        rvec,
+                        tvec,
+                        cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 1e-6));
+                }
+                
                 out.pose    = cv::Affine3d(rvec, tvec);
                 out.indices = indices;
 
@@ -259,6 +284,31 @@ namespace zenslam
                 0.99,
                 inliers))
             {
+                // Refine pose using Levenberg-Marquardt optimization on inliers
+                if (_options.use_pose_refinement && inliers.size() >= 6)
+                {
+                    std::vector<cv::Point3d> inlier_points3d;
+                    std::vector<cv::Point2d> inlier_points2d;
+                    inlier_points3d.reserve(inliers.size());
+                    inlier_points2d.reserve(inliers.size());
+                    
+                    for (auto i : inliers)
+                    {
+                        inlier_points3d.push_back(all_points3d[i]);
+                        inlier_points2d.push_back(all_points2d[i]);
+                    }
+                    
+                    // Refine using all inliers with LM optimization
+                    cv::solvePnPRefineLM(
+                        inlier_points3d,
+                        inlier_points2d,
+                        _calibration.camera_matrix[0],
+                        cv::Mat(),
+                        rvec,
+                        tvec,
+                        cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 1e-6));
+                }
+                
                 out.pose    = cv::Affine3d(rvec, tvec);
                 out.indices = indices;
 

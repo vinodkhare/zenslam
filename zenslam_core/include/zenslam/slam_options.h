@@ -72,6 +72,7 @@ namespace zenslam
             ((double, triangulation_reprojection_threshold, 1.0, "Keyline maximum average reprojection error across endpoints in pixels"))
             ((double, triangulation_min_depth, 1.0, "Minimum triangulation depth in meters"))
             ((double, triangulation_max_depth, 50.0, "Maximum triangulation depth in meters"))
+            ((bool, use_pose_refinement, true, "Use iterative LM refinement after RANSAC pose estimation"))
         )
 
         void validate() const;
