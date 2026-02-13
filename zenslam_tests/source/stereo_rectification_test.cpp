@@ -13,15 +13,15 @@ TEST_CASE("Stereo rectification option", "[options][stereo_rectify]")
     SECTION("Default stereo_rectify is false")
     {
         const auto opts = options{};
-        REQUIRE(opts.slam.stereo_rectify == false);
+        REQUIRE(opts.slam->stereo_rectify == false);
     }
 
     SECTION("stereo_rectify can be set to true")
     {
         auto opts = options{};
-        opts.slam.stereo_rectify = true;
-        REQUIRE(opts.slam.stereo_rectify == true);
-        REQUIRE_NOTHROW(opts.slam.validate());
+        opts.slam->stereo_rectify = true;
+        REQUIRE(opts.slam->stereo_rectify == true);
+        REQUIRE_NOTHROW(opts.slam->validate());
     }
 }
 

@@ -45,6 +45,9 @@ message(STATUS "Found yaml-cpp: " ${yaml-cpp_VERSION})
 
 hello_imgui_add_app(zenslam_app source/main.cpp
         source/application.cpp
+        source/opencv_window.cpp
+        source/imgui_controls_window.cpp
+        source/vtk_scene_window.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
