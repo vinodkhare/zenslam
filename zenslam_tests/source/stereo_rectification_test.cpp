@@ -1,9 +1,16 @@
 #include <catch2/catch_all.hpp>
 
+#include <cmath>
+#include <filesystem>
+#include <fstream>
 #include <opencv2/core.hpp>
+#include <opencv2/calib3d.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include <array>
 #include <random>
+#include <set>
+#include <stdexcept>
 #include <unordered_map>
 
 #include <zenslam/frame/estimated.h>
@@ -13,6 +20,284 @@
 #include <zenslam/types/point3d.h>
 #include <zenslam/utils.h>
 #include <zenslam/utils_opencv.h>
+
+namespace
+{
+    struct bal_observation
+    {
+        size_t camera_id = 0;
+        size_t point_id = 0;
+        double x = 0.0;
+        double y = 0.0;
+    };
+
+    struct bal_problem_data
+    {
+        size_t num_cameras = 0;
+        size_t num_points = 0;
+        size_t num_observations = 0;
+        std::vector<bal_observation> observations;
+        std::vector<std::array<double, 9>> cameras;
+        std::vector<cv::Point3d> points;
+    };
+
+    auto find_bal_file(const std::string& filename) -> std::filesystem::path
+    {
+        const std::vector<std::filesystem::path> candidates = {
+            std::filesystem::path("zenslam_tests/data/bal") / filename,
+            std::filesystem::path("../zenslam_tests/data/bal") / filename,
+            std::filesystem::path("../../zenslam_tests/data/bal") / filename,
+            std::filesystem::path("../../../zenslam_tests/data/bal") / filename
+        };
+
+        for (const auto& candidate : candidates)
+        {
+            if (std::filesystem::exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return {};
+    }
+
+    auto load_bal_problem(const std::filesystem::path& file_path) -> bal_problem_data
+    {
+        std::ifstream input(file_path);
+        if (!input)
+        {
+            throw std::runtime_error("Failed to open BAL file");
+        }
+
+        bal_problem_data bal;
+        input >> bal.num_cameras >> bal.num_points >> bal.num_observations;
+        if (!input)
+        {
+            throw std::runtime_error("Invalid BAL header");
+        }
+
+        bal.observations.resize(bal.num_observations);
+        for (size_t i = 0; i < bal.num_observations; ++i)
+        {
+            input >> bal.observations[i].camera_id >> bal.observations[i].point_id >> bal.observations[i].x >> bal.observations[i].y;
+        }
+
+        bal.cameras.resize(bal.num_cameras);
+        for (size_t camera_idx = 0; camera_idx < bal.num_cameras; ++camera_idx)
+        {
+            for (size_t param_idx = 0; param_idx < 9; ++param_idx)
+            {
+                input >> bal.cameras[camera_idx][param_idx];
+            }
+        }
+
+        bal.points.resize(bal.num_points);
+        for (size_t point_idx = 0; point_idx < bal.num_points; ++point_idx)
+        {
+            input >> bal.points[point_idx].x >> bal.points[point_idx].y >> bal.points[point_idx].z;
+        }
+
+        if (!input)
+        {
+            throw std::runtime_error("Invalid BAL payload");
+        }
+
+        return bal;
+    }
+
+    auto camera_pose_from_bal(const std::array<double, 9>& camera) -> cv::Affine3d
+    {
+        cv::Mat axis_angle(3, 1, CV_64F);
+        axis_angle.at<double>(0, 0) = camera[0];
+        axis_angle.at<double>(1, 0) = camera[1];
+        axis_angle.at<double>(2, 0) = camera[2];
+
+        cv::Mat rotation_cv;
+        cv::Rodrigues(axis_angle, rotation_cv);
+
+        const cv::Matx33d rotation(rotation_cv);
+        const cv::Vec3d translation{ camera[3], camera[4], camera[5] };
+        return { rotation, translation };
+    }
+
+    auto run_bal_subset_lba_case(const std::filesystem::path& bal_path) -> void
+    {
+        const auto bal = load_bal_problem(bal_path);
+
+        constexpr size_t max_cameras = 8;
+        constexpr size_t max_points = 600;
+        constexpr size_t max_observations = 3000;
+
+        std::vector<bal_observation> selected_observations;
+        selected_observations.reserve(max_observations);
+
+        for (const auto& observation : bal.observations)
+        {
+            if (observation.camera_id >= max_cameras || observation.point_id >= max_points)
+            {
+                continue;
+            }
+
+            selected_observations.push_back(observation);
+            if (selected_observations.size() >= max_observations)
+            {
+                break;
+            }
+        }
+
+        std::unordered_map<size_t, size_t> camera_observation_count;
+        std::unordered_map<size_t, size_t> point_observation_count;
+        for (const auto& observation : selected_observations)
+        {
+            ++camera_observation_count[observation.camera_id];
+            ++point_observation_count[observation.point_id];
+        }
+
+        std::vector<bal_observation> filtered_observations;
+        filtered_observations.reserve(selected_observations.size());
+        for (const auto& observation : selected_observations)
+        {
+            if (camera_observation_count[observation.camera_id] < 150)
+            {
+                continue;
+            }
+
+            if (point_observation_count[observation.point_id] < 3)
+            {
+                continue;
+            }
+
+            filtered_observations.push_back(observation);
+        }
+
+        selected_observations = std::move(filtered_observations);
+
+        REQUIRE(selected_observations.size() > 1000);
+
+        std::set<size_t> used_camera_ids;
+        std::set<size_t> used_point_ids;
+        for (const auto& observation : selected_observations)
+        {
+            used_camera_ids.insert(observation.camera_id);
+            used_point_ids.insert(observation.point_id);
+        }
+
+        REQUIRE(used_camera_ids.size() >= 2);
+
+        const cv::Matx33d k = {
+            500.0, 0.0, 320.0,
+            0.0, 500.0, 240.0,
+            0.0, 0.0, 1.0
+        };
+
+        std::unordered_map<size_t, cv::Affine3d> gt_poses;
+        std::unordered_map<size_t, zenslam::frame::estimated> keyframes_init;
+        keyframes_init.reserve(used_camera_ids.size());
+
+        std::mt19937 rng(97531);
+        std::normal_distribution<double> pose_noise(0.0, 0.02);
+
+        for (const auto camera_id : used_camera_ids)
+        {
+            const auto pose_gt = cv::Affine3d(
+                cv::Matx33d::eye(),
+                cv::Vec3d(0.10 * static_cast<double>(camera_id), 0.01 * static_cast<double>(camera_id), 0.0));
+            gt_poses[camera_id] = pose_gt;
+
+            zenslam::frame::estimated keyframe;
+            keyframe.index = camera_id;
+            keyframe.pose = cv::Affine3d(
+                pose_gt.rotation(),
+                cv::Vec3d(
+                    pose_gt.translation()[0] + pose_noise(rng),
+                    pose_gt.translation()[1] + pose_noise(rng),
+                    pose_gt.translation()[2] + pose_noise(rng)));
+
+            keyframes_init.emplace(camera_id, std::move(keyframe));
+        }
+
+        zenslam::point3d_cloud landmarks_init;
+        std::unordered_map<size_t, cv::Point3d> landmarks_gt;
+        for (const auto point_id : used_point_ids)
+        {
+            const auto& bal_point = bal.points[point_id];
+            const cv::Point3d point_gt{
+                bal_point.x * 0.02,
+                bal_point.y * 0.02,
+                4.0 + std::abs(bal_point.z) * 0.02
+            };
+            landmarks_gt[point_id] = point_gt;
+
+            zenslam::point3d point_init;
+            point_init.index = point_id;
+            point_init.x = point_gt.x;
+            point_init.y = point_gt.y;
+            point_init.z = point_gt.z;
+            landmarks_init += point_init;
+        }
+
+        for (const auto& observation : selected_observations)
+        {
+            const auto keyframe_it = keyframes_init.find(observation.camera_id);
+            const auto point_it = landmarks_gt.find(observation.point_id);
+            if (keyframe_it == keyframes_init.end() || point_it == landmarks_gt.end())
+            {
+                continue;
+            }
+
+            const auto pixel = zenslam::utils::project_point(k, gt_poses.at(observation.camera_id), point_it->second);
+
+            zenslam::keypoint keypoint;
+            keypoint.index = observation.point_id;
+            keypoint.pt = cv::Point2f(static_cast<float>(pixel.x), static_cast<float>(pixel.y));
+            keyframe_it->second.keypoints[0] += keypoint;
+        }
+
+        size_t expected_residuals = 0;
+        for (const auto& [_, keyframe] : keyframes_init)
+        {
+            expected_residuals += keyframe.keypoints[0].size();
+        }
+
+        const auto fixed_keyframe_id = *used_camera_ids.begin();
+        const auto second_fixed_keyframe_id = *std::next(used_camera_ids.begin());
+
+        double translation_error_before = 0.0;
+        for (const auto& [camera_id, keyframe] : keyframes_init)
+        {
+            if (camera_id == fixed_keyframe_id || camera_id == second_fixed_keyframe_id)
+            {
+                continue;
+            }
+
+            translation_error_before += cv::norm(keyframe.pose.translation() - gt_poses.at(camera_id).translation());
+        }
+
+        zenslam::lba_options ba_options;
+        ba_options.max_iterations = 80;
+        ba_options.huber_delta = 1.0;
+        ba_options.refine_landmarks = false;
+
+        zenslam::local_bundle_adjustment lba(k, ba_options);
+        const auto result = lba.optimize(keyframes_init, landmarks_init, { fixed_keyframe_id, second_fixed_keyframe_id });
+
+        double translation_error_after = 0.0;
+        for (const auto& [camera_id, keyframe] : keyframes_init)
+        {
+            if (camera_id == fixed_keyframe_id || camera_id == second_fixed_keyframe_id)
+            {
+                continue;
+            }
+
+            translation_error_after += cv::norm(keyframe.pose.translation() - gt_poses.at(camera_id).translation());
+        }
+
+        REQUIRE(expected_residuals > 1000);
+        REQUIRE(result.residuals == expected_residuals);
+        REQUIRE(result.final_rmse < result.initial_rmse);
+        REQUIRE(translation_error_after < translation_error_before);
+    }
+}
 
 TEST_CASE("Stereo rectification option", "[options][stereo_rectify]")
 {
@@ -466,4 +751,36 @@ TEST_CASE("local bundle adjustment can keep landmarks fixed", "[optimization][lb
         REQUIRE(landmark_after.y == Catch::Approx(landmark_before.y).margin(1e-12));
         REQUIRE(landmark_after.z == Catch::Approx(landmark_before.z).margin(1e-12));
     }
+}
+
+TEST_CASE("local bundle adjustment runs on BAL dataset subset", "[optimization][lba][bal]")
+{
+    const auto bal_path = find_bal_file("problem-49-7776-pre.txt");
+    if (bal_path.empty())
+    {
+        SKIP("BAL file not found. Expected zenslam_tests/data/bal/problem-49-7776-pre.txt");
+    }
+    run_bal_subset_lba_case(bal_path);
+}
+
+TEST_CASE("local bundle adjustment runs on BAL Trafalgar subset", "[optimization][lba][bal]")
+{
+    const auto bal_path = find_bal_file("problem-21-11315-pre.txt");
+    if (bal_path.empty())
+    {
+        SKIP("BAL file not found. Expected zenslam_tests/data/bal/problem-21-11315-pre.txt");
+    }
+
+    run_bal_subset_lba_case(bal_path);
+}
+
+TEST_CASE("local bundle adjustment runs on BAL Dubrovnik subset", "[optimization][lba][bal]")
+{
+    const auto bal_path = find_bal_file("problem-16-22106-pre.txt");
+    if (bal_path.empty())
+    {
+        SKIP("BAL file not found. Expected zenslam_tests/data/bal/problem-16-22106-pre.txt");
+    }
+
+    run_bal_subset_lba_case(bal_path);
 }

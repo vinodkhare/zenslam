@@ -1,5 +1,7 @@
 #include "zenslam/local_bundle_adjustment.h"
 
+#include <algorithm>
+#include <cmath>
 #include <set>
 #include <unordered_map>
 
@@ -201,13 +203,18 @@ auto zenslam::local_bundle_adjustment::optimize(
     std::vector<frame::estimated*> keyframe_ptrs;
     keyframe_ptrs.reserve(keyframes.size());
 
-    size_t keyframe_param_index = 0;
-    for (auto& [keyframe_id, keyframe] : keyframes)
+    for (const auto& [keyframe_id, _] : keyframes)
     {
-        keyframe_index_by_id[keyframe_id] = keyframe_param_index;
         keyframe_ids.push_back(keyframe_id);
+    }
+    std::ranges::sort(keyframe_ids);
+
+    for (size_t keyframe_param_index = 0; keyframe_param_index < keyframe_ids.size(); ++keyframe_param_index)
+    {
+        const size_t keyframe_id = keyframe_ids[keyframe_param_index];
+        auto& keyframe = keyframes.at(keyframe_id);
+        keyframe_index_by_id[keyframe_id] = keyframe_param_index;
         keyframe_ptrs.push_back(&keyframe);
-        ++keyframe_param_index;
     }
 
     std::unordered_map<size_t, size_t> landmark_index_by_id;
@@ -217,13 +224,18 @@ auto zenslam::local_bundle_adjustment::optimize(
     std::vector<point3d*> landmark_ptrs;
     landmark_ptrs.reserve(landmarks.size());
 
-    size_t landmark_param_index = 0;
-    for (auto& [landmark_id, landmark] : landmarks)
+    for (const auto& [landmark_id, _] : landmarks)
     {
-        landmark_index_by_id[landmark_id] = landmark_param_index;
         landmark_ids.push_back(landmark_id);
+    }
+    std::ranges::sort(landmark_ids);
+
+    for (size_t landmark_param_index = 0; landmark_param_index < landmark_ids.size(); ++landmark_param_index)
+    {
+        const size_t landmark_id = landmark_ids[landmark_param_index];
+        auto& landmark = landmarks.at(landmark_id);
+        landmark_index_by_id[landmark_id] = landmark_param_index;
         landmark_ptrs.push_back(&landmark);
-        ++landmark_param_index;
     }
 
     std::vector<local_observation> observations;
@@ -233,6 +245,24 @@ auto zenslam::local_bundle_adjustment::optimize(
         for (const auto& keypoint : keyframe.keypoints[0] | std::views::values)
         {
             if (!landmark_index_by_id.contains(keypoint.index))
+            {
+                continue;
+            }
+
+            if (!std::isfinite(keypoint.pt.x) || !std::isfinite(keypoint.pt.y))
+            {
+                continue;
+            }
+
+            const auto landmark_it = landmarks.find(keypoint.index);
+            if (landmark_it == landmarks.end())
+            {
+                continue;
+            }
+
+            const cv::Point3d point_w{ landmark_it->second.x, landmark_it->second.y, landmark_it->second.z };
+            const cv::Point3d point_c = keyframe.pose * point_w;
+            if (!std::isfinite(point_c.z) || point_c.z <= 1e-3)
             {
                 continue;
             }
@@ -283,7 +313,11 @@ auto zenslam::local_bundle_adjustment::optimize(
 
         auto* cost_function = new ceres::AutoDiffCostFunction<reprojection_error, 2, 6, 3>(
             new reprojection_error(observation.pixel, _camera_matrix));
-        auto* loss_function = new ceres::HuberLoss(_options.huber_delta.value());
+        ceres::LossFunction* loss_function = nullptr;
+        if (_options.refine_landmarks.value())
+        {
+            loss_function = new ceres::HuberLoss(_options.huber_delta.value());
+        }
 
         problem.AddResidualBlock(
             cost_function,
@@ -296,6 +330,11 @@ auto zenslam::local_bundle_adjustment::optimize(
 
     const std::set<size_t> fixed_ids(fixed_keyframe_ids.begin(), fixed_keyframe_ids.end());
 
+    if (fixed_ids.empty() && !keyframe_params.empty() && problem.HasParameterBlock(keyframe_params[0].data()))
+    {
+        problem.SetParameterBlockConstant(keyframe_params[0].data());
+    }
+
     for (size_t i = 0; i < keyframe_ids.size(); ++i)
     {
         if (fixed_ids.contains(keyframe_ids[i]) && problem.HasParameterBlock(keyframe_params[i].data()))
@@ -306,6 +345,16 @@ auto zenslam::local_bundle_adjustment::optimize(
 
     if (!_options.refine_landmarks.value())
     {
+        for (size_t i = 0; i < keyframe_ids.size(); ++i)
+        {
+            if (fixed_ids.contains(keyframe_ids[i]) || !problem.HasParameterBlock(keyframe_params[i].data()))
+            {
+                continue;
+            }
+
+            problem.SetManifold(keyframe_params[i].data(), new ceres::SubsetManifold(6, { 0, 1, 2 }));
+        }
+
         for (size_t i = 0; i < landmark_params.size(); ++i)
         {
             if (problem.HasParameterBlock(landmark_params[i].data()))
@@ -318,7 +367,8 @@ auto zenslam::local_bundle_adjustment::optimize(
     ceres::Solver::Options solver_options;
     solver_options.max_num_iterations = std::max(1, _options.max_iterations.value());
     solver_options.num_threads = 1;
-    solver_options.linear_solver_type = ceres::SPARSE_SCHUR;
+    solver_options.linear_solver_type = _options.refine_landmarks.value() ? ceres::SPARSE_SCHUR : ceres::DENSE_QR;
+    solver_options.trust_region_strategy_type = ceres::LEVENBERG_MARQUARDT;
     solver_options.minimizer_progress_to_stdout = false;
 
     ceres::Solver::Summary summary;
