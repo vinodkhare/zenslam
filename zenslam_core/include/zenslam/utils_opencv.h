@@ -4,6 +4,7 @@
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/line_descriptor.hpp>
+#include <opencv2/core/affine.hpp>
 #include <opencv2/core/mat.hpp>
 
 #include "options.h"
@@ -75,6 +76,7 @@ namespace zenslam::utils
         const frame::estimated& frame_1,
         const slam_options&     options
     ) -> cv::Mat;
+    auto project_point(const cv::Matx33d& camera_matrix, const cv::Affine3d& pose, const cv::Point3d& point_w) -> cv::Point2d;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;
 
     /** Decompose a projection matrix into intrinsic, rotation, and translation components.

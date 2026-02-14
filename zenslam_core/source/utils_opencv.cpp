@@ -216,6 +216,16 @@ void zenslam::utils::draw_keylines
     }
 }
 
+auto zenslam::utils::project_point(const cv::Matx33d& camera_matrix, const cv::Affine3d& pose, const cv::Point3d& point_w) -> cv::Point2d
+{
+    const cv::Point3d point_c = pose * point_w;
+
+    const double u = camera_matrix(0, 0) * (point_c.x / point_c.z) + camera_matrix(0, 2);
+    const double v = camera_matrix(1, 1) * (point_c.y / point_c.z) + camera_matrix(1, 2);
+
+    return { u, v };
+}
+
 auto zenslam::utils::draw_matches_spatial(const frame::estimated& frame, const map<point3d>& points) -> cv::Mat
 {
     cv::Mat matches_image { };

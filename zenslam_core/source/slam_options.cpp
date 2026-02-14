@@ -37,7 +37,8 @@ namespace zenslam
                         if constexpr (std::is_base_of_v<pnp_options, T> || 
                                       std::is_base_of_v<essential_options, T> ||
                                       std::is_base_of_v<rigid_options, T> ||
-                                      std::is_base_of_v<keyframe_options, T>)
+                                      std::is_base_of_v<keyframe_options, T> ||
+                                      std::is_base_of_v<lba_options, T>)
                         {
                             // Parse nested options class using its own parse_yaml
                             if (const auto nested_node = node[opt.name()])
@@ -77,7 +78,8 @@ namespace zenslam
                 if constexpr (std::is_base_of_v<pnp_options, T> || 
                               std::is_base_of_v<essential_options, T> ||
                               std::is_base_of_v<rigid_options, T> ||
-                              std::is_base_of_v<keyframe_options, T>)
+                              std::is_base_of_v<keyframe_options, T> ||
+                              std::is_base_of_v<lba_options, T>)
                 {
                     // Print nested options using their own print() method
                     SPDLOG_INFO("{}:", opt.name());
@@ -109,7 +111,8 @@ namespace zenslam
             if constexpr (std::is_base_of_v<pnp_options, T> || 
                           std::is_base_of_v<essential_options, T> ||
                           std::is_base_of_v<rigid_options, T> ||
-                          std::is_base_of_v<keyframe_options, T>)
+                          std::is_base_of_v<keyframe_options, T> ||
+                          std::is_base_of_v<lba_options, T>)
             {
                 // Recursively add nested options
                 std::apply([&description, &flag_prefix, &opt](const auto&... nested_opts)
@@ -225,6 +228,10 @@ namespace zenslam
             throw std::invalid_argument("slam.keyframe.min_tracked_ratio must be in [0, 1]");
         if (keyframe.value().min_inliers < 0)
             throw std::invalid_argument("slam.keyframe.min_inliers must be >= 0");
+        if (lba.value().max_iterations < 1)
+            throw std::invalid_argument("slam.lba.max_iterations must be >= 1");
+        if (lba.value().huber_delta <= 0.0)
+            throw std::invalid_argument("slam.lba.huber_delta must be > 0");
     }
 
     // print() is now inherited from options_base

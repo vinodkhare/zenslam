@@ -76,6 +76,17 @@ namespace zenslam
         )
     };
 
+    /// Local bundle adjustment configuration
+    class lba_options : public options_base<lba_options, "lba options", "lba.">
+    {
+    public:
+        ZENSLAM_DEFINE_OPTIONS(
+            ((int, max_iterations, 30, "LBA maximum solver iterations"))
+            ((double, huber_delta, 1.0, "LBA Huber loss delta in pixels"))
+            ((bool, refine_landmarks, true, "Optimize landmark positions during LBA"))
+        )
+    };
+
     /// SLAM algorithm configuration options
     class slam_options : public options_base<slam_options, "slam options", "slam.">
     {
@@ -128,6 +139,7 @@ namespace zenslam
             ((double, triangulation_min_depth, 1.0, "Minimum triangulation depth in meters"))
             ((double, triangulation_max_depth, 50.0, "Maximum triangulation depth in meters"))
             ((keyframe_options, keyframe, {}, "Keyframe selection configuration"))
+            ((lba_options, lba, {}, "Local bundle adjustment configuration"))
             ((pnp_options, pnp, {}, "PnP RANSAC configuration"))
             ((essential_options, essential, {}, "Essential matrix configuration"))
             ((rigid_options, rigid, {}, "3D-3D rigid transformation configuration"))
