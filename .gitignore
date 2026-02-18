@@ -56,3 +56,7 @@ build/
 # CodeQL analysis files
 _codeql_detected_source_root
 
+# Specific files
+frames.csv
+imgui.ini
+

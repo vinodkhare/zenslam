@@ -1,20 +1,22 @@
 #include "zenslam/slam_thread.h"
 
 #include <cmath>
-#include <utility>
-
 #include <spdlog/spdlog.h>
-
+#include <utility>
 #include <vtk-9.3/vtkLogger.h>
 
 #include "zenslam/calibration.h"
 #include "zenslam/estimator.h"
+#include "zenslam/frame/durations.h"
+#include "zenslam/frame/estimated.h"
+#include "zenslam/frame/system.h"
+#include "zenslam/frame/writer.h"
 #include "zenslam/gravity_estimator.h"
 #include "zenslam/groundtruth.h"
 #include "zenslam/inertial_predictor.h"
 #include "zenslam/keyframe_database.h"
-#include "zenslam/keyframe_selector.h"
 #include "zenslam/local_bundle_adjustment.h"
+#include "zenslam/keyframe_selector.h"
 #include "zenslam/motion_predictor.h"
 #include "zenslam/processor.h"
 #include "zenslam/time_this.h"
@@ -22,13 +24,9 @@
 #include "zenslam/utils.h"
 #include "zenslam/utils_slam.h"
 #include "zenslam/utils_std.h"
-#include "zenslam/frame/durations.h"
-#include "zenslam/frame/estimated.h"
-#include "zenslam/frame/system.h"
-#include "zenslam/frame/writer.h"
+#include "zenslam/formatters.h"
 
-zenslam::slam_thread::slam_thread(options options) :
-    _options { std::move(options) } { vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF); }
+zenslam::slam_thread::slam_thread(options options) : _options{ std::move(options) } { vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF); }
 
 
 zenslam::slam_thread::~slam_thread()
@@ -41,7 +39,7 @@ zenslam::slam_thread::~slam_thread()
 void zenslam::slam_thread::enqueue(const frame::sensor& frame)
 {
     {
-        std::lock_guard lock { _mutex };
+        std::lock_guard lock{ _mutex };
         _queue.push(frame);
     }
     _cv.notify_one();
@@ -53,22 +51,22 @@ void zenslam::slam_thread::loop()
     const auto& calibration = calibration::parse(_options.folder->calibration_file, _options.folder->imu_calibration_file, _options.slam->stereo_rectify);
 
     // Create tracker (owns descriptor matcher configured from options)
-    processor               processor { _options.slam, calibration };
-    tracker                 tracker { calibration, _options.slam };
-    const estimator         estimator { calibration, _options.slam };
-    motion_predictor        motion { };
-    inertial_predictor      inertial { cv::Vec3d { 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
-    gravity_estimator       gravity_estimator { };
-    keyframe_selector       keyframes { _options.slam->keyframe };
-    keyframe_database       keyframe_db { };
-    local_bundle_adjustment lba { calibration.cameras[0].camera_matrix(), _options.slam->lba };
+    processor          processor{ _options.slam, calibration };
+    tracker            tracker{ calibration, _options.slam };
+    const estimator    estimator{ calibration, _options.slam };
+    motion_predictor   motion{};
+    inertial_predictor inertial{ cv::Vec3d{ 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
+    gravity_estimator  gravity_estimator{};
+    keyframe_selector  keyframes{ _options.slam->keyframe };
+    keyframe_database  keyframe_db{};
+    local_bundle_adjustment lba{ calibration.cameras[0].camera_matrix(), _options.slam->lba };
 
     auto ground_truth = groundtruth::read(_options.folder->groundtruth_file);
     auto writer       = frame::writer(_options.folder->output / "frame_data.csv");
 
     calibration.print();
 
-    frame::system system { };
+    frame::system system{};
 
     // Set configuration strings once
     system.counts.detector_type   = magic_enum::enum_name(_options.slam->feature.value());
@@ -78,16 +76,16 @@ void zenslam::slam_thread::loop()
     while (!_stop_token.stop_requested())
     {
         {
-            time_this t { system.durations.total };
+            time_this t{ system.durations.total };
 
             // READ FRAME
-            frame::sensor sensor { };
+            frame::sensor sensor{};
             {
-                time_this time_this { system.durations.wait };
+                time_this time_this{ system.durations.wait };
 
                 SPDLOG_TRACE("Waiting for next frame");
 
-                std::unique_lock lock { _mutex };
+                std::unique_lock lock{ _mutex };
                 _cv.wait(lock, [this] { return !_queue.empty() || _stop_token.stop_requested(); });
 
                 if (_stop_token.stop_requested() && _queue.empty())
@@ -100,15 +98,15 @@ void zenslam::slam_thread::loop()
             }
 
             // PREPROCESS
-            frame::processed processed { };
+            frame::processed processed{};
             {
-                time_this time_this { system.durations.processing };
+                time_this time_this{ system.durations.processing };
 
                 processed = processor.process(sensor);
             }
 
             // PREDICT POSE
-            cv::Affine3d pose_predicted { };
+            cv::Affine3d pose_predicted{};
             {
                 pose_predicted = motion.predict(system[0], processed);
                 SPDLOG_INFO("Predicted pose (motion): {}", pose_predicted);
@@ -118,9 +116,9 @@ void zenslam::slam_thread::loop()
             }
 
             // TRACK
-            frame::tracked tracked = { };
+            frame::tracked tracked = {};
             {
-                time_this time_this { system.durations.tracking };
+                time_this time_this{ system.durations.tracking };
 
                 tracked = tracker.track(system[0], processed, pose_predicted);
 
@@ -130,15 +128,15 @@ void zenslam::slam_thread::loop()
                 const auto& kp0_cur  = tracked.keypoints[0];
                 const auto& kp1_cur  = tracked.keypoints[1];
 
-                system.counts.points.features_l         = kp0_cur.size();
-                system.counts.points.features_r         = kp1_cur.size();
-                system.counts.points.features_l_tracked = kp0_cur.keys_matched(kp0_prev).size();
-                system.counts.points.features_r_tracked = kp1_cur.keys_matched(kp1_prev).size();
-                system.counts.points.features_l_new     = system.counts.points.features_l - system.counts.points.features_l_tracked;
-                system.counts.points.features_r_new     = system.counts.points.features_r - system.counts.points.features_r_tracked;
-                system.counts.points.features_total     = system.counts.points.features_l + system.counts.points.features_r;
-                system.counts.points.matches_stereo     = kp0_cur.keys_matched(kp1_cur).size();
-                system.counts.points.triangulated_3d    = tracked.points3d.size();
+                system.counts.points.features_l          = kp0_cur.size();
+                system.counts.points.features_r          = kp1_cur.size();
+                system.counts.points.features_l_tracked  = kp0_cur.keys_matched(kp0_prev).size();
+                system.counts.points.features_r_tracked  = kp1_cur.keys_matched(kp1_prev).size();
+                system.counts.points.features_l_new      = system.counts.points.features_l - system.counts.points.features_l_tracked;
+                system.counts.points.features_r_new      = system.counts.points.features_r - system.counts.points.features_r_tracked;
+                system.counts.points.features_total      = system.counts.points.features_l + system.counts.points.features_r;
+                system.counts.points.matches_stereo      = kp0_cur.keys_matched(kp1_cur).size();
+                system.counts.points.triangulated_3d     = tracked.points3d.size();
 
                 // Update counts related to line features
                 const auto& kl0_prev = system[0].keylines[0];
@@ -146,15 +144,15 @@ void zenslam::slam_thread::loop()
                 const auto& kl0_cur  = tracked.keylines[0];
                 const auto& kl1_cur  = tracked.keylines[1];
 
-                system.counts.lines.features_l         = kl0_cur.size();
-                system.counts.lines.features_r         = kl1_cur.size();
-                system.counts.lines.features_l_tracked = kl0_cur.keys_matched(kl0_prev).size();
-                system.counts.lines.features_r_tracked = kl1_cur.keys_matched(kl1_prev).size();
-                system.counts.lines.features_l_new     = system.counts.lines.features_l - system.counts.lines.features_l_tracked;
-                system.counts.lines.features_r_new     = system.counts.lines.features_r - system.counts.lines.features_r_tracked;
-                system.counts.lines.features_total     = system.counts.lines.features_l + system.counts.lines.features_r;
-                system.counts.lines.matches_stereo     = kl0_cur.keys_matched(kl1_cur).size();
-                system.counts.lines.triangulated_3d    = tracked.lines3d.size();
+                system.counts.lines.features_l          = kl0_cur.size();
+                system.counts.lines.features_r          = kl1_cur.size();
+                system.counts.lines.features_l_tracked  = kl0_cur.keys_matched(kl0_prev).size();
+                system.counts.lines.features_r_tracked  = kl1_cur.keys_matched(kl1_prev).size();
+                system.counts.lines.features_l_new      = system.counts.lines.features_l - system.counts.lines.features_l_tracked;
+                system.counts.lines.features_r_new      = system.counts.lines.features_r - system.counts.lines.features_r_tracked;
+                system.counts.lines.features_total      = system.counts.lines.features_l + system.counts.lines.features_r;
+                system.counts.lines.matches_stereo      = kl0_cur.keys_matched(kl1_cur).size();
+                system.counts.lines.triangulated_3d     = tracked.lines3d.size();
 
                 // Compute quality metrics
                 // Response statistics (feature strength)
@@ -179,9 +177,9 @@ void zenslam::slam_thread::loop()
             }
 
             // ESTIMATE
-            frame::estimated slam_frame = { };
+            frame::estimated slam_frame = {};
             {
-                time_this time_this { system.durations.estimation };
+                time_this time_this{ system.durations.estimation };
 
                 // Original estimation method - tries all 5 approaches
                 auto estimate_result = estimator.estimate_pose(system[0], tracked);
@@ -192,15 +190,15 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO("\n========== POSE ESTIMATION RESULTS ==========");
                 SPDLOG_INFO("Individual method results:");
                 SPDLOG_INFO("  3D-3D Combined:   {} correspondences, {} inliers (points+lines unified)",
-                            estimate_result.pose_3d3d.indices.size(), estimate_result.pose_3d3d.inliers.size());
+                    estimate_result.pose_3d3d.indices.size(), estimate_result.pose_3d3d.inliers.size());
                 SPDLOG_INFO("  3D-2D Combined:   {} correspondences, {} inliers (points+lines unified)",
-                            estimate_result.pose_3d2d.indices.size(), estimate_result.pose_3d2d.inliers.size());
+                    estimate_result.pose_3d2d.indices.size(), estimate_result.pose_3d2d.inliers.size());
                 SPDLOG_INFO("  2D-2D Combined:   {} correspondences, {} inliers (points+lines unified)",
-                            estimate_result.pose_2d2d.indices.size(), estimate_result.pose_2d2d.inliers.size());
-
+                    estimate_result.pose_2d2d.indices.size(), estimate_result.pose_2d2d.inliers.size());
+                
                 SPDLOG_INFO("Weighted fusion results:");
-                SPDLOG_INFO("  Best method: {} ({} inliers)",
-                            weighted_result.best_method, weighted_result.best_method_inliers);
+                SPDLOG_INFO("  Best method: {} ({} inliers)", 
+                    weighted_result.best_method, weighted_result.best_method_inliers);
                 SPDLOG_INFO("  Total inliers (all methods): {}", weighted_result.total_inliers);
                 SPDLOG_INFO("  Overall confidence: {:.3f}", weighted_result.confidence);
                 SPDLOG_INFO("  Weight breakdown:");
@@ -217,8 +215,8 @@ void zenslam::slam_thread::loop()
                 if (weighted_result.has_valid_covariance)
                 {
                     SPDLOG_INFO("  Translation std: {:.4f}m, Rotation std: {:.6f}rad ({:.4f}deg)",
-                                weighted_result.translation_std, weighted_result.rotation_std,
-                                weighted_result.rotation_std * 180.0 / M_PI);
+                        weighted_result.translation_std, weighted_result.rotation_std,
+                        weighted_result.rotation_std * 180.0 / M_PI);
                 }
                 else
                 {
@@ -234,8 +232,8 @@ void zenslam::slam_thread::loop()
                 system.counts.correspondences_2d2d_inliers = estimate_result.pose_2d2d.inliers.size();
 
                 // Smart pose selection using confidence + covariance
-                cv::Affine3d chosen_pose  = weighted_result.pose;
-                bool         use_weighted = true;
+                cv::Affine3d chosen_pose = weighted_result.pose;
+                bool use_weighted = true;
 
                 // Check if covariance is valid and translation uncertainty is reasonable
                 if (!weighted_result.has_valid_covariance)
@@ -246,7 +244,7 @@ void zenslam::slam_thread::loop()
                 else if (weighted_result.translation_std > 0.5)
                 {
                     SPDLOG_WARN("Translation uncertainty too high ({:.3f}m > 0.5m), using motion prediction instead",
-                                weighted_result.translation_std);
+                        weighted_result.translation_std);
                     use_weighted = false;
                 }
                 else if (weighted_result.confidence < 0.15)
@@ -264,7 +262,7 @@ void zenslam::slam_thread::loop()
                 if (!use_weighted)
                 {
                     chosen_pose = estimate_result.chosen_pose;
-
+                    
                     std::string method_name = "Unknown";
                     if (estimate_result.chosen_count == estimate_result.pose_3d3d.inliers.size())
                         method_name = "3D-3D Combined";
@@ -272,9 +270,9 @@ void zenslam::slam_thread::loop()
                         method_name = "3D-2D Combined";
                     else if (estimate_result.chosen_count == estimate_result.pose_2d2d.inliers.size())
                         method_name = "2D-2D Combined";
-
+                    
                     SPDLOG_INFO("Falling back to best single method: {} ({} inliers)",
-                                method_name, estimate_result.chosen_count);
+                        method_name, estimate_result.chosen_count);
 
                     // Final fallback: if single method also weak, use prediction
                     if (estimate_result.chosen_count < 5)
@@ -286,13 +284,13 @@ void zenslam::slam_thread::loop()
                 else
                 {
                     SPDLOG_INFO("Using weighted fusion pose (confidence={:.3f}, translation_std={:.4f}m)",
-                                weighted_result.confidence, weighted_result.translation_std);
+                        weighted_result.confidence, weighted_result.translation_std);
                 }
 
                 SPDLOG_INFO("================================================\n");
 
                 // Apply pose update (estimate is relative camera pose between frames)
-                system[1] = frame::estimated { tracked, system[0].pose * chosen_pose.inv() };
+                system[1] = frame::estimated{ tracked, system[0].pose * chosen_pose.inv() };
 
                 // Gravity estimation using residual method (needs previous frame)
                 if (gravity_estimator.count() < 50)
@@ -311,7 +309,7 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO("Ground-truth pose: {}", system[1].pose_gt);
 
                 system.points3d += system[1].pose * system[1].points3d;
-                system.lines3d  += system[1].pose * system[1].lines3d;
+                system.lines3d += system[1].pose * system[1].lines3d;
 
                 // system.points3d.buildIndex();
                 // system.lines3d.buildIndex();
@@ -319,13 +317,13 @@ void zenslam::slam_thread::loop()
                 system.counts.map_points = system.points3d.size();
                 system.counts.map_lines  = system.lines3d.size();
 
-                const auto decision   = keyframes.decide(system[1], system.counts);
+                const auto decision = keyframes.decide(system[1], system.counts);
                 system[1].is_keyframe = decision.is_keyframe;
 
                 if (decision.is_keyframe)
                 {
-                    const auto& keyframe  = keyframe_db.add(system[1]);
-                    const auto  covisible = keyframe_db.covisible(keyframe.index);
+                    const auto& keyframe = keyframe_db.add(system[1]);
+                    const auto covisible = keyframe_db.covisible(keyframe.index);
 
                     SPDLOG_INFO(
                         "Keyframe selected (frames_since_last={}, trans={:.3f}m, rot={:.2f}deg, tracked={:.2f}, inliers={}, forced={}, motion={}, quality={})",
@@ -342,25 +340,28 @@ void zenslam::slam_thread::loop()
                     if (!covisible.empty())
                     {
                         SPDLOG_INFO("Keyframe {} covisible with {} (shared features={})",
-                                    keyframe.index, covisible.front().first, covisible.front().second);
+                            keyframe.index, covisible.front().first, covisible.front().second);
                     }
 
-                    constexpr size_t lba_window_size  = 8;
-                    const auto       recent_keyframes = keyframe_db.recent(lba_window_size);
+                    constexpr size_t lba_window_size = 8;
+                    const auto recent_keyframes = keyframe_db.recent(lba_window_size);
                     if (recent_keyframes.size() >= 3 && !system.points3d.empty())
                     {
                         std::unordered_map<size_t, frame::estimated> lba_keyframes = { };
                         lba_keyframes.reserve(recent_keyframes.size());
 
-                        for (const auto& recent_keyframe : recent_keyframes)
+                        for (const auto* recent_keyframe : recent_keyframes)
                         {
-                            lba_keyframes.emplace(recent_keyframe.index, recent_keyframe);
+                            if (recent_keyframe != nullptr)
+                            {
+                                lba_keyframes.emplace(recent_keyframe->index, *recent_keyframe);
+                            }
                         }
 
                         if (!lba_keyframes.empty())
                         {
-                            const size_t anchor_id  = recent_keyframes.front().index;
-                            const auto   lba_result = lba.optimize(lba_keyframes, system.points3d, { anchor_id });
+                            const size_t anchor_id = recent_keyframes.front()->index;
+                            const auto lba_result = lba.optimize(lba_keyframes, system.points3d, { anchor_id });
 
                             for (const auto& [id, optimized_keyframe] : lba_keyframes)
                             {
