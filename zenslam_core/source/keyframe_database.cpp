@@ -95,6 +95,17 @@ namespace zenslam
         return _keyframes.at(frame.index);
     }
 
+    auto keyframe_database::update_pose(const size_t id, const cv::Affine3d& pose) -> bool
+    {
+        if (auto it = _keyframes.find(id); it != _keyframes.end())
+        {
+            it->second.pose = pose;
+            return true;
+        }
+
+        return false;
+    }
+
     auto keyframe_database::covisible(size_t id) const -> std::vector<std::pair<size_t, size_t>>
     {
         std::vector<std::pair<size_t, size_t>> result;

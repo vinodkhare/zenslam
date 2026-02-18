@@ -25,6 +25,7 @@ namespace zenslam
         [[nodiscard]] auto recent(size_t max_count) const -> std::vector<const frame::estimated*>;
 
         auto add(const frame::estimated& frame) -> const frame::estimated&;
+        auto update_pose(size_t id, const cv::Affine3d& pose) -> bool;
         [[nodiscard]] auto covisible(size_t id) const -> std::vector<std::pair<size_t, size_t>>;
 
     private:

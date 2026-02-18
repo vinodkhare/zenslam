@@ -15,6 +15,7 @@
 #include "zenslam/groundtruth.h"
 #include "zenslam/inertial_predictor.h"
 #include "zenslam/keyframe_database.h"
+#include "zenslam/local_bundle_adjustment.h"
 #include "zenslam/keyframe_selector.h"
 #include "zenslam/motion_predictor.h"
 #include "zenslam/processor.h"
@@ -58,6 +59,7 @@ void zenslam::slam_thread::loop()
     gravity_estimator  gravity_estimator{};
     keyframe_selector  keyframes{ _options.slam->keyframe };
     keyframe_database  keyframe_db{};
+    local_bundle_adjustment lba{ calibration.cameras[0].camera_matrix(), _options.slam->lba };
 
     auto ground_truth = groundtruth::read(_options.folder->groundtruth_file);
     auto writer       = frame::writer(_options.folder->output / "frame_data.csv");
@@ -339,6 +341,47 @@ void zenslam::slam_thread::loop()
                     {
                         SPDLOG_INFO("Keyframe {} covisible with {} (shared features={})",
                             keyframe.index, covisible.front().first, covisible.front().second);
+                    }
+
+                    constexpr size_t lba_window_size = 8;
+                    const auto recent_keyframes = keyframe_db.recent(lba_window_size);
+                    if (recent_keyframes.size() >= 3 && !system.points3d.empty())
+                    {
+                        std::unordered_map<size_t, frame::estimated> lba_keyframes = { };
+                        lba_keyframes.reserve(recent_keyframes.size());
+
+                        for (const auto* recent_keyframe : recent_keyframes)
+                        {
+                            if (recent_keyframe != nullptr)
+                            {
+                                lba_keyframes.emplace(recent_keyframe->index, *recent_keyframe);
+                            }
+                        }
+
+                        if (!lba_keyframes.empty())
+                        {
+                            const size_t anchor_id = recent_keyframes.front()->index;
+                            const auto lba_result = lba.optimize(lba_keyframes, system.points3d, { anchor_id });
+
+                            for (const auto& [id, optimized_keyframe] : lba_keyframes)
+                            {
+                                keyframe_db.update_pose(id, optimized_keyframe.pose);
+                                if (id == system[1].index)
+                                {
+                                    SPDLOG_DEBUG("LBA pose: {}", optimized_keyframe.pose);
+                                    system[1].pose = optimized_keyframe.pose;
+                                }
+                            }
+
+                            SPDLOG_INFO(
+                                "LBA window={} residuals={} iterations={} rmse: {:.4f} -> {:.4f} converged={}",
+                                lba_keyframes.size(),
+                                lba_result.residuals,
+                                lba_result.iterations,
+                                lba_result.initial_rmse,
+                                lba_result.final_rmse,
+                                lba_result.converged);
+                        }
                     }
                 }
 
