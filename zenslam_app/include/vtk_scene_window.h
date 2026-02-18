@@ -25,11 +25,13 @@ namespace zenslam
          *
          * @param options Reference to SLAM options for controlling visualization.
          * @param point_cloud_opacity Reference to point cloud opacity (controlled by ImGui).
+         * @param point_size Reference to point cloud point size (controlled by ImGui).
          * @param trajectory_estimated Reference to estimated trajectory history.
          * @param trajectory_gt Reference to ground truth trajectory history.
          */
         vtk_scene_window(const options&            options,
                          float&                    point_cloud_opacity,
+                         float&                    point_size,
                          std::vector<cv::Point3d>& trajectory_estimated,
                          std::vector<cv::Point3d>& trajectory_gt);
 
@@ -56,6 +58,7 @@ namespace zenslam
     private:
         const options&            _options;
         float&                    _point_cloud_opacity;
+        float&                    _point_size;
         std::vector<cv::Point3d>& _trajectory_estimated;
         std::vector<cv::Point3d>& _trajectory_gt;
         bool                      _initialized = false;

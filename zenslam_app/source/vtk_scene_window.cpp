@@ -92,10 +92,12 @@ namespace zenslam { namespace
 
     vtk_scene_window::vtk_scene_window(const options&            options,
                                        float&                    point_cloud_opacity,
+                                       float&                    point_size,
                                        std::vector<cv::Point3d>& trajectory_estimated,
                                        std::vector<cv::Point3d>& trajectory_gt) :
         _options(options),
         _point_cloud_opacity(point_cloud_opacity),
+        _point_size(point_size),
         _trajectory_estimated(trajectory_estimated),
         _trajectory_gt(trajectory_gt)
     {
@@ -175,7 +177,7 @@ namespace zenslam { namespace
         S.pointsGlyph->Update();
         S.pointsMapper->SetInputConnection(S.pointsGlyph->GetOutputPort());
         S.pointsActor->SetMapper(S.pointsMapper);
-        S.pointsActor->GetProperty()->SetPointSize(4.0);
+        S.pointsActor->GetProperty()->SetPointSize(_point_size);
         S.renderer->AddActor(S.pointsActor);
 
         // Lines pipeline
@@ -288,6 +290,7 @@ namespace zenslam { namespace
             S.pointsPoly->Modified();
             S.pointsGlyph->Update();
             S.pointsActor->GetProperty()->SetOpacity(_point_cloud_opacity);
+            S.pointsActor->GetProperty()->SetPointSize(_point_size);
         }
 
         // Update or hide lines

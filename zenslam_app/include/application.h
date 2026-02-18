@@ -42,6 +42,7 @@ namespace zenslam
 
         // Visualization controls (shared with ImGui window)
         float _point_cloud_opacity = 1.0f;
+        float _point_size          = 4.0f;
 
         // Window instances
         std::vector<std::shared_ptr<window>> _windows = { };

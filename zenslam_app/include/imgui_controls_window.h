@@ -25,8 +25,9 @@ namespace zenslam
          *
          * @param options Reference to SLAM options for controlling visualization settings.
          * @param point_cloud_opacity Reference to point cloud opacity (shared with VTK window).
+         * @param point_size Reference to point cloud point size (shared with VTK window).
          */
-        imgui_controls_window(options& options, float& point_cloud_opacity);
+        imgui_controls_window(options& options, float& point_cloud_opacity, float& point_size);
 
         void               initialize() override;
         void               render(const frame::system& system) override;
@@ -47,6 +48,7 @@ namespace zenslam
     private:
         options& _options;
         float&   _point_cloud_opacity;
+        float&   _point_size;
         bool     _initialized = false;
         bool     _visible     = true;
 

@@ -7,9 +7,10 @@
 
 namespace zenslam
 {
-    imgui_controls_window::imgui_controls_window(options& options, float& point_cloud_opacity) :
+    imgui_controls_window::imgui_controls_window(options& options, float& point_cloud_opacity, float& point_size) :
         _options(options),
-        _point_cloud_opacity(point_cloud_opacity)
+        _point_cloud_opacity(point_cloud_opacity),
+        _point_size(point_size)
     {
     }
 
@@ -120,6 +121,7 @@ namespace zenslam
         ImGui::Checkbox("Show Keypoints", &_options.slam->show_keypoints.value());
         ImGui::Checkbox("Show Keylines", &_options.slam->show_keylines.value());
         ImGui::SliderFloat("Point Cloud Opacity", &_point_cloud_opacity, 0.0f, 1.0f, "%.2f");
+        ImGui::SliderFloat("Point Size", &_point_size, 1.0f, 20.0f, "%.1f");
 
         // Color picker for keylines (single keyline color)
         const auto& s = _options.slam->keyline_single_color; // B, G, R
