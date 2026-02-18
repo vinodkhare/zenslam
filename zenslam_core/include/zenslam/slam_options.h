@@ -11,6 +11,11 @@
 #include "zenslam/motion/integrator.h"
 #include "zenslam/option.h"
 #include "zenslam/options_base.h"
+#include "zenslam/pnp_options.h"
+#include "zenslam/essential_options.h"
+#include "zenslam/rigid_options.h"
+#include "zenslam/keyframe_options.h"
+#include "zenslam/lba_options.h"
 
 namespace YAML
 {
@@ -25,66 +30,6 @@ namespace zenslam
         BRUTE,
         KNN,
         FLANN
-    };
-
-    /// PnP RANSAC estimation configuration
-    class pnp_options : public options_base<pnp_options, "pnp options", "pnp.">
-    {
-    public:
-        ZENSLAM_DEFINE_OPTIONS(
-            ((int, iterations, 1000, "PnP RANSAC maximum iterations"))
-            ((float, threshold, 3.0f, "PnP RANSAC inlier threshold in pixels"))
-            ((double, confidence, 0.99, "PnP RANSAC confidence level (0.0-1.0)"))
-            ((bool, use_refinement, true, "Use iterative LM refinement after RANSAC pose estimation"))
-            ((int, min_refinement_inliers, 4, "Minimum inliers required for PnP refinement"))
-        )
-    };
-
-    /// Essential matrix estimation configuration
-    class essential_options : public options_base<essential_options, "essential options", "essential.">
-    {
-    public:
-        ZENSLAM_DEFINE_OPTIONS(
-            ((double, confidence, 0.999, "Essential matrix RANSAC confidence level (0.0-1.0)"))
-            ((double, threshold, 1.0, "Essential matrix RANSAC threshold in pixels"))
-            ((int, min_inliers, 5, "Essential matrix minimum inliers"))
-        )
-    };
-
-    /// 3D-3D rigid transformation configuration
-    class rigid_options : public options_base<rigid_options, "rigid options", "rigid.">
-    {
-    public:
-        ZENSLAM_DEFINE_OPTIONS(
-            ((double, threshold, 0.1, "3D-3D rigid transformation RANSAC threshold in meters"))
-            ((int, iterations, 1000, "3D-3D rigid transformation RANSAC maximum iterations"))
-            ((int, min_correspondences, 3, "3D-3D rigid transformation minimum correspondences"))
-        )
-    };
-
-    /// Keyframe selection configuration
-    class keyframe_options : public options_base<keyframe_options, "keyframe options", "keyframe.">
-    {
-    public:
-        ZENSLAM_DEFINE_OPTIONS(
-            ((int, min_frames, 5, "Minimum frames between keyframes"))
-            ((int, max_frames, 30, "Maximum frames between keyframes"))
-            ((double, min_translation, 0.15, "Minimum translation (m) to trigger a keyframe"))
-            ((double, min_rotation_deg, 10.0, "Minimum rotation (deg) to trigger a keyframe"))
-            ((double, min_tracked_ratio, 0.6, "Minimum tracked ratio before forcing a keyframe"))
-            ((int, min_inliers, 20, "Minimum inliers before forcing a keyframe"))
-        )
-    };
-
-    /// Local bundle adjustment configuration
-    class lba_options : public options_base<lba_options, "lba options", "lba.">
-    {
-    public:
-        ZENSLAM_DEFINE_OPTIONS(
-            ((int, max_iterations, 30, "LBA maximum solver iterations"))
-            ((double, huber_delta, 1.0, "LBA Huber loss delta in pixels"))
-            ((bool, refine_landmarks, true, "Optimize landmark positions during LBA"))
-        )
     };
 
     /// SLAM algorithm configuration options
