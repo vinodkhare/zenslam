@@ -15,7 +15,6 @@ message(STATUS "Found OpenCV: ${OpenCV_VERSION}")
 add_executable(hello_test source/hello_test.cpp)
 target_link_libraries(hello_test PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_features2d opencv_imgproc)
 
-enable_testing()
 add_test(NAME hello_test COMMAND hello_test)
 
 add_executable(umeyama_test source/umeyama_test.cpp)

@@ -5,6 +5,8 @@ project(zenslam)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+enable_testing()
+
 # Speed-ups: ccache and Unity build
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
