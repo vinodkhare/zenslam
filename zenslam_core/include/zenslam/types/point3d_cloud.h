@@ -1,7 +1,9 @@
 #pragma once
 
 #include <nanoflann.hpp>
+#include <opencv2/core/mat.hpp>
 
+#include "keypoint.h"
 #include "map.h"
 #include "point3d.h"
 
@@ -88,6 +90,62 @@ namespace zenslam
         [[nodiscard]] auto size() const -> size_t
         {
             return map::size();
+        }
+
+        /**
+         * @brief Check if a keypoint descriptor matches any landmark in the cloud
+         *
+         * Uses Hamming distance for binary descriptors (ORB) or L2 for float descriptors.
+         * Applies a distance threshold for acceptance.
+         *
+         * @param kp Keypoint with descriptor to match
+         * @param max_descriptor_distance Maximum allowed descriptor distance
+         *        For ORB binary: typically 50-70 bits
+         *        For float descriptors: typically 0.3-0.5 normalized distance
+         * @return true if a matching landmark is found, false otherwise
+         */
+        [[nodiscard]] auto match(
+            const keypoint& keypoint,
+            double max_descriptor_distance = 50.0) const -> std::optional<point3d>
+        {
+            if (keypoint.descriptor.empty())
+            {
+                return std::nullopt;
+            }
+
+            for (const auto& [_, point3d] : *this)
+            {
+                if (point3d.descriptor.empty())
+                {
+                    continue;
+                }
+
+                // Compute descriptor distance
+                // Use Hamming for binary descriptors (ORB), L2 for float
+                double distance = 0.0;
+                if (keypoint.descriptor.type() == CV_8U && point3d.descriptor.type() == CV_8U)
+                {
+                    distance = cv::norm(keypoint.descriptor, point3d.descriptor, cv::NORM_HAMMING);
+                }
+                else
+                {
+                    // Convert to float if needed for L2 distance
+                    cv::Mat kp_desc = keypoint.descriptor.clone();
+                    cv::Mat lm_desc = point3d.descriptor.clone();
+                    if (kp_desc.type() != CV_32F)
+                        kp_desc.convertTo(kp_desc, CV_32F);
+                    if (lm_desc.type() != CV_32F)
+                        lm_desc.convertTo(lm_desc, CV_32F);
+                    distance = cv::norm(kp_desc, lm_desc, cv::NORM_L2);
+                }
+
+                if (distance <= max_descriptor_distance)
+                {
+                    return point3d;
+                }
+            }
+
+            return std::nullopt;
         }
     };
 }

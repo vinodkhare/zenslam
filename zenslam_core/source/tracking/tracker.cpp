@@ -16,11 +16,12 @@
 
 namespace zenslam
 {
-    tracker::tracker(calibration calib, slam_options opts) :
+    tracker::tracker(calibration calib, slam_options opts, frame::system& system) :
         _calibration(std::move(calib)),
         _options(std::move(opts)),
         _matcher(_options, _options.descriptor == descriptor_type::ORB || _options.descriptor == descriptor_type::FREAK),
-        _detector(detector::create(_options))
+        _detector(detector::create(_options)),
+        _system(system)
     {
     }
 
@@ -41,14 +42,27 @@ namespace zenslam
                     // Track keypoints
                     keypoints_0 += track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0]);
 
+                    std::vector<zenslam::keypoint> keypoints_0_new {};
                     if (_options.use_parallel_detector)
                     {
-                        keypoints_0 += _detector.detect_keypoints_par(frame_1.undistorted[0], keypoints_0);
+                        keypoints_0_new = _detector.detect_keypoints_par(frame_1.undistorted[0], keypoints_0);
                     }
                     else
                     {
-                        keypoints_0 += _detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
+                        keypoints_0_new = _detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
                     }
+
+                    for (auto& keypoint_0_new : keypoints_0_new)
+                    {
+                        const auto& matching_point3d = _system.points3d.match(keypoint_0_new);
+
+                        if(matching_point3d.has_value())
+                        {
+                            keypoint_0_new.index = matching_point3d->index;
+                        }
+                    }
+
+                    keypoints_0 += keypoints_0_new;
 
                     // Track keylines
                     keylines_0 += track_keylines(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keylines[0]);
@@ -65,14 +79,27 @@ namespace zenslam
                     // Track keypoints
                     keypoints_1 += track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1]);
 
+                    std::vector<zenslam::keypoint> keypoints_1_new {};
                     if (_options.use_parallel_detector)
                     {
-                        keypoints_1 += _detector.detect_keypoints_par(frame_1.undistorted[1], keypoints_1);
+                        keypoints_1_new = _detector.detect_keypoints_par(frame_1.undistorted[1], keypoints_1);
                     }
                     else
                     {
-                        keypoints_1 += _detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
+                        keypoints_1_new = _detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
                     }
+
+                    for (auto& keypoint_1_new : keypoints_1_new)
+                    {
+                        const auto& matching_point3d = _system.points3d.match(keypoint_1_new);
+
+                        if(matching_point3d.has_value())
+                        {
+                            keypoint_1_new.index = matching_point3d->index;
+                        }
+                    }
+
+                    keypoints_1 += keypoints_1_new;
 
                     // Track keylines
                     keylines_1 += track_keylines(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keylines[1]);

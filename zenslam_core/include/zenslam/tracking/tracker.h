@@ -10,6 +10,7 @@
 #include "zenslam/frame/estimated.h"
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/tracked.h"
+#include "zenslam/frame/system.h"
 #include "zenslam/types/keyline.h"
 
 namespace zenslam
@@ -20,7 +21,7 @@ namespace zenslam
     class tracker
     {
     public:
-        tracker(calibration calib, slam_options opts);
+        tracker(calibration calib, slam_options opts, frame::system& system);
 
         /** Track keypoints from frame_0 to frame_1 and augment with new stereo keypoints and triangulated 3D points.
          *
@@ -49,6 +50,8 @@ namespace zenslam
         matcher      _matcher      = { _options, false };
         triangulator _triangulator = { _calibration, _options };
         detector     _detector     = { };
+
+        const frame::system& _system;
 
         /** Track keypoints from pyramid_0 to pyramid_1 using KLT optical flow.
          *

@@ -52,9 +52,11 @@ void zenslam::slam_thread::loop()
 {
     const auto& calibration = calibration::parse(_options.folder->calibration_file, _options.folder->imu_calibration_file, _options.slam->stereo_rectify);
 
+    frame::system system { };
+
     // Create tracker (owns descriptor matcher configured from options)
     processor               processor { _options.slam, calibration };
-    tracker                 tracker { calibration, _options.slam };
+    tracker                 tracker { calibration, _options.slam, system };
     const estimator         estimator { calibration, _options.slam };
     motion_predictor        motion { };
     inertial_predictor      inertial { cv::Vec3d { 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
@@ -67,8 +69,6 @@ void zenslam::slam_thread::loop()
     auto writer       = frame::writer(_options.folder->output / "frame_data.csv");
 
     calibration.print();
-
-    frame::system system { };
 
     // Set configuration strings once
     system.counts.detector_type   = magic_enum::enum_name(_options.slam->feature.value());
