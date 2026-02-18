@@ -5,6 +5,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/calib3d.hpp>
 
+#include <algorithm>
 #include <array>
 #include <random>
 #include <set>
@@ -14,6 +15,8 @@
 #include <zenslam/frame/estimated.h>
 #include <zenslam/optimization/local_bundle_adjustment.h>
 #include <zenslam/options.h>
+#include <zenslam/place_recognition/bow_database.h>
+#include <zenslam/place_recognition/bow_vocabulary.h>
 #include <zenslam/types/point3d_cloud.h>
 #include <zenslam/types/point3d.h>
 #include <zenslam/utils/utils.h>
@@ -732,4 +735,77 @@ TEST_CASE("local bundle adjustment runs on BAL Dubrovnik subset", "[optimization
     }
 
     run_bal_subset_lba_case(bal_path);
+}
+
+TEST_CASE("BoW vocabulary builds and maps descriptors", "[place_recognition][bow]")
+{
+    cv::theRNG().state = 12345;
+
+    zenslam::bow_vocabulary vocab(2, 2);
+
+    std::vector<cv::Mat> training;
+    training.emplace_back((cv::Mat_<float>(1, 2) << 0.0f, 0.0f));
+    training.emplace_back((cv::Mat_<float>(1, 2) << 0.1f, 0.1f));
+    training.emplace_back((cv::Mat_<float>(1, 2) << 5.0f, 5.0f));
+    training.emplace_back((cv::Mat_<float>(1, 2) << 5.1f, 5.1f));
+
+    REQUIRE_NOTHROW(vocab.build(training, 5));
+    REQUIRE(vocab.is_built());
+    REQUIRE(vocab.vocab_size() == 4);
+
+    const int word0 = vocab.descriptor_to_word(training.front());
+    const int word1 = vocab.descriptor_to_word(training.back());
+    REQUIRE(word0 >= 0);
+    REQUIRE(word0 < vocab.vocab_size());
+    REQUIRE(word1 >= 0);
+    REQUIRE(word1 < vocab.vocab_size());
+
+    const cv::Mat histogram = vocab.descriptors_to_histogram(training);
+    REQUIRE(histogram.rows == 1);
+    REQUIRE(histogram.cols == vocab.vocab_size());
+    const double norm = cv::norm(histogram);
+    REQUIRE(norm == Catch::Approx(1.0).margin(1e-6));
+}
+
+TEST_CASE("BoW database returns high-similarity matches", "[place_recognition][bow]")
+{
+    cv::theRNG().state = 23456;
+
+    zenslam::bow_vocabulary vocab(1, 2);
+
+    std::vector<cv::Mat> training;
+    training.emplace_back((cv::Mat_<float>(1, 2) << 0.0f, 0.0f));
+    training.emplace_back((cv::Mat_<float>(1, 2) << 0.1f, -0.1f));
+    training.emplace_back((cv::Mat_<float>(1, 2) << 10.0f, 10.0f));
+    training.emplace_back((cv::Mat_<float>(1, 2) << 10.2f, 9.9f));
+    vocab.build(training, 5);
+
+    zenslam::bow_database database(vocab);
+
+    std::vector<cv::Mat> frame0;
+    frame0.emplace_back((cv::Mat_<float>(1, 2) << 0.05f, 0.0f));
+    frame0.emplace_back((cv::Mat_<float>(1, 2) << -0.05f, 0.1f));
+
+    std::vector<cv::Mat> frame1;
+    frame1.emplace_back((cv::Mat_<float>(1, 2) << 10.1f, 9.95f));
+    frame1.emplace_back((cv::Mat_<float>(1, 2) << 9.9f, 10.05f));
+
+    database.add_frame(0, frame0);
+    database.add_frame(1, frame1);
+
+    const auto matches = database.query(frame0, 0, 2, 0.01);
+    REQUIRE_FALSE(matches.empty());
+    const auto match0 = std::find_if(matches.begin(), matches.end(), [](const auto& match) {
+        return match.frame_id == 0;
+    });
+    REQUIRE(match0 != matches.end());
+    REQUIRE(match0->bow_score > 0.5);
+
+    const auto matches_far = database.query(frame1, 0, 2, 0.01);
+    REQUIRE_FALSE(matches_far.empty());
+    const auto match1 = std::find_if(matches_far.begin(), matches_far.end(), [](const auto& match) {
+        return match.frame_id == 1;
+    });
+    REQUIRE(match1 != matches_far.end());
+    REQUIRE(match1->bow_score > 0.5);
 }

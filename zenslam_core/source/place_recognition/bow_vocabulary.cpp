@@ -29,10 +29,10 @@ namespace zenslam
         SPDLOG_INFO("Training set size: {} descriptors", training_descriptors.size());
 
         // Initialize cluster storage
-        _clusters.resize(_levels);
-        _cluster_sizes.resize(_levels);
+        _clusters.resize(_levels + 1);
+        _cluster_sizes.resize(_levels + 1);
 
-        for (int level = 0; level < _levels; ++level)
+        for (int level = 0; level <= _levels; ++level)
         {
             int num_nodes_at_level = 1;
             for (int i = 0; i < level; ++i)
@@ -63,7 +63,7 @@ namespace zenslam
         }
 
         // Base case: at leaf level, store the single cluster center (mean of descriptors)
-        if (level == _levels - 1)
+        if (level == _levels)
         {
             cv::Mat center = cv::Mat::zeros(1, descriptors[0].cols, descriptors[0].type());
             for (const auto& desc : descriptors)
@@ -198,23 +198,12 @@ namespace zenslam
         // Traverse tree from root to leaf
         for (int level = 0; level < _levels; ++level)
         {
-            const std::vector<cv::Mat>& level_clusters = _clusters[level];
+            const std::vector<cv::Mat>& next_level_clusters = _clusters[level + 1];
 
-            if (node_idx >= level_clusters.size())
+            if (node_idx < 0)
             {
                 SPDLOG_ERROR("Node index out of bounds at level {}", level);
                 return -1;
-            }
-
-            // If we're at a leaf, return the word ID
-            if (level == _levels - 1)
-            {
-                int num_leaves = 1;
-                for (int i = 0; i < _levels; ++i)
-                {
-                    num_leaves *= _branching_factor;
-                }
-                return node_idx;
             }
 
             // Find nearest cluster center at this level
@@ -226,9 +215,10 @@ namespace zenslam
             {
                 int child_node_idx = node_idx * _branching_factor + child_idx;
 
-                if (child_node_idx < level_clusters.size() && !level_clusters[child_node_idx].empty())
+                if (child_node_idx < static_cast<int>(next_level_clusters.size()) &&
+                    !next_level_clusters[child_node_idx].empty())
                 {
-                    double dist = cv::norm(query, level_clusters[child_node_idx], cv::NORM_L2);
+                    double dist = cv::norm(query, next_level_clusters[child_node_idx], cv::NORM_L2);
                     if (dist < min_dist)
                     {
                         min_dist = dist;
