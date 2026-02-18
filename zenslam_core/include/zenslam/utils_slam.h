@@ -6,14 +6,8 @@
 #include <map>
 #include <ranges>
 
-#include <opencv2/features2d.hpp>
-
 #include "zenslam/correspondence_utils.h"
 #include "zenslam/matching_utils.h"
-#include "zenslam/rigid_transform.h"
-#include "zenslam/tracking_utils.h"
-#include "zenslam/triangulation_utils.h"
-#include "zenslam/types/keyline.h"
 #include "zenslam/types/line3d.h"
 #include "zenslam/types/point3d.h"
 

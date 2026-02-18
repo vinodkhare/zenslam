@@ -6,11 +6,11 @@
 #include <vector>
 
 #include <opencv2/calib3d.hpp>
-#include <opencv2/core.hpp>
 
+#include "zenslam/utils_opencv.h"
+#include "zenslam/utils_slam.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/line3d.h"
-#include "zenslam/utils_opencv.h"
 
 namespace
 {
@@ -37,12 +37,13 @@ namespace
                 const auto vec_to_point_1 =
                     cv::Vec3d(p.x, p.y, p.z) - translation_of_camera1_in_camera0;
                 const auto norm_prod = cv::norm(vec_to_point_0) * cv::norm(vec_to_point_1);
-                return norm_prod < 1e-12 ? 0.0
-                                         : std::abs(std::acos(std::clamp(
-                                               vec_to_point_0.dot(vec_to_point_1) / norm_prod,
-                                               -1.0,
-                                               1.0))) *
-                                               180 / CV_PI;
+                return norm_prod < 1e-12
+                           ? 0.0
+                           : std::abs(std::acos(std::clamp(
+                               vec_to_point_0.dot(vec_to_point_1) / norm_prod,
+                               -1.0,
+                               1.0))) *
+                           180 / CV_PI;
             });
     }
 }
@@ -56,13 +57,13 @@ auto zenslam::utils::triangulate_keylines(
     const cv::Vec3d&    translation_of_camera1_in_camera0) -> std::vector<line3d>
 {
     const auto& points2f_0_0 = keylines_0.values_matched(keylines_1) | points_0() |
-                               std::ranges::to<std::vector>();
+        std::ranges::to<std::vector>();
     const auto& points2f_0_1 = keylines_0.values_matched(keylines_1) | points_1() |
-                               std::ranges::to<std::vector>();
+        std::ranges::to<std::vector>();
     const auto& points2f_1_0 = keylines_1.values_matched(keylines_0) | points_0() |
-                               std::ranges::to<std::vector>();
+        std::ranges::to<std::vector>();
     const auto& points2f_1_1 = keylines_1.values_matched(keylines_0) | points_1() |
-                               std::ranges::to<std::vector>();
+        std::ranges::to<std::vector>();
 
     const auto& points3d_cv_0 =
         triangulate_points(points2f_0_0, points2f_1_0, projection_0, projection_1);
@@ -80,9 +81,9 @@ auto zenslam::utils::triangulate_keylines(
     const auto& errors_1_1 = vecnorm(points2f_1_1_back - points2f_1_1);
 
     const auto& angles_0 = points3d_cv_0 | epipolar_angles(translation_of_camera1_in_camera0) |
-                           std::ranges::to<std::vector>();
+        std::ranges::to<std::vector>();
     const auto& angles_1 = points3d_cv_1 | epipolar_angles(translation_of_camera1_in_camera0) |
-                           std::ranges::to<std::vector>();
+        std::ranges::to<std::vector>();
 
     const auto& indices_0 =
         keylines_0.keys_matched(keylines_1) | std::ranges::to<std::vector>();
@@ -96,14 +97,14 @@ auto zenslam::utils::triangulate_keylines(
         auto       angle     = norm_prod < 1e-12
                                    ? 0.0
                                    : std::abs(std::acos(std::clamp(
-                                         vector_0.dot(vector_1) / norm_prod,
-                                         -1.0,
-                                         1.0))) *
+                                       vector_0.dot(vector_1) / norm_prod,
+                                       -1.0,
+                                       1.0))) *
                                    180 / CV_PI;
         ang.push_back(angle);
     }
 
-    std::vector<line3d> lines3d {};
+    std::vector<line3d> lines3d { };
     for (auto i = 0; i < points3d_cv_0.size(); ++i)
     {
         if (points3d_cv_0[i].z > 1 && points3d_cv_1[i].z > 1 && points3d_cv_0[i].z < 30 &&
@@ -132,13 +133,13 @@ auto zenslam::utils::triangulate_points(
 {
     if (points2f_0.empty() || points2f_1.empty())
     {
-        return {};
+        return { };
     }
 
-    cv::Mat points4d {};
+    cv::Mat points4d { };
     cv::triangulatePoints(projection_0, projection_1, points2f_0, points2f_1, points4d);
 
-    std::vector<cv::Point3d> points3d {};
+    std::vector<cv::Point3d> points3d { };
     for (auto i = 0; i < points4d.cols; ++i)
     {
         cv::Vec4d X = points4d.col(i);

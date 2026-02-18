@@ -8,6 +8,8 @@
 
 #include "zenslam/detector.h"
 #include "zenslam/matcher.h"
+#include "zenslam/tracking_utils.h"
+#include "zenslam/triangulation_utils.h"
 #include "zenslam/triangulator.h"
 #include "zenslam/utils_opencv.h"
 #include "zenslam/utils_slam.h"

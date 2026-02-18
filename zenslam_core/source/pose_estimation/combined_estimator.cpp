@@ -5,6 +5,8 @@
 #include <gsl/narrow>
 #include <spdlog/spdlog.h>
 
+#include "zenslam/rigid_transform.h"
+#include "zenslam/triangulation_utils.h"
 #include "zenslam/utils_slam.h"
 #include "zenslam/utils_std.h"
 #include "zenslam/pose_estimation/common.h"
@@ -12,8 +14,8 @@
 namespace zenslam::pose_estimation
 {
     auto combined_estimator::split_feature_inliers(
-        const std::vector<int>& correspondence_inliers,
-        const size_t num_points,
+        const std::vector<int>&    correspondence_inliers,
+        const size_t               num_points,
         const std::vector<size_t>& point_indices,
         const std::vector<size_t>& line_indices) -> feature_split
     {
@@ -30,7 +32,7 @@ namespace zenslam::pose_estimation
             {
                 // Line endpoint inlier - map back to line ID
                 const size_t line_endpoint_idx = idx - num_points;
-                const size_t line_idx = line_endpoint_idx / 2;
+                const size_t line_idx          = line_endpoint_idx / 2;
                 if (line_idx < line_indices.size())
                     result.line_ids.insert(line_indices[line_idx]);
             }
@@ -40,21 +42,21 @@ namespace zenslam::pose_estimation
     }
 
     auto combined_estimator::estimate_3d2d(
-        const std::map<size_t, point3d>& map_points_0,
+        const std::map<size_t, point3d>&  map_points_0,
         const std::map<size_t, keypoint>& map_keypoints_1,
-        const std::map<size_t, line3d>& map_lines_0,
-        const std::map<size_t, keyline>& map_keylines_1) const -> std::optional<pose_data>
+        const std::map<size_t, line3d>&   map_lines_0,
+        const std::map<size_t, keyline>&  map_keylines_1) const -> std::optional<pose_data>
     {
         // Gather point correspondences
         std::vector<cv::Point3d> points3d;
         std::vector<cv::Point2d> points2d;
-        std::vector<size_t> point_indices;
+        std::vector<size_t>      point_indices;
         utils::correspondences_3d2d(map_points_0, map_keypoints_1, points3d, points2d, point_indices);
 
         // Gather line endpoint correspondences
-        std::vector<cv::Point3d> lines3d_p1, lines3d_p2;
+        std::vector<cv::Point3d> lines3d_p1,    lines3d_p2;
         std::vector<cv::Point2d> keylines2d_p1, keylines2d_p2;
-        std::vector<size_t> line_indices;
+        std::vector<size_t>      line_indices;
         utils::correspondences_3d2d_lines(
             map_lines_0, map_keylines_1,
             lines3d_p1, lines3d_p2,
@@ -88,7 +90,7 @@ namespace zenslam::pose_estimation
 
         // Run PnP RANSAC using slam_options directly
         const cv::Mat K(_calibration.camera_matrix[0]);
-        auto pnp = solve_pnp_ransac(all_points3d, all_points2d, K, _options);
+        auto          pnp = solve_pnp_ransac(all_points3d, all_points2d, K, _options);
 
         if (!pnp.success)
         {
@@ -97,7 +99,7 @@ namespace zenslam::pose_estimation
         }
 
         // Split inliers back to feature IDs
-        const auto [inlier_point_ids, inlier_line_ids] = 
+        const auto [inlier_point_ids, inlier_line_ids] =
             split_feature_inliers(pnp.inliers, num_points, point_indices, line_indices);
 
         pose_data out;
@@ -126,8 +128,8 @@ namespace zenslam::pose_estimation
             pnp.rvec, pnp.tvec, K);
 
         SPDLOG_DEBUG("Combined 3D-2D: {} total ({} points + {} lines), {} inliers ({} point + {} line features)",
-            all_points3d.size(), num_points, lines3d_p1.size(),
-            pnp.inliers.size(), inlier_point_ids.size(), inlier_line_ids.size());
+                     all_points3d.size(), num_points, lines3d_p1.size(),
+                     pnp.inliers.size(), inlier_point_ids.size(), inlier_line_ids.size());
 
         return out;
     }
@@ -135,18 +137,18 @@ namespace zenslam::pose_estimation
     auto combined_estimator::estimate_3d3d(
         const std::map<size_t, point3d>& map_points_0,
         const std::map<size_t, point3d>& map_points_1,
-        const std::map<size_t, line3d>& map_lines_0,
-        const std::map<size_t, line3d>& map_lines_1) const -> std::optional<pose_data>
+        const std::map<size_t, line3d>&  map_lines_0,
+        const std::map<size_t, line3d>&  map_lines_1) const -> std::optional<pose_data>
     {
         // Gather point correspondences
         std::vector<cv::Point3d> points_0, points_1;
-        std::vector<size_t> point_indices;
+        std::vector<size_t>      point_indices;
         utils::correspondences_3d3d(map_points_0, map_points_1, points_0, points_1, point_indices);
 
         // Gather line endpoint correspondences
         std::vector<cv::Point3d> lines3d_0_p1, lines3d_0_p2;
         std::vector<cv::Point3d> lines3d_1_p1, lines3d_1_p2;
-        std::vector<size_t> line_indices;
+        std::vector<size_t>      line_indices;
         utils::correspondences_3d3d_lines(
             map_lines_0, map_lines_1,
             lines3d_0_p1, lines3d_0_p2,
@@ -178,8 +180,8 @@ namespace zenslam::pose_estimation
         }
 
         // Estimate rigid transformation
-        cv::Matx33d R;
-        cv::Point3d t;
+        cv::Matx33d         R;
+        cv::Point3d         t;
         std::vector<size_t> endpoint_inliers, endpoint_outliers;
         std::vector<double> errors;
 
@@ -190,16 +192,16 @@ namespace zenslam::pose_estimation
 
         // Convert inliers from int to size_t for split_feature_inliers
         std::vector<int> inliers_int(endpoint_inliers.begin(), endpoint_inliers.end());
-        const auto [inlier_point_ids, inlier_line_ids] = 
+        const auto       [inlier_point_ids, inlier_line_ids] =
             split_feature_inliers(inliers_int, num_points, point_indices, line_indices);
 
         // Do the same for outliers
         std::vector<int> outliers_int(endpoint_outliers.begin(), endpoint_outliers.end());
-        const auto [outlier_point_ids, outlier_line_ids] = 
+        const auto       [outlier_point_ids, outlier_line_ids] =
             split_feature_inliers(outliers_int, num_points, point_indices, line_indices);
 
         pose_data out;
-        out.pose = cv::Affine3d{R, t};
+        out.pose = cv::Affine3d { R, t };
 
         // Combine all feature IDs
         out.indices.reserve(point_indices.size() + line_indices.size());
@@ -217,8 +219,8 @@ namespace zenslam::pose_estimation
         out.errors = errors;
 
         SPDLOG_DEBUG("Combined 3D-3D: {} total ({} points + {} lines), {} inliers ({} point + {} line features)",
-            all_points_0.size(), num_points, lines3d_0_p1.size(),
-            endpoint_inliers.size(), inlier_point_ids.size(), inlier_line_ids.size());
+                     all_points_0.size(), num_points, lines3d_0_p1.size(),
+                     endpoint_inliers.size(), inlier_point_ids.size(), inlier_line_ids.size());
 
         return out;
     }
@@ -226,20 +228,20 @@ namespace zenslam::pose_estimation
     auto combined_estimator::estimate_2d2d(
         const std::map<size_t, keypoint>& map_keypoints_0,
         const std::map<size_t, keypoint>& map_keypoints_1,
-        const std::map<size_t, point3d>& map_points3d_0,
-        const std::map<size_t, line3d>& map_lines_0,
-        const std::map<size_t, keyline>& map_keylines_0,
-        const std::map<size_t, keyline>& map_keylines_1) const -> std::optional<pose_data>
+        const std::map<size_t, point3d>&  map_points3d_0,
+        const std::map<size_t, line3d>&   map_lines_0,
+        const std::map<size_t, keyline>&  map_keylines_0,
+        const std::map<size_t, keyline>&  map_keylines_1) const -> std::optional<pose_data>
     {
         // Gather point correspondences
         std::vector<cv::Point2f> points0, points1;
-        std::vector<size_t> point_indices;
+        std::vector<size_t>      point_indices;
         utils::correspondence_2d2d(map_keypoints_0, map_keypoints_1, points0, points1, point_indices);
 
         // Gather line endpoint correspondences
         std::vector<cv::Point2f> keylines0_p1, keylines0_p2;
         std::vector<cv::Point2f> keylines1_p1, keylines1_p2;
-        std::vector<size_t> line_indices;
+        std::vector<size_t>      line_indices;
 
         for (const auto& [id0, kl0] : map_keylines_0)
         {
@@ -280,7 +282,7 @@ namespace zenslam::pose_estimation
 
         // Estimate essential matrix
         std::vector<uchar> inlier_mask;
-        cv::Mat E = cv::findEssentialMat(
+        cv::Mat            E = cv::findEssentialMat(
             all_points0, all_points1,
             _calibration.camera_matrix[0],
             cv::RANSAC, 0.999,
@@ -295,7 +297,7 @@ namespace zenslam::pose_estimation
 
         // Recover pose
         cv::Mat R, t;
-        int inliers = cv::recoverPose(
+        int     inliers = cv::recoverPose(
             E, all_points0, all_points1,
             _calibration.camera_matrix[0],
             R, t, inlier_mask);
@@ -316,14 +318,14 @@ namespace zenslam::pose_estimation
                 continue;
 
             cv::Point3d X0;
-            bool has_3d = false;
+            bool        has_3d = false;
 
             if (i < num_points)
             {
                 // Point inlier
                 if (auto itX = map_points3d_0.find(point_indices[i]); itX != map_points3d_0.end())
                 {
-                    X0 = itX->second;
+                    X0     = itX->second;
                     has_3d = true;
                 }
             }
@@ -331,14 +333,14 @@ namespace zenslam::pose_estimation
             {
                 // Line endpoint inlier
                 const size_t line_endpoint_idx = i - num_points;
-                const size_t line_idx = line_endpoint_idx / 2;
-                const bool is_endpoint1 = (line_endpoint_idx % 2) == 0;
+                const size_t line_idx          = line_endpoint_idx / 2;
+                const bool   is_endpoint1      = (line_endpoint_idx % 2) == 0;
 
                 if (line_idx < line_indices.size())
                 {
                     if (auto itL = map_lines_0.find(line_indices[line_idx]); itL != map_lines_0.end())
                     {
-                        X0 = is_endpoint1 ? itL->second[0] : itL->second[1];
+                        X0     = is_endpoint1 ? itL->second[0] : itL->second[1];
                         has_3d = true;
                     }
                 }
@@ -360,8 +362,8 @@ namespace zenslam::pose_estimation
 
         // Triangulate and compute scale
         const cv::Matx33d K(_calibration.camera_matrix[0]);
-        const auto Rm = cv::Matx33d(R);
-        const auto tv = cv::Vec3d(t);
+        const auto        Rm = cv::Matx33d(R);
+        const auto        tv = cv::Vec3d(t);
 
         cv::Matx34d P0(
             K(0, 0), K(0, 1), K(0, 2), 0.0,
@@ -369,8 +371,8 @@ namespace zenslam::pose_estimation
             K(2, 0), K(2, 1), K(2, 2), 0.0);
 
         const cv::Matx33d KR = K * Rm;
-        const cv::Vec3d Kt = K * tv;
-        cv::Matx34d P1(
+        const cv::Vec3d   Kt = K * tv;
+        cv::Matx34d       P1(
             KR(0, 0), KR(0, 1), KR(0, 2), Kt[0],
             KR(1, 0), KR(1, 1), KR(1, 2), Kt[1],
             KR(2, 0), KR(2, 1), KR(2, 2), Kt[2]);
@@ -399,7 +401,7 @@ namespace zenslam::pose_estimation
             return std::nullopt;
         }
 
-        const double s = utils::median(scales);
+        const double      s        = utils::median(scales);
         const cv::Point3d t_scaled = cv::Point3d(tv) * s;
 
         // Build output - split inliers/outliers by feature type
@@ -435,10 +437,10 @@ namespace zenslam::pose_estimation
 
         // Errors
         std::vector<cv::Point2d> proj;
-        cv::Mat rvec;
+        cv::Mat                  rvec;
         cv::Rodrigues(R, rvec);
         cv::projectPoints(X0_list, rvec, cv::Mat(t_scaled),
-            _calibration.camera_matrix[0], cv::Mat(), proj);
+                          _calibration.camera_matrix[0], cv::Mat(), proj);
 
         for (size_t i = 0; i < proj.size(); ++i)
         {
@@ -446,10 +448,9 @@ namespace zenslam::pose_estimation
         }
 
         SPDLOG_DEBUG("Combined 2D-2D: {} total ({} points + {} lines), {} inliers ({} point + {} line features), scale={:.3f}",
-            all_points0.size(), num_points, keylines0_p1.size(),
-            inliers, inlier_point_ids.size(), inlier_line_ids.size(), s);
+                     all_points0.size(), num_points, keylines0_p1.size(),
+                     inliers, inlier_point_ids.size(), inlier_line_ids.size(), s);
 
         return out;
     }
-
 } // namespace zenslam::pose_estimation

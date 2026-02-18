@@ -5,12 +5,14 @@
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/features2d.hpp>
+
 #include <spdlog/spdlog.h>
 
+#include "zenslam/utils_opencv.h"
+#include "zenslam/utils_slam.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/point3d_cloud.h"
-#include "zenslam/utils_opencv.h"
 
 auto zenslam::utils::filter(
     const std::vector<cv::KeyPoint>& keypoints0,

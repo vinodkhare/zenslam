@@ -1,11 +1,8 @@
 #pragma once
 
-#include <cstddef>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include <opencv2/core.hpp>
 
 #include "zenslam/frame/estimated.h"
 namespace zenslam

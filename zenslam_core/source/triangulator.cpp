@@ -3,6 +3,7 @@
 
 #include <ranges>
 
+#include "zenslam/triangulation_utils.h"
 #include "zenslam/utils.h"
 #include "zenslam/utils_opencv.h"
 #include "zenslam/utils_slam.h"

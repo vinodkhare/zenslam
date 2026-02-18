@@ -79,6 +79,11 @@ add_library(${PROJECT_NAME}
         source/utils.cpp
         source/utils_opencv.cpp
         source/utils_slam.cpp
+        source/correspondence_utils.cpp
+        source/rigid_transform.cpp
+        source/matching_utils.cpp
+        source/triangulation_utils.cpp
+        source/tracking_utils.cpp
         source/utils_std.cpp
         source/verb.cpp
 )
