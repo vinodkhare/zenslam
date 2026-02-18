@@ -1,7 +1,7 @@
 #include <filesystem>
 #include <fstream>
 #include <catch2/catch_all.hpp>
-#include <zenslam/imu_calibration.h>
+#include <zenslam/calibration/imu_calibration.h>
 
 TEST_CASE("IMU Calibration Parsing", "[imu_calibration]")
 {

@@ -3,8 +3,8 @@
 #include <thread>
 #include <utility>
 
-#include "zenslam/utils.h"
-#include "zenslam/utils_opencv.h"
+#include "zenslam/utils/utils.h"
+#include "zenslam/utils/utils_opencv.h"
 
 zenslam::processor::processor(slam_options options, calibration calibration) :
     _options { std::move(options) },

@@ -3,8 +3,8 @@
 #include <map>
 #include <optional>
 
-#include "zenslam/calibration.h"
-#include "zenslam/pose_data.h"
+#include "zenslam/calibration/calibration.h"
+#include "zenslam/utils/pose_data.h"
 #include "zenslam/slam_options.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/line3d.h"

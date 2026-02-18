@@ -12,12 +12,12 @@
 #include <unordered_map>
 
 #include <zenslam/frame/estimated.h>
-#include <zenslam/local_bundle_adjustment.h>
+#include <zenslam/optimization/local_bundle_adjustment.h>
 #include <zenslam/options.h>
 #include <zenslam/types/point3d_cloud.h>
 #include <zenslam/types/point3d.h>
-#include <zenslam/utils.h>
-#include <zenslam/utils_opencv.h>
+#include <zenslam/utils/utils.h>
+#include <zenslam/utils/utils_opencv.h>
 
 namespace
 {

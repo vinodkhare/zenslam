@@ -7,8 +7,8 @@
 
 #include <opencv2/core/types.hpp>
 
-#include "zenslam/detection_types.h"
-#include "zenslam/integrator.h"
+#include "zenslam/detection/detection_types.h"
+#include "zenslam/motion/integrator.h"
 #include "zenslam/option.h"
 #include "zenslam/options_base.h"
 

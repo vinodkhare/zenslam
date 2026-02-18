@@ -2,9 +2,9 @@
 
 #include <opencv2/calib3d.hpp>
 
-#include "zenslam/utils.h"
-#include "zenslam/utils_slam.h"
-#include "zenslam/rigid_transform.h"
+#include "zenslam/utils/utils.h"
+#include "zenslam/utils/utils_slam.h"
+#include "zenslam/utils/rigid_transform.h"
 
 TEST_CASE (
 "umeyama estimates rotation and translation for rigid transform"

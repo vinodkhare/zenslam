@@ -3,7 +3,7 @@
 #include <string>
 #include <opencv2/core.hpp>
 
-#include "zenslam/pose_data.h"
+#include "zenslam/utils/pose_data.h"
 
 namespace zenslam::pose_estimation
 {

@@ -10,12 +10,12 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "zenslam/folder_options.h"
+#include "zenslam/io/folder_options.h"
 #include "zenslam/option.h"
 #include "zenslam/option_parser.h"
 #include "zenslam/option_printer.h"
 #include "zenslam/slam_options.h"
-#include "zenslam/utils.h"
+#include "zenslam/utils/utils.h"
 
 boost::program_options::options_description zenslam::options::description()
 {

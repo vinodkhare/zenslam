@@ -8,7 +8,7 @@
 #include <spdlog/spdlog.h>
 
 #include <zenslam/options.h>
-#include <zenslam/utils.h>
+#include <zenslam/utils/utils.h>
 
 #include "application.h"
 

@@ -8,7 +8,7 @@
 #include <opencv2/core.hpp>
 
 #include <zenslam/options.h>
-#include "zenslam/reader_thread.h"
+#include "zenslam/io/reader_thread.h"
 #include "zenslam/slam_thread.h"
 #include "window.h"
 

@@ -5,10 +5,10 @@
 #include <gsl/narrow>
 #include <spdlog/spdlog.h>
 
-#include "zenslam/rigid_transform.h"
-#include "zenslam/triangulation_utils.h"
-#include "zenslam/utils_slam.h"
-#include "zenslam/utils_std.h"
+#include "zenslam/utils/rigid_transform.h"
+#include "zenslam/mapping/triangulation_utils.h"
+#include "zenslam/utils/utils_slam.h"
+#include "zenslam/utils/utils_std.h"
 #include "zenslam/pose_estimation/common.h"
 
 namespace zenslam::pose_estimation

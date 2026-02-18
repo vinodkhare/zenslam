@@ -39,6 +39,14 @@ find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
 
 
 add_library(${PROJECT_NAME}
+        # Core
+        source/slam_options.cpp
+        source/slam_thread.cpp
+        source/options.cpp
+        source/processor.cpp
+        source/time_this.cpp
+        
+        # Frame & Types
         source/frame/counts.cpp
         source/frame/durations.cpp
         source/frame/sensor.cpp
@@ -49,43 +57,58 @@ add_library(${PROJECT_NAME}
         source/types/line3d.cpp
         source/types/map.cpp
         source/types/point3d.cpp
-        source/calibration.cpp
-        source/camera_calibration.cpp
-        source/detector.cpp
-        source/folder_options.cpp
-        source/slam_options.cpp
-        source/groundtruth.cpp
-        source/imu_calibration.cpp
-        source/integrator.cpp
-        source/estimator.cpp
-        source/keyframe_selector.cpp
-        source/keyframe_database.cpp
-        source/local_bundle_adjustment.cpp
+        
+        # Calibration
+        source/calibration/calibration.cpp
+        source/calibration/camera_calibration.cpp
+        source/calibration/imu_calibration.cpp
+        
+        # Detection
+        source/detection/detector.cpp
+        source/detection/correspondence_utils.cpp
+        
+        # Tracking
+        source/tracking/tracker.cpp
+        source/tracking/tracking_utils.cpp
+        
+        # Matching
+        source/matching/matcher.cpp
+        source/matching/matching_utils.cpp
+        
+        # Mapping
+        source/mapping/triangulator.cpp
+        source/mapping/triangulation_utils.cpp
+        source/mapping/keyframe_selector.cpp
+        source/mapping/keyframe_database.cpp
+        
+        # Motion
+        source/motion/motion_predictor.cpp
+        source/motion/gravity_estimator.cpp
+        source/motion/integrator.cpp
+        
+        # Optimization
+        source/optimization/local_bundle_adjustment.cpp
+        
+        # Utils
+        source/utils/utils.cpp
+        source/utils/utils_opencv.cpp
+        source/utils/utils_slam.cpp
+        source/utils/utils_std.cpp
+        source/utils/rigid_transform.cpp
+        source/utils/pose.cpp
+        source/utils/estimator.cpp
+        
+        # I/O
+        source/io/folder_options.cpp
+        source/io/folder_reader.cpp
+        source/io/groundtruth.cpp
+        source/io/verb.cpp
+        
+        # Pose Estimation
         source/pose_estimation/point_estimator.cpp
         source/pose_estimation/line_estimator.cpp
         source/pose_estimation/combined_estimator.cpp
         source/pose_estimation/pose_fusion.cpp
-        source/triangulator.cpp
-        source/matcher.cpp
-        source/motion_predictor.cpp
-        source/gravity_estimator.cpp
-        source/options.cpp
-        source/pose.cpp
-        source/processor.cpp
-        source/slam_thread.cpp
-        source/folder_reader.cpp
-        source/time_this.cpp
-        source/tracker.cpp
-        source/utils.cpp
-        source/utils_opencv.cpp
-        source/utils_slam.cpp
-        source/correspondence_utils.cpp
-        source/rigid_transform.cpp
-        source/matching_utils.cpp
-        source/triangulation_utils.cpp
-        source/tracking_utils.cpp
-        source/utils_std.cpp
-        source/verb.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${RAPIDCSV_INCLUDE_DIRS} include)

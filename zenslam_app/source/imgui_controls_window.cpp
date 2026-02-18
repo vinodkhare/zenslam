@@ -3,7 +3,7 @@
 #include <imgui.h>
 #include <implot.h>
 
-#include <zenslam/utils.h>
+#include <zenslam/utils/utils.h>
 
 namespace zenslam
 {

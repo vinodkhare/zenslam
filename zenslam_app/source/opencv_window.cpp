@@ -1,6 +1,6 @@
 #include "opencv_window.h"
 #include <opencv2/highgui.hpp>
-#include <zenslam/utils_opencv.h>
+#include <zenslam/utils/utils_opencv.h>
 
 namespace zenslam
 {

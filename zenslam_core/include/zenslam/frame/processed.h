@@ -2,7 +2,7 @@
 
 #include "sensor.h"
 
-#include "zenslam/integrator_types.h"
+#include "zenslam/motion/integrator_types.h"
 
 namespace zenslam::frame
 {

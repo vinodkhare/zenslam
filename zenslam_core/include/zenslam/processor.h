@@ -3,8 +3,8 @@
 #include <cmath>
 #include <opencv2/imgproc.hpp>
 
-#include "calibration.h"
-#include "integrator.h"
+#include "zenslam/calibration/calibration.h"
+#include "zenslam/motion/integrator.h"
 #include "options.h"
 
 #include "frame/processed.h"

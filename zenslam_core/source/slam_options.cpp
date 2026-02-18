@@ -12,7 +12,7 @@
 
 #include "zenslam/option_parser.h"
 #include "zenslam/option_printer.h"
-#include "zenslam/utils.h"
+#include "zenslam/utils/utils.h"
 
 namespace zenslam
 {

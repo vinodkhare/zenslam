@@ -6,9 +6,9 @@
 
 #include <spdlog/common.h>
 
-#include "folder_options.h"
+#include "zenslam/io/folder_options.h"
 #include "slam_options.h"
-#include "verb.h"
+#include "zenslam/io/verb.h"
 
 #include "zenslam/option.h"
 
