@@ -109,6 +109,10 @@ add_library(${PROJECT_NAME}
         source/pose_estimation/line_estimator.cpp
         source/pose_estimation/combined_estimator.cpp
         source/pose_estimation/pose_fusion.cpp
+        
+        # Place Recognition
+        source/place_recognition/bow_vocabulary.cpp
+        source/place_recognition/bow_database.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${RAPIDCSV_INCLUDE_DIRS} include)
