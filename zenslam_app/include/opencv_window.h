@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <zenslam/options.h>
+#include <zenslam/gui_options.h>
 
 #include "window.h"
 
@@ -30,9 +30,9 @@ namespace zenslam
          * @brief Construct an OpenCV window of the specified type.
          *
          * @param window_type The type of visualization this window will display.
-         * @param options Reference to SLAM options (needed for temporal matches rendering).
+         * @param gui_options Reference to GUI options (needed for temporal matches rendering).
          */
-        opencv_window(type window_type, const options& options);
+        opencv_window(type window_type, const gui_options& gui_options);
 
         void               initialize() override;
         void               render(const frame::system& system) override;
@@ -41,9 +41,9 @@ namespace zenslam
         [[nodiscard]] bool is_visible() const override { return _visible; }
 
     private:
-        type           _type = type::spatial_matches;
-        const options& _options;
-        std::string    _window_name   = { };
+        type              _type = type::spatial_matches;
+        const gui_options& _gui_options;
+        std::string       _window_name   = { };
         std::string    _window_title  = { };
         int            _window_width  = 1024;
         int            _window_height = 512;

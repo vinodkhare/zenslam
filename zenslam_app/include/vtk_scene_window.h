@@ -2,6 +2,7 @@
 
 #include "window.h"
 #include <zenslam/options.h>
+#include <zenslam/gui_options.h>
 #include <memory>
 #include <vector>
 
@@ -24,14 +25,12 @@ namespace zenslam
          * @brief Construct a VTK scene window.
          *
          * @param options Reference to SLAM options for controlling visualization.
-         * @param point_cloud_opacity Reference to point cloud opacity (controlled by ImGui).
-         * @param point_size Reference to point cloud point size (controlled by ImGui).
+         * @param gui_options Reference to GUI options (point cloud opacity and size).
          * @param trajectory_estimated Reference to estimated trajectory history.
          * @param trajectory_gt Reference to ground truth trajectory history.
          */
         vtk_scene_window(const options&            options,
-                         float&                    point_cloud_opacity,
-                         float&                    point_size,
+                         gui_options&             gui_options,
                          std::vector<cv::Point3d>& trajectory_estimated,
                          std::vector<cv::Point3d>& trajectory_gt);
 
@@ -57,8 +56,7 @@ namespace zenslam
 
     private:
         const options&            _options;
-        float&                    _point_cloud_opacity;
-        float&                    _point_size;
+        gui_options&             _gui_options;
         std::vector<cv::Point3d>& _trajectory_estimated;
         std::vector<cv::Point3d>& _trajectory_gt;
         bool                      _initialized = false;

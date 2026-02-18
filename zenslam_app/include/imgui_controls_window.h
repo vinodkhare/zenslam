@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <zenslam/options.h>
+#include <zenslam/gui_options.h>
 
 #include "window.h"
 
@@ -23,11 +23,9 @@ namespace zenslam
         /**
          * @brief Construct an ImGui controls window.
          *
-         * @param options Reference to SLAM options for controlling visualization settings.
-         * @param point_cloud_opacity Reference to point cloud opacity (shared with VTK window).
-         * @param point_size Reference to point cloud point size (shared with VTK window).
+         * @param gui_options Reference to GUI options for controlling visualization settings.
          */
-        imgui_controls_window(options& options, float& point_cloud_opacity, float& point_size);
+        imgui_controls_window(gui_options& gui_options);
 
         void               initialize() override;
         void               render(const frame::system& system) override;
@@ -46,9 +44,7 @@ namespace zenslam
         void update_history(const frame::system& system);
 
     private:
-        options& _options;
-        float&   _point_cloud_opacity;
-        float&   _point_size;
+        gui_options& _gui_options;
         bool     _initialized = false;
         bool     _visible     = true;
 

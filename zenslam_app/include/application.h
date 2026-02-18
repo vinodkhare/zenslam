@@ -40,10 +40,6 @@ namespace zenslam
         std::vector<cv::Point3d> _trajectory_estimated = { };
         std::vector<cv::Point3d> _trajectory_gt        = { };
 
-        // Visualization controls (shared with ImGui window)
-        float _point_cloud_opacity = 1.0f;
-        float _point_size          = 4.0f;
-
         // Window instances
         std::vector<std::shared_ptr<window>> _windows = { };
     };

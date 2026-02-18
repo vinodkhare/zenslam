@@ -225,7 +225,7 @@ namespace zenslam
                     // Track keylines
                     keylines_0 += track_keylines(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keylines[0]);
 
-                    // Detect new keylines (avoiding areas where tracked keylines exist)
+                    // Detect new keylines (avoiding areas where tracked keylines exist), using pose prediction
                     keylines_0 += _detector.detect_keylines(frame_1.undistorted[0], keylines_0, _options.keyline_mask_margin);
                 }
             };
@@ -262,7 +262,7 @@ namespace zenslam
                     // Track keylines
                     keylines_1 += track_keylines(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keylines[1]);
 
-                    // Detect new keylines (avoiding areas where tracked keylines exist)
+                    // Detect new keylines (avoiding areas where tracked keylines exist), using pose prediction
                     keylines_1 += _detector.detect_keylines(frame_1.undistorted[1], keylines_1, _options.keyline_mask_margin);
                 }
             };

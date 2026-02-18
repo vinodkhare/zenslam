@@ -3,14 +3,14 @@
 #include <imgui.h>
 #include <implot.h>
 
+#include <opencv2/core/types.hpp>
+
 #include <zenslam/utils/utils.h>
 
 namespace zenslam
 {
-    imgui_controls_window::imgui_controls_window(options& options, float& point_cloud_opacity, float& point_size) :
-        _options(options),
-        _point_cloud_opacity(point_cloud_opacity),
-        _point_size(point_size)
+    imgui_controls_window::imgui_controls_window(gui_options& gui_options) :
+        _gui_options(gui_options)
     {
     }
 
@@ -118,13 +118,13 @@ namespace zenslam
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
         ImGui::BeginChild("viz_section", ImVec2(0, 160.0f), true);
 
-        ImGui::Checkbox("Show Keypoints", &_options.slam->show_keypoints.value());
-        ImGui::Checkbox("Show Keylines", &_options.slam->show_keylines.value());
-        ImGui::SliderFloat("Point Cloud Opacity", &_point_cloud_opacity, 0.0f, 1.0f, "%.2f");
-        ImGui::SliderFloat("Point Size", &_point_size, 1.0f, 20.0f, "%.1f");
+        ImGui::Checkbox("Show Keypoints", &_gui_options.show_keypoints.value());
+        ImGui::Checkbox("Show Keylines", &_gui_options.show_keylines.value());
+        ImGui::SliderFloat("Point Cloud Opacity", &_gui_options.point_cloud_opacity.value(), 0.0f, 1.0f, "%.2f");
+        ImGui::SliderFloat("Point Size", &_gui_options.point_size.value(), 1.0f, 20.0f, "%.1f");
 
         // Color picker for keylines (single keyline color)
-        const auto& s = _options.slam->keyline_single_color; // B, G, R
+        const auto& s = _gui_options.keyline_single_color; // B, G, R
         ImVec4      color_rgba(
             static_cast<float>(s.value()[2]) / 255.0f, // R
             static_cast<float>(s.value()[1]) / 255.0f, // G
@@ -133,10 +133,10 @@ namespace zenslam
 
         if (ImGui::ColorEdit3("Keyline Color", reinterpret_cast<float*>(&color_rgba)))
         {
-            const auto r                        = static_cast<int>(std::round(color_rgba.x * 255.0f));
-            const auto g                        = static_cast<int>(std::round(color_rgba.y * 255.0f));
-            const auto b                        = static_cast<int>(std::round(color_rgba.z * 255.0f));
-            _options.slam->keyline_single_color = cv::Scalar(b, g, r);
+            const auto r                    = static_cast<int>(std::round(color_rgba.x * 255.0f));
+            const auto g                    = static_cast<int>(std::round(color_rgba.y * 255.0f));
+            const auto b                    = static_cast<int>(std::round(color_rgba.z * 255.0f));
+            _gui_options.keyline_single_color = cv::Scalar(b, g, r);
         }
 
         ImGui::EndChild();

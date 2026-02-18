@@ -11,6 +11,7 @@
 #include "zenslam/motion/integrator.h"
 #include "zenslam/option.h"
 #include "zenslam/options_base.h"
+#include "zenslam/gui_options.h"
 #include "zenslam/pnp_options.h"
 #include "zenslam/essential_options.h"
 #include "zenslam/rigid_options.h"
@@ -72,13 +73,8 @@ namespace zenslam
             ((double, epipolar_threshold, 1.0, "Epipolar constraint threshold in pixels"))
             ((double, threshold_3d3d, 0.005, "3D-3D RANSAC pose estimation threshold in meters"))
             ((double, threshold_3d2d, 1.0, "3D-2D RANSAC pose estimation threshold in pixels"))
-            ((bool, show_keypoints, true, "Show keypoints in visualization"))
-            ((bool, show_keylines, true, "Show keylines in visualization"))
-            ((cv::Scalar, keyline_single_color, cv::Scalar(0, 255, 0), "Keyline single color (BGR)"))
-            ((cv::Scalar, keyline_match_color, cv::Scalar(0, 0, 255), "Keyline match color (BGR)"))
-            ((int, keyline_thickness, 1, "Keyline line thickness in pixels"))
-            ((int, keyline_mask_margin, 10, "Keyline mask margin in pixels"))
             ((double, triangulation_min_disparity, 2.0, "Keyline minimum average disparity across endpoints in pixels"))
+            ((int, keyline_mask_margin, 10, "Keyline mask margin in pixels"))
             ((double, triangulation_min_angle, 15.0, "Keyline minimum triangulation angle at endpoints in degrees"))
             ((double, triangulation_reprojection_threshold, 1.0, "Keyline maximum average reprojection error across endpoints in pixels"))
             ((double, triangulation_min_depth, 1.0, "Minimum triangulation depth in meters"))
@@ -86,6 +82,7 @@ namespace zenslam
             ((double, reprojection_threshold_3d2d, 2.0, "3D-2D reprojection error threshold in pixels for landmark matching"))
             ((double, frustum_margin, 50.0, "Margin in pixels for frustum culling (negative = exclude, positive = include beyond image bounds)"))
             ((bool, enable_frustum_culling, true, "Enable frustum culling for 3D-2D landmark matching"))
+            ((gui_options, gui, {}, "GUI and visualization configuration"))
             ((keyframe_options, keyframe, {}, "Keyframe selection configuration"))
             ((lba_options, lba, {}, "Local bundle adjustment configuration"))
             ((pnp_options, pnp, {}, "PnP RANSAC configuration"))

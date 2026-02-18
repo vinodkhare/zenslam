@@ -331,7 +331,7 @@ auto zenslam::utils::draw_matches_spatial(const frame::estimated& frame, const m
     return matches_image;
 }
 
-auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, const frame::estimated& frame_1, const slam_options& options) -> cv::Mat
+auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, const frame::estimated& frame_1, const gui_options& gui_options) -> cv::Mat
 {
     // Prepare images with keylines
     auto image_0 = frame_0.undistorted[0].clone();
@@ -343,7 +343,7 @@ auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, cons
         image_1 = convert_color(image_1, cv::COLOR_GRAY2BGR);
 
     // Draw keypoints if enabled
-    if (options.show_keypoints)
+    if (gui_options.show_keypoints)
     {
         const auto& keypoints_0 = frame_0.keypoints[0].values() | std::ranges::to<std::vector>();
         const auto& keypoints_1 = frame_1.keypoints[0].values() | std::ranges::to<std::vector>();
@@ -368,19 +368,19 @@ auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, cons
     }
 
     // Draw keylines if enabled
-    if (options.show_keylines)
+    if (gui_options.show_keylines)
     {
         const auto& keylines_0 = frame_0.keylines[0].values() | std::ranges::to<std::vector>();
         const auto& keylines_1 = frame_1.keylines[0].values() | std::ranges::to<std::vector>();
-        draw_keylines(image_0, utils::cast<cv::line_descriptor::KeyLine>(keylines_0), options.keyline_single_color, options.keyline_thickness);
-        draw_keylines(image_1, utils::cast<cv::line_descriptor::KeyLine>(keylines_1), options.keyline_single_color, options.keyline_thickness);
+        draw_keylines(image_0, utils::cast<cv::line_descriptor::KeyLine>(keylines_0), gui_options.keyline_single_color, gui_options.keyline_thickness);
+        draw_keylines(image_1, utils::cast<cv::line_descriptor::KeyLine>(keylines_1), gui_options.keyline_single_color, gui_options.keyline_thickness);
     }
 
     cv::Mat matches_image { };
     cv::hconcat(image_0, image_1, matches_image);
 
     // Draw keypoint matches if enabled
-    if (options.show_keypoints)
+    if (gui_options.show_keypoints)
     {
         const auto& keypoints_0_matched = frame_0.keypoints[0].values_matched(frame_1.keypoints[0]) | std::ranges::to<std::vector>();
         const auto& keypoints_1_matched = frame_1.keypoints[0].values_matched(frame_0.keypoints[0]) | std::ranges::to<std::vector>();
@@ -402,7 +402,7 @@ auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, cons
     }
 
     // Draw keyline matches if enabled
-    if (options.show_keylines)
+    if (gui_options.show_keylines)
     {
         std::vector<keyline> keylines_0_matched { };
         std::vector<keyline> keylines_1_matched { };
@@ -429,11 +429,11 @@ auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, cons
             utils::cast<cv::line_descriptor::KeyLine>(keylines_1_matched),
             line_matches,
             matches_image,
-            options.keyline_match_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : options.keyline_match_color.value(),
-            options.keyline_single_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : options.keyline_single_color.value(),
+            gui_options.keyline_match_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : gui_options.keyline_match_color.value(),
+            gui_options.keyline_single_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : gui_options.keyline_single_color.value(),
             std::vector<char>(line_matches.size(), true),
             cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG,
-            options.keyline_thickness
+            gui_options.keyline_thickness
         );
     }
 

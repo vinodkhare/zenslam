@@ -64,9 +64,14 @@ slam:
     iterations: 1000             # Maximum RANSAC iterations for rigid transformation
     min_correspondences: 3       # Minimum required 3D-3D correspondences
   
-  show_keypoints:        true   # show keypoints in visualization
-  show_keylines:         true   # show keylines in visualization
-  keyline_single_color: [0, 255, 255] # color for keylines when not using multiple colors
-  keyline_match_color:  [0, 255, 0]   # color for keyline matches
-  keyline_thickness:     1
+  keyline_mask_margin: 10        # Keyline mask margin in pixels for detector
+  
+  # GUI and Visualization Configuration (nested)
+  gui:
+    show_keypoints:        true   # show keypoints in visualization
+    show_keylines:         true   # show keylines in visualization
+    keyline_single_color: [0, 255, 255] # color for keylines when not using multiple colors
+    keyline_match_color:  [0, 255, 0]   # color for keyline matches
+    keyline_thickness:     1
+  
   stereo_rectify:        false   # if true, stereo images will be rectified before processing, else only simple undistortion is applied

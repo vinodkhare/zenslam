@@ -38,7 +38,8 @@ namespace zenslam
                                       std::is_base_of_v<essential_options, T> ||
                                       std::is_base_of_v<rigid_options, T> ||
                                       std::is_base_of_v<keyframe_options, T> ||
-                                      std::is_base_of_v<lba_options, T>)
+                                      std::is_base_of_v<lba_options, T> ||
+                                      std::is_base_of_v<gui_options, T>)
                         {
                             // Parse nested options class using its own parse_yaml
                             if (const auto nested_node = node[opt.name()])
@@ -79,7 +80,8 @@ namespace zenslam
                               std::is_base_of_v<essential_options, T> ||
                               std::is_base_of_v<rigid_options, T> ||
                               std::is_base_of_v<keyframe_options, T> ||
-                              std::is_base_of_v<lba_options, T>)
+                              std::is_base_of_v<lba_options, T> ||
+                              std::is_base_of_v<gui_options, T>)
                 {
                     // Print nested options using their own print() method
                     SPDLOG_INFO("{}:", opt.name());
@@ -112,7 +114,8 @@ namespace zenslam
                           std::is_base_of_v<essential_options, T> ||
                           std::is_base_of_v<rigid_options, T> ||
                           std::is_base_of_v<keyframe_options, T> ||
-                          std::is_base_of_v<lba_options, T>)
+                          std::is_base_of_v<lba_options, T> ||
+                          std::is_base_of_v<gui_options, T>)
             {
                 // Recursively add nested options
                 std::apply([&description, &flag_prefix, &opt](const auto&... nested_opts)
@@ -130,6 +133,16 @@ namespace zenslam
                                 boost::program_options::bool_switch()->default_value(nested_opt.value()),
                                 nested_opt.description().c_str()
                             );
+                        }
+                        else if constexpr (std::is_same_v<NestedT, cv::Size>)
+                        {
+                            // Skip cv::Size for now - complex to represent in CLI
+                            // Can be set via YAML
+                        }
+                        else if constexpr (std::is_same_v<NestedT, cv::Scalar>)
+                        {
+                            // Skip cv::Scalar for now - complex to represent in CLI
+                            // Can be set via YAML
                         }
                         else
                         {
@@ -198,8 +211,8 @@ namespace zenslam
 
     void slam_options::validate() const
     {
-        if (keyline_thickness < 1)
-            throw std::invalid_argument("slam.keyline_thickness must be >= 1");
+        if (gui->keyline_thickness < 1)
+            throw std::invalid_argument("slam.gui.keyline_thickness must be >= 1");
         if (epipolar_threshold < 0.0)
             throw std::invalid_argument("slam.epipolar_threshold must be >= 0");
         if (matcher_ratio <= 0.0 || matcher_ratio >= 1.0)

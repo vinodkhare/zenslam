@@ -17,7 +17,7 @@ TEST_CASE("Options validation", "[options]")
     SECTION("Invalid thickness throws")
     {
         auto opts = options{};
-        opts.slam->keyline_thickness = 0; // invalid
+        opts.slam->gui->keyline_thickness = 0; // invalid
         REQUIRE_THROWS_AS(opts.slam->validate(), std::invalid_argument);
     }
 

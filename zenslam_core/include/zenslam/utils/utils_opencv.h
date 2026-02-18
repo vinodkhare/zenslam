@@ -74,7 +74,7 @@ namespace zenslam::utils
     (
         const frame::estimated& frame_0,
         const frame::estimated& frame_1,
-        const slam_options&     options
+        const gui_options&      gui_options
     ) -> cv::Mat;
     auto project_point(const cv::Matx33d& camera_matrix, const cv::Affine3d& pose, const cv::Point3d& point_w) -> cv::Point2d;
     auto project(const std::vector<cv::Point3d>& points, const cv::Matx34d& projection) -> std::vector<cv::Point2d>;

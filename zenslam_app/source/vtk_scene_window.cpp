@@ -91,13 +91,11 @@ namespace zenslam { namespace
     void vtk_scene_window::scene_vtk_deleter::operator()(const scene_vtk* p) const { delete p; }
 
     vtk_scene_window::vtk_scene_window(const options&            options,
-                                       float&                    point_cloud_opacity,
-                                       float&                    point_size,
+                                       gui_options&             gui_options,
                                        std::vector<cv::Point3d>& trajectory_estimated,
                                        std::vector<cv::Point3d>& trajectory_gt) :
         _options(options),
-        _point_cloud_opacity(point_cloud_opacity),
-        _point_size(point_size),
+        _gui_options(gui_options),
         _trajectory_estimated(trajectory_estimated),
         _trajectory_gt(trajectory_gt)
     {
@@ -177,7 +175,7 @@ namespace zenslam { namespace
         S.pointsGlyph->Update();
         S.pointsMapper->SetInputConnection(S.pointsGlyph->GetOutputPort());
         S.pointsActor->SetMapper(S.pointsMapper);
-        S.pointsActor->GetProperty()->SetPointSize(_point_size);
+        S.pointsActor->GetProperty()->SetPointSize(_gui_options.point_size);
         S.renderer->AddActor(S.pointsActor);
 
         // Lines pipeline
@@ -289,12 +287,12 @@ namespace zenslam { namespace
             S.pointColors->Modified();
             S.pointsPoly->Modified();
             S.pointsGlyph->Update();
-            S.pointsActor->GetProperty()->SetOpacity(_point_cloud_opacity);
-            S.pointsActor->GetProperty()->SetPointSize(_point_size);
+            S.pointsActor->GetProperty()->SetOpacity(_gui_options.point_cloud_opacity);
+            S.pointsActor->GetProperty()->SetPointSize(_gui_options.point_size);
         }
 
         // Update or hide lines
-        if (_options.slam->show_keylines)
+        if (_options.slam->gui->show_keylines)
         {
             S.linesActor->SetVisibility(1);
             S.linePoints->Reset();

@@ -4,9 +4,9 @@
 
 namespace zenslam
 {
-    opencv_window::opencv_window(type window_type, const options& options) :
+    opencv_window::opencv_window(type window_type, const gui_options& gui_options) :
         _type(window_type),
-        _options(options)
+        _gui_options(gui_options)
     {
         switch (_type)
         {
@@ -56,7 +56,7 @@ namespace zenslam
             break;
 
         case type::temporal_matches:
-            image = utils::draw_matches_temporal(system[0], system[1], _options.slam);
+            image = utils::draw_matches_temporal(system[0], system[1], _gui_options);
             break;
         }
 
