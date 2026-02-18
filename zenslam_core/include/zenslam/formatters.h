@@ -4,10 +4,6 @@
 
 #include "zenslam/utils.h"
 
-#include <opencv2/core/types.hpp>
-
-#include <spdlog/spdlog.h>
-
 #include <numbers>
 
 // Pretty formatter for cv::Affine3d for spdlog/fmt

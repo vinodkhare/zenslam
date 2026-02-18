@@ -3,7 +3,6 @@
 
 #include <map>
 
-#include <opencv2/core/affine.hpp>
 #include <string>
 
 #include <spdlog/common.h>

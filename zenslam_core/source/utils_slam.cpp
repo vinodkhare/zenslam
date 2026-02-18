@@ -357,7 +357,7 @@ auto zenslam::utils::filter
 auto zenslam::utils::create_matcher
 (
     const slam_options& options,
-    bool                is_binary
+    const bool                is_binary
 )
     -> cv::Ptr<cv::DescriptorMatcher>
 {

@@ -13,7 +13,6 @@
 #include "zenslam/folder_options.h"
 #include "zenslam/option.h"
 #include "zenslam/option_parser.h"
-#include "zenslam/option_parser_cli.h"
 #include "zenslam/option_printer.h"
 #include "zenslam/slam_options.h"
 #include "zenslam/utils.h"

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstddef>
-
 #include "tracked.h"
 
 namespace zenslam::frame

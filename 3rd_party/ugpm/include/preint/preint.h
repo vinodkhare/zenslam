@@ -7,7 +7,6 @@
 #include "math.h"
 #include <ceres/ceres.h>
 
-#include <ctime>
 #include <chrono>
 #include <mutex>
 #include <thread>

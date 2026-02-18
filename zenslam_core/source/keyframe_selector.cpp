@@ -1,7 +1,6 @@
 #include "zenslam/keyframe_selector.h"
 
 #include <algorithm>
-#include <cmath>
 
 namespace zenslam
 {

@@ -4,12 +4,9 @@
 #include <cstddef>
 #include <map>
 #include <ranges>
-#include <set>
 #include <vector>
 
 #include <opencv2/core/types.hpp>
-
-#include <spdlog/spdlog.h>
 
 namespace zenslam
 {

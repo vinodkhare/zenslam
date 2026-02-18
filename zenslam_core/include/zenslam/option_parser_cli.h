@@ -38,7 +38,7 @@ namespace zenslam
         {
             std::string flag_name = prefix + option_name;
             // Replace underscores with dashes
-            std::replace(flag_name.begin(), flag_name.end(), '_', '-');
+            std::ranges::replace(flag_name, '_', '-');
             return flag_name;
         }
 

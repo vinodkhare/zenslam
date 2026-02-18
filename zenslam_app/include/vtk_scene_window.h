@@ -2,7 +2,6 @@
 
 #include "window.h"
 #include <zenslam/options.h>
-#include <opencv2/core.hpp>
 #include <memory>
 #include <vector>
 

@@ -1,9 +1,5 @@
 #pragma once
 
-#include <cstddef>
-
-#include <opencv2/core.hpp>
-
 #include "zenslam/frame/counts.h"
 #include "zenslam/frame/estimated.h"
 #include "zenslam/slam_options.h"

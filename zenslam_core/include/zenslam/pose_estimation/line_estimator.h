@@ -2,14 +2,12 @@
 
 #include <map>
 #include <optional>
-#include <opencv2/core.hpp>
 
 #include "zenslam/calibration.h"
 #include "zenslam/pose_data.h"
 #include "zenslam/slam_options.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/line3d.h"
-#include "zenslam/pose_estimation/common.h"
 
 namespace zenslam::pose_estimation
 {

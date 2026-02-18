@@ -1,12 +1,10 @@
 #pragma once
 
 #include <cmath>
-#include <cstddef>
 #include <unordered_map>
 #include <vector>
 
 #include <opencv2/core.hpp>
-#include <opencv2/core/affine.hpp>
 
 #include "zenslam/frame/estimated.h"
 #include "zenslam/slam_options.h"

@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 
 #include "zenslam/utils_slam.h"
+#include "zenslam/pose_estimation/common.h"
 
 namespace zenslam::pose_estimation
 {
@@ -44,9 +45,9 @@ namespace zenslam::pose_estimation
 
         // Run PnP RANSAC on endpoints using slam_options directly
         const cv::Mat K(_calibration.camera_matrix[0]);
-        auto pnp = solve_pnp_ransac(all_points3d, all_points2d, K, _options);
+        auto          [rvec, tvec, inliers, success] = solve_pnp_ransac(all_points3d, all_points2d, K, _options);
 
-        if (!pnp.success)
+        if (!success)
         {
             SPDLOG_DEBUG("3D-2D line PnP RANSAC failed");
             return std::nullopt;
@@ -54,7 +55,7 @@ namespace zenslam::pose_estimation
 
         // Map endpoint inliers back to line indices
         std::set<size_t> unique_line_indices;
-        for (auto endpoint_idx : pnp.inliers)
+        for (auto endpoint_idx : inliers)
         {
             const size_t line_idx = endpoint_idx / 2;
             if (line_idx < indices.size())
@@ -62,7 +63,7 @@ namespace zenslam::pose_estimation
         }
 
         pose_data out;
-        out.pose = cv::Affine3d(pnp.rvec, pnp.tvec);
+        out.pose = cv::Affine3d(rvec, tvec);
         out.indices = indices;
         out.inliers.assign(unique_line_indices.begin(), unique_line_indices.end());
 
@@ -76,8 +77,8 @@ namespace zenslam::pose_estimation
 
         // Reprojection errors for endpoints
         out.errors = compute_reprojection_errors(
-            all_points3d, all_points2d, pnp.inliers,
-            pnp.rvec, pnp.tvec, K);
+            all_points3d, all_points2d, inliers,
+            rvec, tvec, K);
 
         SPDLOG_DEBUG("3D-2D lines: {} lines ({} endpoints), {} line inliers", 
             lines3d_p1.size(), all_points3d.size(), unique_line_indices.size());

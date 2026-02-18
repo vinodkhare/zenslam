@@ -4,8 +4,8 @@
 
 namespace zenslam
 {
-    keyframe_database::keyframe_database(size_t min_shared_features)
-        : _min_shared_features(min_shared_features)
+    keyframe_database::keyframe_database(const size_t min_shared_features) :
+        _min_shared_features(min_shared_features)
     {
     }
 
@@ -26,33 +26,34 @@ namespace zenslam
         return _keyframes.size();
     }
 
-    auto keyframe_database::contains(size_t id) const -> bool
+    auto keyframe_database::contains(const size_t id) const -> bool
     {
         return _keyframes.contains(id);
     }
 
-    auto keyframe_database::get(size_t id) const -> const frame::estimated*
+    auto keyframe_database::get(const size_t id) const -> frame::estimated
     {
-        if (const auto it = _keyframes.find(id); it != _keyframes.end())
+        if (_keyframes.contains(id))
         {
-            return &it->second;
+            return _keyframes.at(id);
         }
-        return nullptr;
+
+        throw std::out_of_range("Keyframe ID not found in database");
     }
 
-    auto keyframe_database::last() const -> const frame::estimated*
+    auto keyframe_database::last() const -> frame::estimated
     {
         if (_order.empty())
         {
-            return nullptr;
+            throw std::runtime_error("Keyframe database is empty");
         }
 
         return get(_order.back());
     }
 
-    auto keyframe_database::recent(size_t max_count) const -> std::vector<const frame::estimated*>
+    auto keyframe_database::recent(const size_t max_count) const -> std::vector<frame::estimated>
     {
-        std::vector<const frame::estimated*> result;
+        std::vector<frame::estimated> result;
         if (_order.empty() || max_count == 0)
         {
             return result;
@@ -62,11 +63,9 @@ namespace zenslam
         result.reserve(_order.size() - start);
         for (size_t i = start; i < _order.size(); ++i)
         {
-            if (const auto* entry = get(_order[i]))
-            {
-                result.push_back(entry);
-            }
+            result.push_back(get(_order[i]));
         }
+
         return result;
     }
 
@@ -77,58 +76,58 @@ namespace zenslam
             return it->second;
         }
 
-        const frame::estimated entry = frame;
-
         for (const auto& [id, other] : _keyframes)
         {
-            const size_t shared = compute_shared(entry, other);
+            const size_t shared = compute_shared(frame, other);
+
             if (shared >= _min_shared_features)
             {
-                _covisibility[entry.index][id] = shared;
-                _covisibility[id][entry.index] = shared;
+                _covisibility[frame.index][id] = shared;
+                _covisibility[id][frame.index] = shared;
             }
         }
 
-        _keyframes[entry.index] = entry;
+        _keyframes[frame.index] = frame;
         _order.push_back(frame.index);
 
         return _keyframes.at(frame.index);
     }
 
-    auto keyframe_database::update_pose(const size_t id, const cv::Affine3d& pose) -> bool
+    auto keyframe_database::update_pose(const size_t id, const cv::Affine3d& pose) -> void
     {
-        if (auto it = _keyframes.find(id); it != _keyframes.end())
+        if (_keyframes.contains(id))
         {
-            it->second.pose = pose;
-            return true;
+            _keyframes.at(id).pose = pose;
         }
 
-        return false;
+        throw std::out_of_range("Keyframe ID not found in database");
     }
 
-    auto keyframe_database::covisible(size_t id) const -> std::vector<std::pair<size_t, size_t>>
+    auto keyframe_database::covisible(const size_t id) const -> std::vector<std::pair<size_t, size_t>>
     {
         std::vector<std::pair<size_t, size_t>> result;
-        if (const auto it = _covisibility.find(id); it != _covisibility.end())
+
+        if (_covisibility.contains(id))
         {
-            result.reserve(it->second.size());
-            for (const auto& [other_id, shared] : it->second)
+            result.reserve(_covisibility.at(id).size());
+            for (const auto& [other_id, shared] : _covisibility.at(id))
             {
                 result.emplace_back(other_id, shared);
             }
 
-            std::sort(result.begin(), result.end(), [](const auto& a, const auto& b)
+            std::ranges::sort(result, [](const auto& a, const auto& b)
             {
                 return a.second > b.second;
             });
         }
+
         return result;
     }
 
-    auto keyframe_database::compute_shared(const frame::estimated& a, const frame::estimated& b) const -> size_t
+    auto keyframe_database::compute_shared(const frame::estimated& a, const frame::estimated& b) -> size_t
     {
         const size_t shared_points = a.keypoints[0].keys_matched(b.keypoints[0]).size();
-        const size_t shared_lines = a.keylines[0].keys_matched(b.keylines[0]).size();
+        const size_t shared_lines  = a.keylines[0].keys_matched(b.keylines[0]).size();
         return shared_points + shared_lines;
     }
 }

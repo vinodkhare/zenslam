@@ -1,9 +1,6 @@
 #include <catch2/catch_all.hpp>
 
-#include <cmath>
-
 #include <opencv2/calib3d.hpp>
-#include <opencv2/core.hpp>
 
 #include "zenslam/utils.h"
 #include "zenslam/utils_slam.h"

@@ -1,7 +1,5 @@
 #include "zenslam/estimator.h"
 
-#include <spdlog/spdlog.h>
-
 #include "zenslam/pose_estimation/point_estimator.h"
 #include "zenslam/pose_estimation/line_estimator.h"
 #include "zenslam/pose_estimation/combined_estimator.h"
@@ -146,7 +144,7 @@ namespace zenslam
         return result;
     }
 
-    auto estimator::estimate_pose_weighted(const estimate_pose_result& result) const -> weighted_pose_result
+    auto estimator::estimate_pose_weighted(const estimate_pose_result& result) -> weighted_pose_result
     {
         return pose_estimation::pose_fusion::fuse_poses(result);
     }

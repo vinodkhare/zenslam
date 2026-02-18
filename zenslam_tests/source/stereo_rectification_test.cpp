@@ -1,11 +1,9 @@
 #include <catch2/catch_all.hpp>
 
-#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <opencv2/core.hpp>
 #include <opencv2/calib3d.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include <array>
 #include <random>

@@ -7,7 +7,6 @@
 #include "zenslam/frame/estimated.h"
 #include "zenslam/frame/tracked.h"
 #include "zenslam/options.h"
-#include "zenslam/pose_data.h"
 #include "zenslam/pose_estimation/pose_fusion.h"
 
 // Forward declarations to avoid including heavy headers
@@ -57,7 +56,7 @@ namespace zenslam
         /// Compute weighted fusion of multiple pose estimation methods
         /// @param result Standard pose estimation result containing all methods
         /// @return Fused pose with confidence scores and method contributions
-        [[nodiscard]] auto estimate_pose_weighted(const estimate_pose_result& result) const -> weighted_pose_result;
+        [[nodiscard]] static auto estimate_pose_weighted(const estimate_pose_result& result) -> weighted_pose_result;
 
     private:
         calibration  _calibration;

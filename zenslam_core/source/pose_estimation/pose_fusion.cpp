@@ -36,7 +36,7 @@ namespace zenslam::pose_estimation
             // Check for outlier errors
             const double error_threshold = mean_error + 2.0 * std_error;
             const size_t good_errors = std::ranges::count_if(pose.errors,
-                [error_threshold](double err) { return err <= error_threshold; });
+                [error_threshold](const double err) { return err <= error_threshold; });
             
             // Reduce confidence if too many outlier errors
             const double error_consistency = static_cast<double>(good_errors) / pose.errors.size();
@@ -62,7 +62,7 @@ namespace zenslam::pose_estimation
 
     auto pose_fusion::compute_covariance(
         const pose_data& pose,
-        double method_weight,
+        const double method_weight,
         const std::string& method_type) -> std::pair<double, double>
     {
         const size_t inliers = pose.inliers.size();
@@ -133,8 +133,8 @@ namespace zenslam::pose_estimation
 
     auto pose_fusion::fuse_translations(
         const estimate_pose_result& result,
-        double w_3d3d, double w_3d2d, double w_2d2d,
-        double w_3d3d_lines, double w_3d2d_lines) -> cv::Vec3d
+        const double w_3d3d, const double w_3d2d, const double w_2d2d,
+        const double w_3d3d_lines, const double w_3d2d_lines) -> cv::Vec3d
     {
         cv::Vec3d fused = cv::Vec3d::zeros();
 

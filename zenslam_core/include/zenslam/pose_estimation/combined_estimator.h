@@ -2,7 +2,6 @@
 
 #include <map>
 #include <optional>
-#include <opencv2/core.hpp>
 
 #include "zenslam/calibration.h"
 #include "zenslam/pose_data.h"
@@ -11,7 +10,6 @@
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/point3d.h"
 #include "zenslam/types/line3d.h"
-#include "zenslam/pose_estimation/common.h"
 
 namespace zenslam::pose_estimation
 {
@@ -56,11 +54,11 @@ namespace zenslam::pose_estimation
             std::set<size_t> line_ids;
         };
 
-        [[nodiscard]] auto split_feature_inliers(
+        [[nodiscard]] static auto split_feature_inliers(
             const std::vector<int>& correspondence_inliers,
             size_t num_points,
             const std::vector<size_t>& point_indices,
-            const std::vector<size_t>& line_indices) const -> feature_split;
+            const std::vector<size_t>& line_indices) -> feature_split;
 
         const calibration& _calibration;
         const slam_options& _options;

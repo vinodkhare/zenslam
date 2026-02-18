@@ -16,7 +16,7 @@ namespace ugpm
 
     inline PreintType strToPreintType(std::string type)
     {
-        std::transform(type.begin(), type.end(), type.begin(), [](unsigned char c){ return std::tolower(c); });
+        std::ranges::transform(type, type.begin(), [](unsigned char c){ return std::tolower(c); });
         PreintType output;
         if(type == "lpm") output = LPM;
         else if(type == "ugpm") output = UGPM;
@@ -187,7 +187,7 @@ namespace ugpm
 
         private:
             // Return the collection of samples in between the two timestamps
-            std::vector<ImuSample> get(const std::vector<ImuSample>& samples, double from, double to)
+        static std::vector<ImuSample> get(const std::vector<ImuSample>& samples, double from, double to)
             {
                 std::vector<ImuSample> output;
                 if(from >= to)

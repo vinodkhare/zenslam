@@ -7,14 +7,15 @@
 
 #include "zenslam/utils_slam.h"
 #include "zenslam/utils_std.h"
+#include "zenslam/pose_estimation/common.h"
 
 namespace zenslam::pose_estimation
 {
     auto combined_estimator::split_feature_inliers(
         const std::vector<int>& correspondence_inliers,
-        size_t num_points,
+        const size_t num_points,
         const std::vector<size_t>& point_indices,
-        const std::vector<size_t>& line_indices) const -> feature_split
+        const std::vector<size_t>& line_indices) -> feature_split
     {
         feature_split result;
 
