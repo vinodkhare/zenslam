@@ -10,6 +10,7 @@
 #include <vtkLine.h>
 #include <vtkMatrix4x4.h>
 #include <vtkPlaneSource.h>
+#include <vtkPointData.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
@@ -21,13 +22,12 @@
 #include <vtkSmartPointer.h>
 #include <vtkTexture.h>
 #include <vtkTransform.h>
+#include <vtkUnsignedCharArray.h>
 #include <vtkVertexGlyphFilter.h>
 
 #include <opencv2/imgproc.hpp>
 
-namespace zenslam
-{
-    namespace
+namespace zenslam { namespace
     {
         vtkSmartPointer<vtkMatrix4x4> toVtkMatrix(const cv::Affine3d& pose)
         {
@@ -49,6 +49,7 @@ namespace zenslam
 
         // Point cloud
         vtkSmartPointer<vtkPoints>            points;
+        vtkSmartPointer<vtkUnsignedCharArray> pointColors;
         vtkSmartPointer<vtkPolyData>          pointsPoly;
         vtkSmartPointer<vtkVertexGlyphFilter> pointsGlyph;
         vtkSmartPointer<vtkPolyDataMapper>    pointsMapper;
@@ -157,13 +158,17 @@ namespace zenslam
         S.renderer->AddActor(S.frustumActor);
 
         // Points pipeline
-        S.points       = vtkSmartPointer<vtkPoints>::New();
+        S.points      = vtkSmartPointer<vtkPoints>::New();
+        S.pointColors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+        S.pointColors->SetNumberOfComponents(3);
+        S.pointColors->SetName("Colors");
         S.pointsPoly   = vtkSmartPointer<vtkPolyData>::New();
         S.pointsGlyph  = vtkSmartPointer<vtkVertexGlyphFilter>::New();
         S.pointsMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         S.pointsActor  = vtkSmartPointer<vtkActor>::New();
 
         S.pointsPoly->SetPoints(S.points);
+        S.pointsPoly->GetPointData()->SetScalars(S.pointColors);
         S.pointsGlyph->SetInputData(S.pointsPoly);
         S.pointsGlyph->Update();
         S.pointsMapper->SetInputConnection(S.pointsGlyph->GetOutputPort());
@@ -265,10 +270,19 @@ namespace zenslam
         // Update point cloud
         {
             S.points->Reset();
-            const auto& pts = system.points3d.values_cast<cv::Point3d>();
-            for (const auto& p : pts)
-                S.points->InsertNextPoint(p.x, p.y, p.z);
+            S.pointColors->Reset();
+
+            for (const auto& i : system.points3d.values() | std::ranges::to<std::vector>())
+            {
+                // Add color (BGR to RGB conversion)
+                const unsigned char rgb[3] = { i.color[2], i.color[1], i.color[0] }; // BGR to RGB
+
+                S.points->InsertNextPoint(i.x, i.y, i.z);
+                S.pointColors->InsertNextTypedTuple(rgb);
+            }
+
             S.points->Modified();
+            S.pointColors->Modified();
             S.pointsPoly->Modified();
             S.pointsGlyph->Update();
             S.pointsActor->GetProperty()->SetOpacity(_point_cloud_opacity);

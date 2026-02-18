@@ -112,7 +112,7 @@ namespace zenslam
 
         // Match keypoints
         keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
-        points3d    += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
+        points3d    += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1, frame_1.undistorted[0]);
 
         // Match keylines using the fundamental matrix
         const auto keyline_matches = utils::match_keylines
@@ -180,7 +180,7 @@ namespace zenslam
                 if (frame_0.points3d.contains(kp.index))
                 {
                     const cv::Point3d X0 = frame_0.points3d.at(kp.index);
-                    const cv::Point3d X1 = T_01 * X0; // current left-camera frame
+                    const auto X1 = T_01 * X0; // current left-camera frame
                     // Project into current right camera using stereo projection matrix
                     const auto uv = utils::project(std::vector { X1 }, _calibration.projection_matrix[1]);
                     preds_r.emplace_back(static_cast<float>(uv[0].x), static_cast<float>(uv[0].y));
@@ -270,7 +270,7 @@ namespace zenslam
 
         // Match keypoints
         keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
-        points3d    += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1);
+        points3d    += _triangulator.triangulate_keypoints(keypoints_0, keypoints_1, frame_1.undistorted[0]);
 
         // Match keylines using the fundamental matrix
         const auto keyline_matches = utils::match_keylines

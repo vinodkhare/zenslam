@@ -15,11 +15,13 @@ namespace zenslam
         (
             const std::vector<cv::Point3d>& points,
             const std::vector<size_t>&      indices,
-            const std::vector<cv::Mat>&     descriptors
+            const std::vector<cv::Mat>&     descriptors,
+            const std::vector<cv::Vec3b>&   colors = { }
         ) -> std::vector<point3d>;
 
-        size_t  index      = { };
-        cv::Mat descriptor = { };
+        size_t    index      = { };
+        cv::Mat   descriptor = { };
+        cv::Vec3b color      = { 255, 255, 255 }; // BGR color, default white
     };
 }
 
@@ -30,7 +32,7 @@ inline auto operator*(const cv::Affine3d& pose, const std::vector<zenslam::point
 
     for (const auto& point3d : points3d)
     {
-        points3d_trans.emplace_back(pose * point3d, point3d.index, point3d.descriptor);
+        points3d_trans.emplace_back(pose * point3d, point3d.index, point3d.descriptor, point3d.color);
     }
 
     return points3d_trans;
@@ -45,6 +47,7 @@ inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::poin
         points3d_trans[point3d.index]            = pose * point3d;
         points3d_trans[point3d.index].index      = point3d.index;
         points3d_trans[point3d.index].descriptor = point3d.descriptor;
+        points3d_trans[point3d.index].color      = point3d.color;
     }
 
     return points3d_trans;

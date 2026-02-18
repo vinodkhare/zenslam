@@ -69,4 +69,4 @@ slam:
   keyline_single_color: [0, 255, 255] # color for keylines when not using multiple colors
   keyline_match_color:  [0, 255, 0]   # color for keyline matches
   keyline_thickness:     1
-  stereo_rectify:        false   # if true, stereo images will be rectified before processing, else only simple undistortion is applied
+  stereo_rectify:        true   # if true, stereo images will be rectified before processing, else only simple undistortion is applied
