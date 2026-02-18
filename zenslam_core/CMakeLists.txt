@@ -113,6 +113,7 @@ add_library(${PROJECT_NAME}
         # Place Recognition
         source/place_recognition/bow_vocabulary.cpp
         source/place_recognition/bow_database.cpp
+        source/types/point3d_cloud.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${RAPIDCSV_INCLUDE_DIRS} include)
