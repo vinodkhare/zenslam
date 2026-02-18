@@ -370,33 +370,11 @@ namespace zenslam
         }
 
         std::vector<keypoint> tracked_keypoints;
-        if (candidate_points_0.size() >= 8)
+        for (auto i : candidate_indices)
         {
-            std::vector<uchar> inlier_mask { };
-            cv::Mat            E {
-                cv::findEssentialMat
-                (candidate_points_0, candidate_points_1, _calibration.camera_matrix[0], cv::RANSAC, 0.999, _options.epipolar_threshold, inlier_mask)
-            };
-
-            for (size_t j = 0; j < candidate_indices.size(); ++j)
-            {
-                if (inlier_mask[j])
-                {
-                    auto i                = candidate_indices[j];
-                    auto tracked_keypoint = keypoints_0[i];
-                    tracked_keypoint.pt   = points_1[i];
-                    tracked_keypoints.emplace_back(tracked_keypoint);
-                }
-            }
-        }
-        else
-        {
-            for (auto i : candidate_indices)
-            {
-                auto tracked_keypoint = keypoints_0[i];
-                tracked_keypoint.pt   = points_1[i];
-                tracked_keypoints.emplace_back(tracked_keypoint);
-            }
+            auto tracked_keypoint = keypoints_0[i];
+            tracked_keypoint.pt   = points_1[i];
+            tracked_keypoints.emplace_back(tracked_keypoint);
         }
 
         return tracked_keypoints;

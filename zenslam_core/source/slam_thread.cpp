@@ -14,7 +14,6 @@
 #include "zenslam/motion/inertial_predictor.h"
 #include "zenslam/mapping/keyframe_database.h"
 #include "zenslam/mapping/keyframe_selector.h"
-#include "zenslam/optimization/local_bundle_adjustment.h"
 #include "zenslam/motion/motion_predictor.h"
 #include "zenslam/processor.h"
 #include "zenslam/time_this.h"
@@ -63,7 +62,6 @@ void zenslam::slam_thread::loop()
     gravity_estimator       gravity_estimator { };
     keyframe_selector       keyframes { _options.slam->keyframe };
     keyframe_database       keyframe_db { };
-    local_bundle_adjustment lba { calibration.cameras[0].camera_matrix(), _options.slam->lba };
 
     auto ground_truth = groundtruth::read(_options.folder->groundtruth_file);
     auto writer       = frame::writer(_options.folder->output / "frame_data.csv");
@@ -341,88 +339,6 @@ void zenslam::slam_thread::loop()
                     if (!covisible.empty())
                     {
                         SPDLOG_INFO("Keyframe {} covisible with {} (shared features={})", keyframe.index, covisible.front().first, covisible.front().second);
-                    }
-
-                    constexpr size_t lba_window_size  = 8;
-                    const auto       recent_keyframes = keyframe_db.recent(lba_window_size);
-                    if (recent_keyframes.size() >= 3 && !system.points3d.empty())
-                    {
-                        std::unordered_map<size_t, frame::estimated> lba_keyframes = { };
-                        lba_keyframes.reserve(recent_keyframes.size());
-
-                        for (const auto* recent_keyframe : recent_keyframes)
-                        {
-                            if (recent_keyframe != nullptr)
-                            {
-                                lba_keyframes.emplace(recent_keyframe->index, *recent_keyframe);
-                            }
-                        }
-
-                        if (!lba_keyframes.empty())
-                        {
-                            const size_t anchor_id  = recent_keyframes.front()->index;
-                            const auto   lba_result = lba.optimize(lba_keyframes, system.points3d, { anchor_id });
-
-                            // Check RMSE improvement
-                            const double rmse_improvement       = lba_result.initial_rmse - lba_result.final_rmse;
-                            const double rmse_improvement_ratio = (lba_result.initial_rmse > 1e-9)
-                                                                      ? (rmse_improvement / lba_result.initial_rmse)
-                                                                      : 0.0;
-
-                            // Check for excessively large pose changes
-                            double max_pose_delta = 0.0;
-                            double avg_pose_delta = 0.0;
-                            size_t delta_count    = 0;
-
-                            for (const auto& [id, optimized_keyframe] : lba_keyframes)
-                            {
-                                const auto* kf_before    = keyframe_db.get(id);
-                                const auto  trans_before = (kf_before != nullptr) ? kf_before->pose.translation() : cv::Vec3d(0, 0, 0);
-                                const auto  trans_after  = optimized_keyframe.pose.translation();
-                                const auto  pose_delta   = cv::norm(trans_after - trans_before);
-                                max_pose_delta           = std::max(max_pose_delta, pose_delta);
-                                avg_pose_delta           += pose_delta;
-                                delta_count++;
-                            }
-
-                            // Apply stricter criteria for accepting LBA results:
-                            // 1. Significant RMSE improvement (at least 10%)
-                            // 2. Reasonable maximum pose delta (< 0.3m per keyframe)
-                            // 3. Convergence achieved
-                            bool should_accept_lba = lba_result.converged &&
-                                rmse_improvement_ratio > 0.10 &&
-                                max_pose_delta < 0.3;
-
-                            if (!should_accept_lba)
-                            {
-                                SPDLOG_WARN
-                                (
-                                    "LBA results rejected: converged={}, rmse_improvement={:.2f}% (need>10%), max_delta={:.4f}m (need<0.3m)",
-                                    lba_result.converged, rmse_improvement_ratio * 100.0, max_pose_delta
-                                );
-                            }
-                            else
-                            {
-                                // Apply pose updates only if criteria are met
-                                for (const auto& [id, optimized_keyframe] : lba_keyframes)
-                                {
-                                    keyframe_db.update_pose(id, optimized_keyframe.pose);
-
-                                    if (id == system[1].index)
-                                    {
-                                        SPDLOG_INFO("Applied LBA pose update for current frame (id={})", id);
-                                        system[1].pose = optimized_keyframe.pose;
-                                    }
-                                }
-                            }
-
-                            SPDLOG_INFO
-                            (
-                                "LBA window={} status={}",
-                                lba_keyframes.size(),
-                                should_accept_lba ? "ACCEPTED" : "REJECTED"
-                            );
-                        }
                     }
                 }
 
