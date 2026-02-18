@@ -49,7 +49,6 @@ void zenslam::utils::draw_line_matches
 {
     if (img1.type() != img2.type())
     {
-        std::cout << "Input images have different types" << std::endl;
         CV_Assert(img1.type() == img2.type());
     }
 

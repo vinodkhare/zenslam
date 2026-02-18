@@ -12,8 +12,6 @@
 #include "zenslam/motion/gravity_estimator.h"
 #include "zenslam/io/groundtruth.h"
 #include "zenslam/motion/inertial_predictor.h"
-#include "zenslam/mapping/keyframe_database.h"
-#include "zenslam/mapping/keyframe_selector.h"
 #include "zenslam/motion/motion_predictor.h"
 #include "zenslam/processor.h"
 #include "zenslam/time_this.h"
@@ -60,8 +58,6 @@ void zenslam::slam_thread::loop()
     motion_predictor        motion { };
     inertial_predictor      inertial { cv::Vec3d { 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
     gravity_estimator       gravity_estimator { };
-    keyframe_selector       keyframes { _options.slam->keyframe };
-    keyframe_database       keyframe_db { };
 
     auto ground_truth = groundtruth::read(_options.folder->groundtruth_file);
     auto writer       = frame::writer(_options.folder->output / "frame_data.csv");
@@ -82,8 +78,6 @@ void zenslam::slam_thread::loop()
             frame::sensor sensor { };
             {
                 time_this time_this { system.durations.wait };
-
-                SPDLOG_TRACE("Waiting for next frame");
 
                 std::unique_lock lock { _mutex };
                 _cv.wait(lock, [this] { return !_queue.empty() || _stop_token.stop_requested(); });
@@ -109,10 +103,8 @@ void zenslam::slam_thread::loop()
             cv::Affine3d pose_predicted { };
             {
                 pose_predicted = motion.predict(system[0], processed);
-                SPDLOG_INFO("Predicted pose (motion): {}", pose_predicted);
 
                 pose_predicted = inertial.predict(system[0], processed);
-                SPDLOG_INFO("Predicted pose (inertial): {}", pose_predicted);
             }
 
             // TRACK
@@ -187,42 +179,6 @@ void zenslam::slam_thread::loop()
                 // Apply weighted fusion to combine all pose estimates
                 auto weighted_result = estimator.estimate_pose_weighted(estimate_result);
 
-                SPDLOG_INFO("\n========== POSE ESTIMATION RESULTS ==========");
-                SPDLOG_INFO("Individual method results:");
-                SPDLOG_INFO("  3D-3D Combined:   {} correspondences, {} inliers (points+lines unified)",
-                            estimate_result.pose_3d3d.indices.size(), estimate_result.pose_3d3d.inliers.size());
-                SPDLOG_INFO("  3D-2D Combined:   {} correspondences, {} inliers (points+lines unified)",
-                            estimate_result.pose_3d2d.indices.size(), estimate_result.pose_3d2d.inliers.size());
-                SPDLOG_INFO("  2D-2D Combined:   {} correspondences, {} inliers (points+lines unified)",
-                            estimate_result.pose_2d2d.indices.size(), estimate_result.pose_2d2d.inliers.size());
-
-                SPDLOG_INFO("Weighted fusion results:");
-                SPDLOG_INFO("  Best method: {} ({} inliers)",
-                            weighted_result.best_method, weighted_result.best_method_inliers);
-                SPDLOG_INFO("  Total inliers (all methods): {}", weighted_result.total_inliers);
-                SPDLOG_INFO("  Overall confidence: {:.3f}", weighted_result.confidence);
-                SPDLOG_INFO("  Weight breakdown:");
-                if (weighted_result.weight_3d3d > 0.01)
-                    SPDLOG_INFO("    3D-3D Combined:  {:.3f} (unified points+lines)", weighted_result.weight_3d3d);
-                if (weighted_result.weight_3d2d > 0.01)
-                    SPDLOG_INFO("    3D-2D Combined:  {:.3f} (unified points+lines)", weighted_result.weight_3d2d);
-                if (weighted_result.weight_2d2d > 0.01)
-                    SPDLOG_INFO("    2D-2D Combined:  {:.3f} (unified points+lines)", weighted_result.weight_2d2d);
-                // Note: All _lines weights are now combined with corresponding point methods
-
-                // Log covariance information
-                SPDLOG_INFO("Pose uncertainty estimates:");
-                if (weighted_result.has_valid_covariance)
-                {
-                    SPDLOG_INFO("  Translation std: {:.4f}m, Rotation std: {:.6f}rad ({:.4f}deg)",
-                                weighted_result.translation_std, weighted_result.rotation_std,
-                                weighted_result.rotation_std * 180.0 / M_PI);
-                }
-                else
-                {
-                    SPDLOG_WARN("  Covariance estimation failed (insufficient inliers for reliable uncertainty)");
-                }
-
                 // Update counts
                 system.counts.correspondences_3d2d         = estimate_result.pose_3d2d.indices.size();
                 system.counts.correspondences_3d3d         = estimate_result.pose_3d3d.indices.size();
@@ -263,17 +219,6 @@ void zenslam::slam_thread::loop()
                 {
                     chosen_pose = estimate_result.chosen_pose;
 
-                    std::string method_name = "Unknown";
-                    if (estimate_result.chosen_count == estimate_result.pose_3d3d.inliers.size())
-                        method_name = "3D-3D Combined";
-                    else if (estimate_result.chosen_count == estimate_result.pose_3d2d.inliers.size())
-                        method_name = "3D-2D Combined";
-                    else if (estimate_result.chosen_count == estimate_result.pose_2d2d.inliers.size())
-                        method_name = "2D-2D Combined";
-
-                    SPDLOG_INFO("Falling back to best single method: {} ({} inliers)",
-                                method_name, estimate_result.chosen_count);
-
                     // Final fallback: if single method also weak, use prediction
                     if (estimate_result.chosen_count < 5)
                     {
@@ -281,13 +226,6 @@ void zenslam::slam_thread::loop()
                         chosen_pose = pose_predicted;
                     }
                 }
-                else
-                {
-                    SPDLOG_INFO("Using weighted fusion pose (confidence={:.3f}, translation_std={:.4f}m)",
-                                weighted_result.confidence, weighted_result.translation_std);
-                }
-
-                SPDLOG_INFO("================================================\n");
 
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated { tracked, system[0].pose * chosen_pose.inv() };
@@ -301,12 +239,8 @@ void zenslam::slam_thread::loop()
                 {
                     auto gravity = gravity_estimator.estimate();
                     inertial.set_gravity_in_world(gravity);
-                    SPDLOG_INFO("Gravity estimated: [{:.3f}, {:.3f}, {:.3f}], mag: {:.3f}", gravity[0], gravity[1], gravity[2], cv::norm(gravity));
                 }
 
-                SPDLOG_INFO("Predicted pose:   {}", system[1].pose * pose_predicted.inv());
-                SPDLOG_INFO("Estimated pose:   {}", system[1].pose);
-                SPDLOG_INFO("Ground-truth pose: {}", system[1].pose_gt);
                 system.points3d += system[1].pose * system[1].points3d;
                 system.lines3d  += system[1].pose * system[1].lines3d;
 
@@ -315,32 +249,6 @@ void zenslam::slam_thread::loop()
 
                 system.counts.map_points = system.points3d.size();
                 system.counts.map_lines  = system.lines3d.size();
-
-                const auto decision   = keyframes.decide(system[1], system.counts);
-                system[1].is_keyframe = decision.is_keyframe;
-
-                if (decision.is_keyframe)
-                {
-                    const auto& keyframe  = keyframe_db.add(system[1]);
-                    const auto  covisible = keyframe_db.covisible(keyframe.index);
-
-                    SPDLOG_INFO(
-                        "Keyframe selected (frames_since_last={}, trans={:.3f}m, rot={:.2f}deg, tracked={:.2f}, inliers={}, forced={}, motion={}, quality={})",
-                        decision.frames_since_last,
-                        decision.translation,
-                        decision.rotation_deg,
-                        decision.tracked_ratio,
-                        decision.inliers,
-                        decision.forced,
-                        decision.motion_triggered,
-                        decision.quality_triggered
-                    );
-
-                    if (!covisible.empty())
-                    {
-                        SPDLOG_INFO("Keyframe {} covisible with {} (shared features={})", keyframe.index, covisible.front().first, covisible.front().second);
-                    }
-                }
 
                 writer.write(system);
             }
