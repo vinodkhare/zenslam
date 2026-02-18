@@ -7,6 +7,7 @@
 #include <opencv2/features2d.hpp>
 
 #include "zenslam/options.h"
+#include "zenslam/slam_options.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/point3d_cloud.h"
@@ -61,6 +62,29 @@ namespace zenslam::utils
         const cv::Matx34d&   projection,
         double               radius,
         double               threshold) -> std::vector<cv::DMatch>;
+
+    /**
+     * Match 3D points to 2D keypoints with full frustum culling support.
+     * This overload uses slam_options for configuration and performs frustum culling
+     * based on image dimensions and configured margin.
+     *
+     * @param points3d_world Map of 3D points in the world coordinate system
+     * @param keypoints Map of 2D keypoints in the image
+     * @param pose_of_camera0_in_world Affine transformation representing the camera pose in the world
+     * @param projection Projection matrix
+     * @param image_size Size of the image for frustum culling
+     * @param radius Radius (in meters) for matching projected 3D points to 2D keypoints
+     * @param options SLAM options containing reprojection and frustum culling parameters
+     * @return Vector of cv::DMatch representing the matched 3D-2D correspondences
+     */
+    auto match_keypoints3d(
+        const point3d_cloud& points3d_world,
+        const map<keypoint>& keypoints,
+        const cv::Affine3d&  pose_of_camera0_in_world,
+        const cv::Matx34d&   projection,
+        const cv::Size&      image_size,
+        double               radius,
+        const slam_options&  options) -> std::vector<cv::DMatch>;
 
     /**
      * Match keylines between two frames using their descriptors, then filter matches using epipolar constraint

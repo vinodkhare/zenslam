@@ -9,7 +9,6 @@
 #include <spdlog/spdlog.h>
 
 #include "zenslam/utils_opencv.h"
-#include "zenslam/utils_slam.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/point3d_cloud.h"
@@ -21,7 +20,7 @@ auto zenslam::utils::filter(
     const cv::Matx33d&               fundamental,
     const double                     epipolar_threshold) -> std::vector<cv::DMatch>
 {
-    std::vector<cv::DMatch> filtered {};
+    std::vector<cv::DMatch> filtered { };
     filtered.reserve(matches.size());
 
     if (auto [points0, points1] = to_points(keypoints0, keypoints1, matches);
@@ -94,6 +93,41 @@ auto zenslam::utils::create_matcher(
     }
 }
 
+/**
+ * Helper function to check if a 3D point projects within the camera frustum
+ * @param point_camera 3D point in camera coordinates
+ * @param projection Camera projection matrix
+ * @param image_width Image width in pixels
+ * @param image_height Image height in pixels
+ * @param margin Margin in pixels (positive allows points slightly outside image bounds)
+ * @return True if point is within frustum
+ */
+static auto is_in_frustum(
+    const cv::Point3d& point_camera,
+    const cv::Matx34d& projection,
+    int                image_width,
+    int                image_height,
+    double             margin = 50.0) -> bool
+{
+    // Check if point is in front of camera
+    if (point_camera.z <= 0.0)
+        return false;
+
+    // Project to image plane
+    const cv::Mat point_homogeneous = (cv::Mat_<double>(4, 1) << point_camera.x, point_camera.y, point_camera.z, 1.0);
+    const cv::Mat projected         = cv::Mat(projection) * point_homogeneous;
+
+    if (std::abs(projected.at<double>(2)) < 1e-9)
+        return false;
+
+    const double u = projected.at<double>(0) / projected.at<double>(2);
+    const double v = projected.at<double>(1) / projected.at<double>(2);
+
+    // Check if within image bounds (with margin)
+    return (u >= -margin && u < image_width + margin &&
+        v >= -margin && v < image_height + margin);
+}
+
 auto zenslam::utils::match_keypoints3d(
     const point3d_cloud& points3d_world,
     const map<keypoint>& keypoints,
@@ -103,76 +137,206 @@ auto zenslam::utils::match_keypoints3d(
     const double         threshold) -> std::vector<cv::DMatch>
 {
     if (points3d_world.empty() || keypoints.empty())
-        return std::vector<cv::DMatch> {};
+        return std::vector<cv::DMatch> { };
 
     // find keypoints that are not triangulated
     const auto& untriangulated = keypoints.values_unmatched(points3d_world) |
-                                 std::ranges::to<std::vector>();
+        std::ranges::to<std::vector>();
 
     if (untriangulated.empty())
-        return std::vector<cv::DMatch> {};
+        return std::vector<cv::DMatch> { };
 
+    // Transform landmarks to camera frame and apply frustum culling
+    // Note: For full frustum culling with image dimensions, use the overload that accepts slam_options
     const auto& points3d =
         pose_of_camera0_in_world.inv() * points3d_world.radius_search(
-                                             static_cast<point3d>(pose_of_camera0_in_world.translation()),
-                                             radius) |
-        std::views::filter // TODO: add frustum filtering
-        ([](const auto& p3d) { return p3d.z > 0.0; }) |
+            static_cast<point3d>(pose_of_camera0_in_world.translation()),
+            radius) |
+        std::views::filter([](const auto& p3d) { return p3d.z > 0.0; }) |
         std::ranges::to<std::vector>();
 
     if (points3d.empty())
-        return std::vector<cv::DMatch> {};
+        return std::vector<cv::DMatch> { };
 
-    cv::Mat descriptors3d = {};
+    cv::Mat descriptors3d = { };
     cv::vconcat(
         points3d | std::views::transform([](const auto& kp) { return kp.descriptor; }) |
-            std::ranges::to<std::vector>(),
+        std::ranges::to<std::vector>(),
 
         descriptors3d // output
     );
 
-    cv::Mat descriptors2d = {};
+    cv::Mat descriptors2d = { };
     cv::vconcat(
         untriangulated |
-            std::views::transform([](const auto& keypoint) { return keypoint.descriptor; }) |
-            std::ranges::to<std::vector>(),
+        std::views::transform([](const auto& keypoint) { return keypoint.descriptor; }) |
+        std::ranges::to<std::vector>(),
 
         descriptors2d // output
     );
 
     if (descriptors3d.empty() || descriptors2d.empty())
-        return std::vector<cv::DMatch> {};
+        return std::vector<cv::DMatch> { };
 
-    std::vector<cv::DMatch> matches_cv = {};
+    std::vector<cv::DMatch> matches_cv = { };
     cv::BFMatcher(
-        descriptors3d.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2,
-        true)
-        .match(descriptors3d, descriptors2d, matches_cv);
+            descriptors3d.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2,
+            true)
+       .match(descriptors3d, descriptors2d, matches_cv);
 
-    // TODO: add reprojection filtering
-    std::vector<cv::DMatch> matches           = {};
-    std::vector<point3d>    matched_points3d  = {};
-    std::vector<keypoint>   matched_keypoints = {};
+    // Apply reprojection filtering to remove outliers
+    std::vector<cv::DMatch> matches = { };
+    matches.reserve(matches_cv.size());
 
-    for (const auto match : matches_cv)
+    // Project all 3D points to verify reprojection quality
+    const auto& projected_all = project(to_points(points3d), projection);
+
+    for (const auto& match : matches_cv)
     {
-        matched_points3d.emplace_back(points3d[match.queryIdx]);
-        matched_keypoints.emplace_back(untriangulated[match.trainIdx]);
-    }
+        const auto& point3d_idx  = match.queryIdx;
+        const auto& keypoint_idx = match.trainIdx;
+        const auto& point3d_cam  = points3d[point3d_idx];
+        const auto& keypoint     = untriangulated[keypoint_idx];
+        const auto& projected_pt = projected_all[point3d_idx];
 
-    const auto& projected = project(to_points(points3d), projection);
-    const auto& errors    = vecnorm(projected - to_points(matched_keypoints));
+        // Compute reprojection error
+        const double error = cv::norm(projected_pt - cv::Point2d(keypoint.pt));
 
-    for (auto i = 0; i < matches_cv.size(); ++i)
-    {
-        if (errors[i] < threshold) // TODO: parameterize
+        // Filter by reprojection threshold
+        if (error < threshold)
         {
             matches.emplace_back(
-                matched_points3d[i].index,
-                matched_keypoints[i].index,
-                matches_cv[i].distance);
+                point3d_cam.index,
+                keypoint.index,
+                static_cast<float>(error)); // Use reprojection error as distance metric
         }
     }
+
+    return matches;
+}
+
+auto zenslam::utils::match_keypoints3d(
+    const point3d_cloud& points3d_world,
+    const map<keypoint>& keypoints,
+    const cv::Affine3d&  pose_of_camera0_in_world,
+    const cv::Matx34d&   projection,
+    const cv::Size&      image_size,
+    const double         radius,
+    const slam_options&  options) -> std::vector<cv::DMatch>
+{
+    if (points3d_world.empty() || keypoints.empty())
+        return std::vector<cv::DMatch> { };
+
+    // find keypoints that are not triangulated
+    const auto& untriangulated = keypoints.values_unmatched(points3d_world) | std::ranges::to<std::vector>();
+
+    SPDLOG_DEBUG("  match_keypoints3d: total_world_points={}, untriangulated_kps={}", 
+                 points3d_world.size(), untriangulated.size());
+
+    if (untriangulated.empty())
+        return std::vector<cv::DMatch> { };
+
+    // Transform landmarks to camera frame
+    const auto points3d_camera =
+        pose_of_camera0_in_world.inv() * points3d_world.radius_search(
+            static_cast<point3d>(pose_of_camera0_in_world.translation()),
+            radius);
+
+    SPDLOG_DEBUG("  match_keypoints3d: after radius_search ({}m)={} points", 
+                 radius, points3d_camera.size());
+
+    // Apply depth and frustum filtering
+    std::vector<point3d> points3d;
+    points3d.reserve(points3d_camera.size());
+
+    for (const auto& p3d : points3d_camera)
+    {
+        // Check depth (must be in front of camera)
+        if (p3d.z <= 0.0)
+            continue;
+
+        // Apply frustum culling if enabled
+        if (options.enable_frustum_culling)
+        {
+            if (!is_in_frustum(
+                cv::Point3d(p3d.x, p3d.y, p3d.z),
+                projection,
+                image_size.width,
+                image_size.height,
+                options.frustum_margin))
+            {
+                continue;
+            }
+        }
+
+        points3d.emplace_back(p3d);
+    }
+
+    SPDLOG_DEBUG("  match_keypoints3d: after frustum/depth filter={} points", 
+                 points3d.size());
+
+    if (points3d.empty())
+        return std::vector<cv::DMatch> { };
+
+    cv::Mat descriptors3d = { };
+    cv::vconcat(
+        points3d | std::views::transform([](const auto& kp) { return kp.descriptor; }) |
+        std::ranges::to<std::vector>(),
+        descriptors3d // output
+    );
+
+    cv::Mat descriptors2d = { };
+    cv::vconcat(
+        untriangulated |
+        std::views::transform([](const auto& keypoint) { return keypoint.descriptor; }) |
+        std::ranges::to<std::vector>(),
+        descriptors2d // output
+    );
+
+    if (descriptors3d.empty() || descriptors2d.empty())
+        return std::vector<cv::DMatch> { };
+
+    std::vector<cv::DMatch> matches_cv = { };
+    cv::BFMatcher(
+            descriptors3d.depth() == CV_8U ? cv::NORM_HAMMING : cv::NORM_L2,
+            true)
+       .match(descriptors3d, descriptors2d, matches_cv);
+
+    // Apply reprojection filtering to remove outliers
+    std::vector<cv::DMatch> matches = { };
+    matches.reserve(matches_cv.size());
+
+    // Project all 3D points to verify reprojection quality
+    const auto& projected_all = project(to_points(points3d), projection);
+
+    for (const auto& match : matches_cv)
+    {
+        const auto& point3d_idx  = match.queryIdx;
+        const auto& keypoint_idx = match.trainIdx;
+        const auto& point3d_cam  = points3d[point3d_idx];
+        const auto& keypoint     = untriangulated[keypoint_idx];
+        const auto& projected_pt = projected_all[point3d_idx];
+
+        // Compute reprojection error
+        const double error = cv::norm(projected_pt - cv::Point2d(keypoint.pt));
+
+        // Filter by configured reprojection threshold
+        if (error < options.reprojection_threshold_3d2d)
+        {
+            matches.emplace_back(
+                point3d_cam.index,
+                keypoint.index,
+                static_cast<float>(error)); // Use reprojection error as distance metric
+        }
+    }
+
+    SPDLOG_DEBUG(
+        "3D-2D matching: {} landmarks in radius, {} after frustum culling, {} descriptor matches, {} after reprojection filtering (threshold={:.1f}px)",
+        points3d_camera.size(),
+        points3d.size(),
+        matches_cv.size(),
+        matches.size(),
+        options.reprojection_threshold_3d2d.value());
 
     return matches;
 }
@@ -184,7 +348,7 @@ auto zenslam::utils::match_keylines(
     double              epipolar_threshold) -> std::vector<cv::DMatch>
 {
     // Prepare descriptors and keyline vectors
-    std::vector<keyline> keylines_0, keylines_1;
+    std::vector<keyline> keylines_0,    keylines_1;
     cv::Mat              descriptors_0, descriptors_1;
 
     for (const auto& kl : keylines_map_0 | std::views::values)
@@ -243,19 +407,19 @@ auto zenslam::utils::match_keylines(
         {
             // Error for pt0 to epiline in image 0
             double err0 = std::abs(
-                              epilines0[i][0] * pts0[i].x +
-                              epilines0[i][1] * pts0[i].y + epilines0[i][2]) /
-                          std::sqrt(
-                              epilines0[i][0] * epilines0[i][0] +
-                              epilines0[i][1] * epilines0[i][1]);
+                    epilines0[i][0] * pts0[i].x +
+                    epilines0[i][1] * pts0[i].y + epilines0[i][2]) /
+                std::sqrt(
+                    epilines0[i][0] * epilines0[i][0] +
+                    epilines0[i][1] * epilines0[i][1]);
 
             // Error for pt1 to epiline in image 1
             double err1 = std::abs(
-                              epilines1[i][0] * pts1[i].x +
-                              epilines1[i][1] * pts1[i].y + epilines1[i][2]) /
-                          std::sqrt(
-                              epilines1[i][0] * epilines1[i][0] +
-                              epilines1[i][1] * epilines1[i][1]);
+                    epilines1[i][0] * pts1[i].x +
+                    epilines1[i][1] * pts1[i].y + epilines1[i][2]) /
+                std::sqrt(
+                    epilines1[i][0] * epilines1[i][0] +
+                    epilines1[i][1] * epilines1[i][1]);
 
             if (err0 > epipolar_threshold || err1 > epipolar_threshold)
             {
@@ -279,11 +443,11 @@ auto zenslam::utils::match_temporal(
     const cv::Matx33d&                camera_matrix,
     double                            threshold) -> std::vector<cv::DMatch>
 {
-    cv::Mat                 descriptors_0 {};
-    cv::Mat                 descriptors_1 {};
-    std::vector<keypoint>   unmatched_0 {};
-    std::vector<keypoint>   unmatched_1 {};
-    std::vector<cv::DMatch> matches_new {};
+    cv::Mat                 descriptors_0 { };
+    cv::Mat                 descriptors_1 { };
+    std::vector<keypoint>   unmatched_0 { };
+    std::vector<keypoint>   unmatched_1 { };
+    std::vector<cv::DMatch> matches_new { };
 
     for (const auto& keypoint_0 : keypoints_map_0 | std::views::values)
     {
@@ -333,22 +497,22 @@ auto zenslam::utils::match_temporal(
 
     // Filter matches based on reprojection error
     auto points_0 = matches |
-                    std::views::transform(
-                        [&unmatched_0](const auto& match)
-                        {
-                            return unmatched_0[match.queryIdx].pt;
-                        }) |
-                    std::ranges::to<std::vector>();
+        std::views::transform(
+            [&unmatched_0](const auto& match)
+            {
+                return unmatched_0[match.queryIdx].pt;
+            }) |
+        std::ranges::to<std::vector>();
 
     auto points_1 = matches |
-                    std::views::transform(
-                        [&unmatched_1](const auto& match)
-                        {
-                            return unmatched_1[match.trainIdx].pt;
-                        }) |
-                    std::ranges::to<std::vector>();
+        std::views::transform(
+            [&unmatched_1](const auto& match)
+            {
+                return unmatched_1[match.trainIdx].pt;
+            }) |
+        std::ranges::to<std::vector>();
 
-    auto mask = std::vector<uchar> {};
+    auto mask = std::vector<uchar> { };
 
     auto e = cv::findEssentialMat(
         points_0,
@@ -405,22 +569,22 @@ auto zenslam::utils::solve_pnp(
 {
     cv::Mat          rvec { pose.rvec() };
     cv::Mat          tvec { pose.translation() };
-    std::vector<int> inliers {};
+    std::vector<int> inliers { };
 
     SPDLOG_INFO("SolvePnP with {} points", points3d.size());
 
     if (cv::solvePnPRansac(
-            points3d,
-            points2d,
-            camera_matrix,
-            cv::Mat(),
-            rvec,
-            tvec,
-            true,
-            1000,
-            4.0,
-            0.99,
-            inliers))
+        points3d,
+        points2d,
+        camera_matrix,
+        cv::Mat(),
+        rvec,
+        tvec,
+        true,
+        1000,
+        4.0,
+        0.99,
+        inliers))
     {
         SPDLOG_INFO(
             "SolvePnP successful with {} inliers out of {} points",
