@@ -124,8 +124,10 @@ namespace zenslam { namespace
         S.interactor->SetInteractorStyle(style);
         S.interactor->Initialize();
 
-        // Background and basic axes
-        S.renderer->SetBackground(0.1, 0.1, 0.12);
+        // Gradient background: dark blue (bottom) to light blue (top)
+        S.renderer->SetBackground(0.05, 0.1, 0.2);   // Dark blue
+        S.renderer->SetBackground2(0.4, 0.6, 0.9);   // Light blue
+        S.renderer->SetGradientBackground(true);
 
         S.axesCam   = vtkSmartPointer<vtkAxesActor>::New();
         S.axesCamGt = vtkSmartPointer<vtkAxesActor>::New();
@@ -372,5 +374,28 @@ namespace zenslam { namespace
         // Render one frame; process user events without blocking
         S.window->Render();
         S.interactor->ProcessEvents();
+    }
+
+    void vtk_scene_window::set_background_color(double r1, double g1, double b1, 
+                                                 double r2, double g2, double b2)
+    {
+        if (!_initialized || !_scene)
+            return;
+
+        auto& S = *_scene;
+
+        // If second color not specified (negative values), use solid color
+        if (r2 < 0.0 || g2 < 0.0 || b2 < 0.0)
+        {
+            S.renderer->SetBackground(r1, g1, b1);
+            S.renderer->SetGradientBackground(false);
+        }
+        else
+        {
+            // Use gradient background
+            S.renderer->SetBackground(r1, g1, b1);   // Bottom color
+            S.renderer->SetBackground2(r2, g2, b2);  // Top color
+            S.renderer->SetGradientBackground(true);
+        }
     }
 } // namespace zenslam

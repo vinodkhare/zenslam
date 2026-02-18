@@ -41,6 +41,18 @@ namespace zenslam
         void               set_visible(bool visible) override { _visible = visible; }
         [[nodiscard]] bool is_visible() const override { return _visible; }
 
+        /**
+         * @brief Set the background color(s) for the VTK window.
+         * @param r1 Red component of bottom color (0.0 - 1.0)
+         * @param g1 Green component of bottom color (0.0 - 1.0)
+         * @param b1 Blue component of bottom color (0.0 - 1.0)
+         * @param r2 Red component of top color (0.0 - 1.0), defaults to r1
+         * @param g2 Green component of top color (0.0 - 1.0), defaults to g1
+         * @param b2 Blue component of top color (0.0 - 1.0), defaults to b1
+         */
+        void set_background_color(double r1, double g1, double b1, 
+                                  double r2 = -1.0, double g2 = -1.0, double b2 = -1.0);
+
     private:
         const options&            _options;
         float&                    _point_cloud_opacity;
