@@ -1,19 +1,22 @@
 #include "zenslam/processor.h"
 
 #include <thread>
-#include <utility>
 
 #include "zenslam/utils/utils.h"
 #include "zenslam/utils/utils_opencv.h"
 
-zenslam::processor::processor(slam_options options, calibration calibration) :
-    _options { std::move(options) },
-    _calibration { std::move(calibration) },
+zenslam::processor::processor(const slam_options& options, const calibration& calibration) :
+    _options { options },
+    _calibration { calibration },
     _integrator { _calibration.imu, _options.integrator_method }
 {
 }
 
-auto zenslam::processor::process(const frame::sensor& sensor) -> frame::processed
+auto zenslam::processor::process
+(
+    const frame::sensor& sensor
+)
+    -> frame::processed
 {
     frame::processed processed = { sensor };
 

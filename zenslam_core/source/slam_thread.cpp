@@ -103,8 +103,6 @@ void zenslam::slam_thread::loop()
             cv::Affine3d pose_predicted { };
             {
                 pose_predicted = motion.predict(system[0], processed);
-
-                pose_predicted = inertial.predict(system[0], processed);
             }
 
             // TRACK
