@@ -10,12 +10,12 @@ zenslam::application::application(options options) :
     _options { std::move(options) }
 {
     // Create window instances
-    _windows.push_back(std::make_shared<opencv_window>(opencv_window::type::spatial_matches, _options.slam->gui));
-    _windows.push_back(std::make_shared<opencv_window>(opencv_window::type::temporal_matches, _options.slam->gui));
-    _windows.push_back(std::make_shared<vtk_scene_window>(_options, _options.slam->gui, _trajectory_estimated, _trajectory_gt));
+    _windows.push_back(std::make_shared<opencv_window>(opencv_window::type::spatial_matches, _options.gui));
+    _windows.push_back(std::make_shared<opencv_window>(opencv_window::type::temporal_matches, _options.gui));
+    _windows.push_back(std::make_shared<vtk_scene_window>(_options, _options.gui, _trajectory_estimated, _trajectory_gt));
 
     // Create ImGui controls window and get reference for history updates
-    auto imgui_window = std::make_shared<imgui_controls_window>(_options.slam->gui);
+    auto imgui_window = std::make_shared<imgui_controls_window>(_options.gui);
     _windows.push_back(imgui_window);
 
     // Set up frame callback

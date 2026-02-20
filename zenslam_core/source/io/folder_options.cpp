@@ -2,68 +2,11 @@
 
 #include <filesystem>
 
-#include <boost/program_options.hpp>
-
 #include <spdlog/spdlog.h>
-
-#include "zenslam/option_parser.h"
 
 namespace zenslam
 {
-    // parse_yaml() and parse_cli() are now inherited from options_base
-
-    boost::program_options::options_description folder_options::description()
-    {
-        const folder_options opts;
-
-        boost::program_options::options_description description { "folder options" };
-
-        // Helper to add an option to boost description with proper CLI flag name
-        auto add_option = [&description](const auto& opt)
-        {
-            using T = std::decay_t<decltype(opt.value())>;
-
-            // Build the CLI flag name with "folder-" prefix and dashes instead of underscores
-            const std::string flag_name = "folder." + opt.name();
-
-            if constexpr (std::is_same_v<T, std::filesystem::path>)
-            {
-                description.add_options()
-                (
-                    flag_name.c_str(),
-                    boost::program_options::value<std::string>()->default_value(opt.value().string()),
-                    opt.description().c_str()
-                );
-            }
-            else if constexpr (std::is_same_v<T, double>)
-            {
-                description.add_options()
-                (
-                    flag_name.c_str(),
-                    boost::program_options::value<double>()->default_value(opt.value()),
-                    opt.description().c_str()
-                );
-            }
-            else
-            {
-                // Generic case for other types
-                description.add_options()
-                (
-                    flag_name.c_str(),
-                    boost::program_options::value<T>()->default_value(opt.value()),
-                    opt.description().c_str()
-                );
-            }
-        };
-
-        // Use all_options() to automatically add all fields
-        std::apply([&add_option](const auto&... options)
-        {
-            (add_option(options), ...);
-        }, opts.all_options());
-
-        return description;
-    }
+    // parse_yaml(), parse_cli(), description(), and print() are inherited from options_base
 
     void folder_options::validate() const
     {

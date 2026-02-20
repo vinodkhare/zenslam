@@ -5,7 +5,7 @@
 namespace zenslam
 {
     /// Keyframe selection configuration
-    class keyframe_options : public options_base<keyframe_options, "keyframe options", "keyframe.">
+    class keyframe_options : public options_base<keyframe_options, "keyframe options", "keyframe">
     {
     public:
         ZENSLAM_DEFINE_OPTIONS(

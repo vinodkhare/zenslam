@@ -17,16 +17,13 @@ namespace YAML
 namespace zenslam
 {
     /// File and folder path configuration
-    class folder_options : public options_base<folder_options, "folder options", "folder.">
+    class folder_options : public options_base<folder_options, "folder options", "folder">
     {
     public:
-        using options_description = boost::program_options::options_description;
-
-        static auto description() -> options_description;
-
         // Inherited from options_base:
         // static constexpr auto name() - returns "folder options"
-        // static constexpr auto prefix() - returns "folder."
+        // static constexpr auto prefix() - returns "folder"
+        // static auto description() -> boost::program_options::options_description;
         // static auto parse_yaml(const YAML::Node& node) -> folder_options;
         // static void parse_cli(folder_options& options, const std::map<std::string, boost::program_options::basic_option<char>>& options_map, const boost::program_options::variables_map& vm);
         // void print() const;

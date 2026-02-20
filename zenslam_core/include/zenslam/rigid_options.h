@@ -5,7 +5,7 @@
 namespace zenslam
 {
     /// 3D-3D rigid transformation configuration
-    class rigid_options : public options_base<rigid_options, "rigid options", "rigid.">
+    class rigid_options : public options_base<rigid_options, "rigid options", "rigid">
     {
     public:
         ZENSLAM_DEFINE_OPTIONS(

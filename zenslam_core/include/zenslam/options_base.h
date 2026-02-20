@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <map>
 #include <string>
 #include <string_view>
@@ -7,6 +8,8 @@
 #include <boost/program_options/option.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
+
+#include <opencv2/core/types.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -41,7 +44,7 @@ namespace zenslam
      * @brief CRTP base class providing common functionality for options classes
      * @tparam Derived The derived options class (e.g., folder_options, slam_options)
      * @tparam Name The name/description of this options group
-     * @tparam Prefix The CLI prefix for these options (e.g., "folder.", "slam.")
+     * @tparam Prefix The CLI prefix for these options (e.g., "folder", "slam") - dot is added automatically
      *
      * This base class abstracts away the common implementation pattern for:
      * - Parsing from YAML
@@ -127,7 +130,7 @@ namespace zenslam
                     {
                         auto parse_field = [&options_map, &vm](auto& opt)
                         {
-                            opt = option_parser_cli::parse_cli(opt, std::string(Derived::prefix()), options_map, vm);
+                            opt = option_parser_cli::parse_cli(opt, std::string(Derived::prefix()) + ".", options_map, vm);
                         };
 
                         (parse_field(opts), ...);
@@ -151,6 +154,83 @@ namespace zenslam
             {
                 (option_printer::print(opts), ...);
             }, derived.all_options());
+        }
+
+        /**
+         * @brief Generate boost::program_options description for CLI
+         * Default implementation handles common types. Derived classes can override for special handling.
+         * @return options_description for boost::program_options
+         */
+        static auto description() -> options_description
+        {
+            const Derived opts;
+            options_description desc { std::string(Derived::name()) };
+
+            // Helper to add an option to boost description with proper CLI flag name
+            auto add_option = [&desc](const auto& opt)
+            {
+                using T = std::decay_t<decltype(opt.value())>;
+                const std::string flag_name = std::string(Derived::prefix()) + "." + opt.name();
+
+                if constexpr (std::is_same_v<T, bool>)
+                {
+                    desc.add_options()
+                    (
+                        flag_name.c_str(),
+                        boost::program_options::value<bool>()->default_value(opt.value()),
+                        opt.description().c_str()
+                    );
+                }
+                else if constexpr (std::is_same_v<T, int>)
+                {
+                    desc.add_options()
+                    (
+                        flag_name.c_str(),
+                        boost::program_options::value<int>()->default_value(opt.value()),
+                        opt.description().c_str()
+                    );
+                }
+                else if constexpr (std::is_same_v<T, float>)
+                {
+                    desc.add_options()
+                    (
+                        flag_name.c_str(),
+                        boost::program_options::value<float>()->default_value(opt.value()),
+                        opt.description().c_str()
+                    );
+                }
+                else if constexpr (std::is_same_v<T, double>)
+                {
+                    desc.add_options()
+                    (
+                        flag_name.c_str(),
+                        boost::program_options::value<double>()->default_value(opt.value()),
+                        opt.description().c_str()
+                    );
+                }
+                else if constexpr (std::is_same_v<T, std::filesystem::path>)
+                {
+                    desc.add_options()
+                    (
+                        flag_name.c_str(),
+                        boost::program_options::value<std::string>()->default_value(opt.value().string()),
+                        opt.description().c_str()
+                    );
+                }
+                else if constexpr (std::is_same_v<T, cv::Size> || std::is_same_v<T, cv::Scalar>)
+                {
+                    // Skip complex OpenCV types - only configurable via YAML
+                }
+                // Add more type handlers here as needed
+            };
+
+            // Use all_options() to automatically add all fields
+            std::apply([&add_option](const auto&... options)
+            {
+                (add_option(options), ...);
+            }, opts.all_options());
+
+            return desc;
         }
 
         ~options_base() = default; // Protected destructor for CRTP base

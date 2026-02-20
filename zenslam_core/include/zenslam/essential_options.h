@@ -5,7 +5,7 @@
 namespace zenslam
 {
     /// Essential matrix estimation configuration
-    class essential_options : public options_base<essential_options, "essential options", "essential.">
+    class essential_options : public options_base<essential_options, "essential options", "essential">
     {
     public:
         ZENSLAM_DEFINE_OPTIONS(

@@ -42,6 +42,7 @@ add_library(${PROJECT_NAME}
         # Core
         source/slam_options.cpp
         source/slam_thread.cpp
+        source/gui_options.cpp
         source/options.cpp
         source/processor.cpp
         source/time_this.cpp

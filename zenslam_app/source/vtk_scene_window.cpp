@@ -292,7 +292,7 @@ namespace zenslam { namespace
         }
 
         // Update or hide lines
-        if (_options.slam->gui->show_keylines)
+        if (_gui_options.show_keylines)
         {
             S.linesActor->SetVisibility(1);
             S.linePoints->Reset();

@@ -7,6 +7,7 @@
 #include <spdlog/common.h>
 
 #include "zenslam/io/folder_options.h"
+#include "zenslam/gui_options.h"
 #include "slam_options.h"
 #include "zenslam/io/verb.h"
 
@@ -31,6 +32,7 @@ namespace zenslam
             ((std::string, log_pattern, "[%Y-%b-%d %T.%e] [%^%l%$] %v", "Logging pattern"))
             ((verb, verb, verb::RUN, ""))
             ((folder_options, folder, {}, "Folder and file path options"))
+            ((gui_options, gui, {}, "GUI and visualization configuration"))
             ((slam_options, slam, {}, "SLAM algorithm configuration options"))
         )
 

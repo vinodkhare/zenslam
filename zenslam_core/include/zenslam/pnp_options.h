@@ -5,7 +5,7 @@
 namespace zenslam
 {
     /// PnP RANSAC estimation configuration
-    class pnp_options : public options_base<pnp_options, "pnp options", "pnp.">
+    class pnp_options : public options_base<pnp_options, "pnp options", "pnp">
     {
     public:
         ZENSLAM_DEFINE_OPTIONS(

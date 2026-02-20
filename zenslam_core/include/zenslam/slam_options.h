@@ -34,7 +34,7 @@ namespace zenslam
     };
 
     /// SLAM algorithm configuration options
-    class slam_options : public options_base<slam_options, "slam options", "slam.">
+    class slam_options : public options_base<slam_options, "slam options", "slam">
     {
     public:
         using options_description = boost::program_options::options_description;
@@ -82,7 +82,6 @@ namespace zenslam
             ((double, reprojection_threshold_3d2d, 2.0, "3D-2D reprojection error threshold in pixels for landmark matching"))
             ((double, frustum_margin, 50.0, "Margin in pixels for frustum culling (negative = exclude, positive = include beyond image bounds)"))
             ((bool, enable_frustum_culling, true, "Enable frustum culling for 3D-2D landmark matching"))
-            ((gui_options, gui, {}, "GUI and visualization configuration"))
             ((keyframe_options, keyframe, {}, "Keyframe selection configuration"))
             ((lba_options, lba, {}, "Local bundle adjustment configuration"))
             ((pnp_options, pnp, {}, "PnP RANSAC configuration"))

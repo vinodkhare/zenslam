@@ -11,6 +11,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "zenslam/io/folder_options.h"
+#include "zenslam/gui_options.h"
 #include "zenslam/option.h"
 #include "zenslam/option_parser.h"
 #include "zenslam/option_printer.h"
@@ -37,6 +38,7 @@ boost::program_options::options_description zenslam::options::description()
         ("help,h", "Show help")("version,v", "Show version");
 
     description.add(folder_options::description());
+    description.add(gui_options::description());
     description.add(slam_options::description());
 
     return description;
@@ -72,8 +74,9 @@ zenslam::options zenslam::options::parse(const int argc, char** argv)
     if (options_map.contains("options-file"))
         options = parse(map["options-file"].as<std::string>());
 
-    // Parse folder and slam options using their respective parse_cli methods
+    // Parse folder, gui, and slam options using their respective parse_cli methods
     folder_options::parse_cli(options.folder, options_map, map);
+    gui_options::parse_cli(options.gui, options_map, map);
     slam_options::parse_cli(options.slam, options_map, map);
 
     return options;
@@ -100,6 +103,11 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
             options.folder = folder_options::parse_yaml(folder);
         }
 
+        if (const auto& gui = config["gui"])
+        {
+            options.gui = gui_options::parse_yaml(gui);
+        }
+
         if (const auto& slam = config["slam"])
         {
             options.slam = slam_options::parse_yaml(slam);
@@ -116,8 +124,9 @@ zenslam::options zenslam::options::parse(const std::filesystem::path& path)
 
 void zenslam::options::validate() const
 {
-    folder.value().validate();
-    slam.value().validate();
+    folder->validate();
+    gui->validate();
+    slam->validate();
 }
 
 void zenslam::options::print() const
@@ -127,6 +136,7 @@ void zenslam::options::print() const
     option_printer::print(log_pattern);
     option_printer::print(verb);
 
-    folder.value().print();
-    slam.value().print();
+    folder->print();
+    gui->print();
+    slam->print();
 }

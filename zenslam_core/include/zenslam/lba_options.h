@@ -5,7 +5,7 @@
 namespace zenslam
 {
     /// Local bundle adjustment configuration
-    class lba_options : public options_base<lba_options, "lba options", "lba.">
+    class lba_options : public options_base<lba_options, "lba options", "lba">
     {
     public:
         ZENSLAM_DEFINE_OPTIONS(

@@ -102,10 +102,10 @@ namespace zenslam
     {
         const slam_options opts;
 
-        boost::program_options::options_description description { "slam options" };
+        boost::program_options::options_description description { std::string(slam_options::name()) };
 
         // Helper to add an option to boost description with proper CLI flag name
-        auto add_option = [&description](const auto& opt, const std::string& flag_prefix = "slam.")
+        auto add_option = [&description](const auto& opt, const std::string& flag_prefix = std::string(slam_options::prefix()) + ".")
         {
             using T = std::decay_t<decltype(opt.value())>;
 
@@ -211,8 +211,6 @@ namespace zenslam
 
     void slam_options::validate() const
     {
-        if (gui->keyline_thickness < 1)
-            throw std::invalid_argument("slam.gui.keyline_thickness must be >= 1");
         if (epipolar_threshold < 0.0)
             throw std::invalid_argument("slam.epipolar_threshold must be >= 0");
         if (matcher_ratio <= 0.0 || matcher_ratio >= 1.0)
