@@ -32,7 +32,7 @@ namespace zenslam
         ~estimator();
 
         // Prevent copies, allow moves
-        estimator(const estimator&) = delete;
+        estimator(const estimator&)            = delete;
         estimator& operator=(const estimator&) = delete;
         estimator(estimator&&) noexcept;
         estimator& operator=(estimator&&) noexcept;
@@ -41,30 +41,50 @@ namespace zenslam
         /// @param points3d_0 Map of 3D points in frame 0
         /// @param tracked_1 Tracked frame 1 containing keypoints and/or 3D points
         /// @return Struct containing all pose estimates and the chosen pose
-        [[nodiscard]] auto estimate_pose(
+        [[nodiscard]] auto estimate_pose
+        (
             const std::map<size_t, point3d>& points3d_0,
-            const frame::tracked& tracked_1) const -> estimate_pose_result;
+            const frame::tracked&            tracked_1
+        ) const
+            -> estimate_pose_result;
 
         /// Estimate pose using full frame information (points and lines)
         /// @param frame_0 Previous estimated frame
         /// @param tracked_1 Current tracked frame
         /// @return Struct containing all pose estimates and the chosen pose
-        [[nodiscard]] auto estimate_pose(
+        [[nodiscard]] auto estimate_pose
+        (
             const frame::estimated& frame_0,
-            const frame::tracked& tracked_1) const -> estimate_pose_result;
+            const frame::tracked&   tracked_1
+        ) const
+            -> estimate_pose_result;
+
+        [[nodiscard]] auto estimate_pose_new
+        (
+            const frame::estimated& frame_0,
+            const frame::tracked&   tracked_1
+        ) const
+            -> estimate_pose_result;
 
         /// Compute weighted fusion of multiple pose estimation methods
         /// @param result Standard pose estimation result containing all methods
         /// @return Fused pose with confidence scores and method contributions
-        [[nodiscard]] static auto estimate_pose_weighted(const estimate_pose_result& result) -> weighted_pose_result;
+        [[nodiscard]] static auto estimate_pose_weighted
+        (
+            const estimate_pose_result& result
+        )
+            -> weighted_pose_result;
 
     private:
         calibration  _calibration;
         slam_options _options;
 
         // Strategy pattern: delegate to specialized estimators
-        std::unique_ptr<pose_estimation::point_estimator> _point_estimator;
-        std::unique_ptr<pose_estimation::line_estimator> _line_estimator;
+        std::unique_ptr<pose_estimation::point_estimator>    _point_estimator;
+        std::unique_ptr<pose_estimation::line_estimator>     _line_estimator;
         std::unique_ptr<pose_estimation::combined_estimator> _combined_estimator;
+
+        auto solvepnp_ransac(const std::vector<std::pair<point3d, keypoint>>& correspondences) const
+            -> pose_data;
     };
 } // namespace zenslam

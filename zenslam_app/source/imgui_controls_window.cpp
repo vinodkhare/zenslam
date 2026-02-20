@@ -60,7 +60,9 @@ namespace zenslam
 
     void imgui_controls_window::render(const frame::system& system)
     {
+        // ReSharper disable once CppDFAConstantConditions
         if (!_visible)
+            // ReSharper disable once CppDFAUnreachableCode
             return;
 
         if (!_initialized)
@@ -125,17 +127,22 @@ namespace zenslam
 
         // Color picker for keylines (single keyline color)
         const auto& s = _gui_options.keyline_single_color; // B, G, R
-        ImVec4      color_rgba(
-            static_cast<float>(s.value()[2]) / 255.0f, // R
-            static_cast<float>(s.value()[1]) / 255.0f, // G
-            static_cast<float>(s.value()[0]) / 255.0f, // B
-            1.0f);
+        ImVec4      color_rgba
+        (
+            static_cast<float>(s.value()[2]) / 255.0f,
+            // R
+            static_cast<float>(s.value()[1]) / 255.0f,
+            // G
+            static_cast<float>(s.value()[0]) / 255.0f,
+            // B
+            1.0f
+        );
 
         if (ImGui::ColorEdit3("Keyline Color", reinterpret_cast<float*>(&color_rgba)))
         {
-            const auto r                    = static_cast<int>(std::round(color_rgba.x * 255.0f));
-            const auto g                    = static_cast<int>(std::round(color_rgba.y * 255.0f));
-            const auto b                    = static_cast<int>(std::round(color_rgba.z * 255.0f));
+            const auto r                      = static_cast<int>(std::round(color_rgba.x * 255.0f));
+            const auto g                      = static_cast<int>(std::round(color_rgba.y * 255.0f));
+            const auto b                      = static_cast<int>(std::round(color_rgba.z * 255.0f));
             _gui_options.keyline_single_color = cv::Scalar(b, g, r);
         }
 
@@ -161,12 +168,27 @@ namespace zenslam
             ImPlot::SetupAxisFormat(ImAxis_Y1, "%.4f");
 
             ImPlot::PlotLine("Wait", _time_history.data(), _wait_history.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "Processing", _time_history.data(), _processing_history.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "Tracking", _time_history.data(), _tracking_history.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "Estimation", _time_history.data(), _estimation_history.data(), static_cast<int>(_time_history.size()));
+            ImPlot::PlotLine
+            (
+                "Processing",
+                _time_history.data(),
+                _processing_history.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Tracking",
+                _time_history.data(),
+                _tracking_history.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Estimation",
+                _time_history.data(),
+                _estimation_history.data(),
+                static_cast<int>(_time_history.size())
+            );
             ImPlot::PlotLine("Total", _time_history.data(), _total_history.data(), static_cast<int>(_time_history.size()));
 
             ImPlot::EndPlot();
@@ -181,38 +203,78 @@ namespace zenslam
             ImPlot::SetupAxisFormat(ImAxis_X1, "%.2f");
 
             // Keypoints
-            ImPlot::PlotLine(
-                "KP L", _time_history.data(), _point_history.features_l.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "KP R", _time_history.data(), _point_history.features_r.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine("Tracked L",
-                             _time_history.data(),
-                             _point_history.features_l_tracked.data(),
-                             static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine("Tracked R",
-                             _time_history.data(),
-                             _point_history.features_r_tracked.data(),
-                             static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "New L", _time_history.data(), _point_history.features_l_new.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "New R", _time_history.data(), _point_history.features_r_new.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine("KP Total",
-                             _time_history.data(),
-                             _point_history.features_total.data(),
-                             static_cast<int>(_time_history.size()));
+            ImPlot::PlotLine
+            (
+                "KP L",
+                _time_history.data(),
+                _point_history.features_l.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "KP R",
+                _time_history.data(),
+                _point_history.features_r.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Tracked L",
+                _time_history.data(),
+                _point_history.features_l_tracked.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Tracked R",
+                _time_history.data(),
+                _point_history.features_r_tracked.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "New L",
+                _time_history.data(),
+                _point_history.features_l_new.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "New R",
+                _time_history.data(),
+                _point_history.features_r_new.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "KP Total",
+                _time_history.data(),
+                _point_history.features_total.data(),
+                static_cast<int>(_time_history.size())
+            );
 
             // Matches & 3D
-            ImPlot::PlotLine("Matches",
-                             _time_history.data(),
-                             _point_history.matches_stereo.data(),
-                             static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine("Triangulated",
-                             _time_history.data(),
-                             _point_history.triangulated_3d.data(),
-                             static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "Map Points", _time_history.data(), _point_history.map_total.data(), static_cast<int>(_time_history.size()));
+            ImPlot::PlotLine
+            (
+                "Matches",
+                _time_history.data(),
+                _point_history.matches_stereo.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Triangulated",
+                _time_history.data(),
+                _point_history.triangulated_3d.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Map Points",
+                _time_history.data(),
+                _point_history.map_total.data(),
+                static_cast<int>(_time_history.size())
+            );
 
             ImPlot::EndPlot();
         }
@@ -226,34 +288,71 @@ namespace zenslam
             ImPlot::SetupAxisFormat(ImAxis_X1, "%.2f");
 
             // Keylines
-            ImPlot::PlotLine(
-                "KL L", _time_history.data(), _line_history.features_l.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "KL R", _time_history.data(), _line_history.features_r.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine("Tracked L",
-                             _time_history.data(),
-                             _line_history.features_l_tracked.data(),
-                             static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine("Tracked R",
-                             _time_history.data(),
-                             _line_history.features_r_tracked.data(),
-                             static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "New L", _time_history.data(), _line_history.features_l_new.data(), static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "New R", _time_history.data(), _line_history.features_r_new.data(), static_cast<int>(_time_history.size()));
+            ImPlot::PlotLine
+            (
+                "KL L",
+                _time_history.data(),
+                _line_history.features_l.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "KL R",
+                _time_history.data(),
+                _line_history.features_r.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Tracked L",
+                _time_history.data(),
+                _line_history.features_l_tracked.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Tracked R",
+                _time_history.data(),
+                _line_history.features_r_tracked.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "New L",
+                _time_history.data(),
+                _line_history.features_l_new.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "New R",
+                _time_history.data(),
+                _line_history.features_r_new.data(),
+                static_cast<int>(_time_history.size())
+            );
 
             // Matches & 3D
-            ImPlot::PlotLine("KL Matches",
-                             _time_history.data(),
-                             _line_history.matches_stereo.data(),
-                             static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine("Lines 3D",
-                             _time_history.data(),
-                             _line_history.triangulated_3d.data(),
-                             static_cast<int>(_time_history.size()));
-            ImPlot::PlotLine(
-                "Map Lines", _time_history.data(), _line_history.map_total.data(), static_cast<int>(_time_history.size()));
+            ImPlot::PlotLine
+            (
+                "KL Matches",
+                _time_history.data(),
+                _line_history.matches_stereo.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Lines 3D",
+                _time_history.data(),
+                _line_history.triangulated_3d.data(),
+                static_cast<int>(_time_history.size())
+            );
+            ImPlot::PlotLine
+            (
+                "Map Lines",
+                _time_history.data(),
+                _line_history.map_total.data(),
+                static_cast<int>(_time_history.size())
+            );
 
             ImPlot::EndPlot();
         }

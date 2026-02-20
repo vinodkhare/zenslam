@@ -25,6 +25,8 @@
 #include <vtkUnsignedCharArray.h>
 #include <vtkVertexGlyphFilter.h>
 
+#include <gsl/narrow>
+
 #include <opencv2/imgproc.hpp>
 
 namespace zenslam { namespace
@@ -90,10 +92,13 @@ namespace zenslam { namespace
     // Ensure unique_ptr<scene_vtk> destruction sees a complete type
     void vtk_scene_window::scene_vtk_deleter::operator()(const scene_vtk* p) const { delete p; }
 
-    vtk_scene_window::vtk_scene_window(const options&            options,
-                                       gui_options&             gui_options,
-                                       std::vector<cv::Point3d>& trajectory_estimated,
-                                       std::vector<cv::Point3d>& trajectory_gt) :
+    vtk_scene_window::vtk_scene_window
+    (
+        const options&            options,
+        gui_options&              gui_options,
+        std::vector<cv::Point3d>& trajectory_estimated,
+        std::vector<cv::Point3d>& trajectory_gt
+    ) :
         _options(options),
         _gui_options(gui_options),
         _trajectory_estimated(trajectory_estimated),
@@ -125,8 +130,8 @@ namespace zenslam { namespace
         S.interactor->Initialize();
 
         // Gradient background: dark blue (bottom) to light blue (top)
-        S.renderer->SetBackground(0.05, 0.1, 0.2);   // Dark blue
-        S.renderer->SetBackground2(0.4, 0.6, 0.9);   // Light blue
+        S.renderer->SetBackground(0.05, 0.1, 0.2); // Dark blue
+        S.renderer->SetBackground2(0.4, 0.6, 0.9); // Light blue
         S.renderer->SetGradientBackground(true);
 
         S.axesCam   = vtkSmartPointer<vtkAxesActor>::New();
@@ -228,7 +233,9 @@ namespace zenslam { namespace
 
     void vtk_scene_window::render(const frame::system& system)
     {
+        // ReSharper disable once CppDFAConstantConditions
         if (!_visible)
+            // ReSharper disable once CppDFAUnreachableCode
             return;
 
         if (!_initialized)
@@ -331,10 +338,10 @@ namespace zenslam { namespace
 
                 // Create polyline connecting all points
                 vtkNew<vtkPolyLine> polyLine;
-                polyLine->GetPointIds()->SetNumberOfIds(_trajectory_estimated.size());
+                polyLine->GetPointIds()->SetNumberOfIds(gsl::narrow<vtkIdType>(_trajectory_estimated.size()));
                 for (size_t i = 0; i < _trajectory_estimated.size(); ++i)
                 {
-                    polyLine->GetPointIds()->SetId(i, i);
+                    polyLine->GetPointIds()->SetId(gsl::narrow<vtkIdType>(i), gsl::narrow<vtkIdType>(i));
                 }
                 S.trajectoryCells->InsertNextCell(polyLine);
             }
@@ -359,10 +366,10 @@ namespace zenslam { namespace
 
                 // Create polyline connecting all points
                 vtkNew<vtkPolyLine> polyLine;
-                polyLine->GetPointIds()->SetNumberOfIds(_trajectory_gt.size());
+                polyLine->GetPointIds()->SetNumberOfIds(gsl::narrow<vtkIdType>(_trajectory_gt.size()));
                 for (size_t i = 0; i < _trajectory_gt.size(); ++i)
                 {
-                    polyLine->GetPointIds()->SetId(i, i);
+                    polyLine->GetPointIds()->SetId(gsl::narrow<vtkIdType>(i), gsl::narrow<vtkIdType>(i));
                 }
                 S.trajectoryGtCells->InsertNextCell(polyLine);
             }
@@ -377,8 +384,15 @@ namespace zenslam { namespace
         S.interactor->ProcessEvents();
     }
 
-    void vtk_scene_window::set_background_color(double r1, double g1, double b1, 
-                                                 double r2, double g2, double b2)
+    void vtk_scene_window::set_background_color
+    (
+        const double r1,
+        const double g1,
+        const double b1,
+        const double r2,
+        const double g2,
+        const double b2
+    ) const
     {
         if (!_initialized || !_scene)
             return;
@@ -394,8 +408,8 @@ namespace zenslam { namespace
         else
         {
             // Use gradient background
-            S.renderer->SetBackground(r1, g1, b1);   // Bottom color
-            S.renderer->SetBackground2(r2, g2, b2);  // Top color
+            S.renderer->SetBackground(r1, g1, b1);  // Bottom color
+            S.renderer->SetBackground2(r2, g2, b2); // Top color
             S.renderer->SetGradientBackground(true);
         }
     }

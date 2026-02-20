@@ -30,7 +30,7 @@ namespace zenslam
         void               initialize() override;
         void               render(const frame::system& system) override;
         [[nodiscard]] bool is_initialized() const override { return _initialized; }
-        void               set_visible(bool visible) override { _visible = visible; }
+        void               set_visible(const bool visible) override { _visible = visible; }
         [[nodiscard]] bool is_visible() const override { return _visible; }
 
         /**
@@ -45,8 +45,8 @@ namespace zenslam
 
     private:
         gui_options& _gui_options;
-        bool     _initialized = false;
-        bool     _visible     = true;
+        bool         _initialized = false;
+        bool         _visible     = true;
 
         // Frame timing history for plots
         std::vector<double> _time_history       = { };

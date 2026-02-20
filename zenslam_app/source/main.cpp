@@ -23,7 +23,7 @@ void signal_handler(const int signal)
     }
 }
 
-int main(const int argc, char **argv)
+int main(const int argc, char** argv)
 {
     std::signal(SIGINT, signal_handler);
 
@@ -31,7 +31,7 @@ int main(const int argc, char **argv)
 
     try
     {
-        const auto &options = zenslam::options::parse(argc, argv);
+        const auto& options = zenslam::options::parse(argc, argv);
 
         if (options.verb == zenslam::verb::HELP)
         {
@@ -65,7 +65,7 @@ int main(const int argc, char **argv)
 
         return 0;
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         std::cerr << e.what() << "\n";
         return 1;

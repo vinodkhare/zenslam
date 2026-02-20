@@ -41,13 +41,13 @@ namespace zenslam
         [[nodiscard]] bool is_visible() const override { return _visible; }
 
     private:
-        type              _type = type::spatial_matches;
+        type               _type = type::spatial_matches;
         const gui_options& _gui_options;
-        std::string       _window_name   = { };
-        std::string    _window_title  = { };
-        int            _window_width  = 1024;
-        int            _window_height = 512;
-        bool           _initialized   = false;
-        bool           _visible       = true;
+        std::string        _window_name   = { };
+        std::string        _window_title  = { };
+        int                _window_width  = 1024;
+        int                _window_height = 512;
+        bool               _initialized   = false;
+        bool               _visible       = true;
     };
 } // namespace zenslam

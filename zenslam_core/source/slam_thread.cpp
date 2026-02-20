@@ -173,73 +173,10 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { system.durations.estimation };
 
-                // Original estimation method - tries all 5 approaches
-                auto estimate_result = estimator.estimate_pose(system[0], tracked);
-
-                // Apply weighted fusion to combine all pose estimates
-                auto weighted_result = estimator.estimate_pose_weighted(estimate_result);
-
-                // Update counts
-                system.counts.correspondences_3d2d         = estimate_result.pose_3d2d.indices.size();
-                system.counts.correspondences_3d3d         = estimate_result.pose_3d3d.indices.size();
-                system.counts.correspondences_2d2d         = estimate_result.pose_2d2d.indices.size();
-                system.counts.correspondences_3d2d_inliers = estimate_result.pose_3d2d.inliers.size();
-                system.counts.correspondences_3d3d_inliers = estimate_result.pose_3d3d.inliers.size();
-                system.counts.correspondences_2d2d_inliers = estimate_result.pose_2d2d.inliers.size();
-
-                // Smart pose selection using confidence + covariance
-                cv::Affine3d chosen_pose  = weighted_result.pose;
-                bool         use_weighted = true;
-
-                // Check if covariance is valid and translation uncertainty is reasonable
-                if (!weighted_result.has_valid_covariance)
-                {
-                    SPDLOG_WARN("Covariance invalid (inliers < 5), cannot assess uncertainty reliably");
-                    use_weighted = false;
-                }
-                else if (weighted_result.translation_std > 0.5)
-                {
-                    SPDLOG_WARN("Translation uncertainty too high ({:.3f}m > 0.5m), using motion prediction instead",
-                                weighted_result.translation_std);
-                    use_weighted = false;
-                }
-                else if (weighted_result.confidence < 0.15)
-                {
-                    SPDLOG_WARN("Confidence too low ({:.3f} < 0.15)", weighted_result.confidence);
-                    use_weighted = false;
-                }
-                else if (weighted_result.total_inliers < 6)
-                {
-                    SPDLOG_WARN("Insufficient inliers ({} < 6)", weighted_result.total_inliers);
-                    use_weighted = false;
-                }
-
-                // Fallback strategy: weighted → best single method → motion prediction
-                if (!use_weighted)
-                {
-                    chosen_pose = estimate_result.chosen_pose;
-
-                    // Final fallback: if single method also weak, use prediction
-                    if (estimate_result.chosen_count < 5)
-                    {
-                        SPDLOG_WARN("Single method too weak (< 5 inliers), using motion prediction as last resort");
-                        chosen_pose = pose_predicted;
-                    }
-                }
+                const auto& estimate_result = estimator.estimate_pose_new(system[0], tracked);
 
                 // Apply pose update (estimate is relative camera pose between frames)
-                system[1] = frame::estimated { tracked, system[0].pose * chosen_pose.inv() };
-
-                // Gravity estimation using residual method (needs previous frame)
-                if (gravity_estimator.count() < 50)
-                {
-                    gravity_estimator.add(system[1], calibration.cameras[0].pose_in_imu0);
-                }
-                else
-                {
-                    auto gravity = gravity_estimator.estimate();
-                    inertial.set_gravity_in_world(gravity);
-                }
+                system[1] = frame::estimated { tracked, system[0].pose * estimate_result.chosen_pose.inv() };
 
                 system.points3d += system[1].pose * system[1].points3d;
                 system.lines3d  += system[1].pose * system[1].lines3d;

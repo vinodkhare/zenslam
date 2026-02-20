@@ -29,17 +29,20 @@ namespace zenslam
          * @param trajectory_estimated Reference to estimated trajectory history.
          * @param trajectory_gt Reference to ground truth trajectory history.
          */
-        vtk_scene_window(const options&            options,
-                         gui_options&             gui_options,
-                         std::vector<cv::Point3d>& trajectory_estimated,
-                         std::vector<cv::Point3d>& trajectory_gt);
+        vtk_scene_window
+        (
+            const options&            options,
+            gui_options&              gui_options,
+            std::vector<cv::Point3d>& trajectory_estimated,
+            std::vector<cv::Point3d>& trajectory_gt
+        );
 
         ~vtk_scene_window() override;
 
         void               initialize() override;
         void               render(const frame::system& system) override;
         [[nodiscard]] bool is_initialized() const override { return _initialized; }
-        void               set_visible(bool visible) override { _visible = visible; }
+        void               set_visible(const bool visible) override { _visible = visible; }
         [[nodiscard]] bool is_visible() const override { return _visible; }
 
         /**
@@ -51,12 +54,19 @@ namespace zenslam
          * @param g2 Green component of top color (0.0 - 1.0), defaults to g1
          * @param b2 Blue component of top color (0.0 - 1.0), defaults to b1
          */
-        void set_background_color(double r1, double g1, double b1, 
-                                  double r2 = -1.0, double g2 = -1.0, double b2 = -1.0);
+        void set_background_color
+        (
+            double r1,
+            double g1,
+            double b1,
+            double r2 = -1.0,
+            double g2 = -1.0,
+            double b2 = -1.0
+        ) const;
 
     private:
         const options&            _options;
-        gui_options&             _gui_options;
+        gui_options&              _gui_options;
         std::vector<cv::Point3d>& _trajectory_estimated;
         std::vector<cv::Point3d>& _trajectory_gt;
         bool                      _initialized = false;
