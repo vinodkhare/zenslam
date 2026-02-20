@@ -58,6 +58,7 @@ namespace zenslam
             const frame::tracked&   tracked_1
         ) const
             -> estimate_pose_result;
+        pose_data estimate_pose_3d2d(const frame::estimated& frame_0, const frame::tracked& tracked_1, const size_t& camera_index) const;
 
         [[nodiscard]] auto estimate_pose_new
         (

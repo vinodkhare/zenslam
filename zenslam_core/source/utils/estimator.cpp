@@ -164,24 +164,14 @@ namespace zenslam
         return result;
     }
 
-    auto estimator::estimate_pose_new
-    (
-        const frame::estimated& frame_0,
-        const frame::tracked&   tracked_1
-    ) const
-        -> estimate_pose_result
+    pose_data estimator::estimate_pose_3d2d(const frame::estimated& frame_0, const frame::tracked& tracked_1, const size_t& camera_index) const
     {
-        if (tracked_1.index == 0)
-        {
-            return { };
-        }
-
         // First we estimate the 3D-2D pose
         const auto correspondences_3d2d
             = frame_0.points3d
             | std::views::values
-            | std::views::filter([&tracked_1](const auto& point3d) { return tracked_1.keypoints[0].contains(point3d.index); })
-            | std::views::transform([&tracked_1](const auto& point3d) { return std::make_pair(point3d, tracked_1.keypoints[0].at(point3d.index)); })
+            | std::views::filter([&tracked_1, &camera_index](const auto& point3d) { return tracked_1.keypoints[camera_index].contains(point3d.index); })
+            | std::views::transform([&tracked_1, &camera_index](const auto& point3d) { return std::make_pair(point3d, tracked_1.keypoints[camera_index].at(point3d.index)); })
             | std::ranges::to<std::vector>();
 
         if (correspondences_3d2d.size() < 4)
@@ -196,7 +186,47 @@ namespace zenslam
         }
         catch (const std::exception& e)
         {
-            throw std::logic_error(std::string("Solve PnP (RANSAC) failed:\n\t") + e.what());
+            throw std::logic_error(std::string("Solve PnP (RANSAC) failed:\n") + e.what());
+        }
+
+        return pose;
+    }
+
+    auto estimator::estimate_pose_new
+    (
+        const frame::estimated& frame_0,
+        const frame::tracked&   tracked_1
+    ) const
+        -> estimate_pose_result
+    {
+        if (tracked_1.index == 0)
+        {
+            return { };
+        }
+
+        pose_data pose { };
+        try
+        {
+            pose = estimate_pose_3d2d(frame_0, tracked_1, 0);
+        }
+        catch (const std::exception& e0)
+        {
+            SPDLOG_WARN("estimate_pose_3d2d failed:");
+            SPDLOG_WARN("{}", e0.what());
+            SPDLOG_INFO("Trying 3D-2D pose estimation with camera 1");
+
+            try
+            {
+                pose      = estimate_pose_3d2d(frame_0, tracked_1, 1);
+                pose.pose = pose.pose * _calibration.cameras[1].pose_in_cam0.inv();
+            }
+            catch (const std::exception& e1)
+            {
+                SPDLOG_WARN("estimate_pose_3d2d with camera 1 also failed:");
+                SPDLOG_WARN("{}", e1.what());
+
+                throw std::logic_error("Unable to estimate pose:\n" + std::string(e0.what()) + "\n" + std::string(e1.what()));
+            }
         }
 
         return { .pose_3d2d = pose, .chosen_pose = pose.pose, .chosen_count = pose.inliers.size() };
