@@ -371,8 +371,11 @@ namespace zenslam
 
         for (size_t i = 0; i < points_1.size(); ++i)
         {
-            if (status[i] && status_back[i] &&
-                cv::norm(points_0_back[i] - points_0[i]) < _options.klt_threshold)
+            if
+            (
+                status[i] && status_back[i] &&
+                cv::norm(points_0_back[i] - points_0[i]) < _options.klt_threshold
+            )
             {
                 candidate_points_0.push_back(points_0[i]);
                 candidate_points_1.push_back(points_1[i]);

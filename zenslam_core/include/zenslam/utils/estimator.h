@@ -58,7 +58,8 @@ namespace zenslam
             const frame::tracked&   tracked_1
         ) const
             -> estimate_pose_result;
-        pose_data estimate_pose_3d2d(const frame::estimated& frame_0, const frame::tracked& tracked_1, const size_t& camera_index) const;
+
+        [[nodiscard]] pose_data estimate_pose_3d2d(const frame::estimated& frame_0, const frame::tracked& tracked_1, const size_t& camera_index) const;
 
         [[nodiscard]] auto estimate_pose_new
         (
@@ -85,7 +86,28 @@ namespace zenslam
         std::unique_ptr<pose_estimation::line_estimator>     _line_estimator;
         std::unique_ptr<pose_estimation::combined_estimator> _combined_estimator;
 
-        auto solvepnp_ransac(const std::vector<std::pair<point3d, keypoint>>& correspondences) const
+        /**
+         * @brief Returns a pose estimate using RANSAC-based PnP on 3D-2D correspondences.
+         * @param correspondences Correspondences between 3D points and 2D keypoints for PnP estimation
+         * @return Pose estimate with inliers, outliers, and reprojection errors
+         */
+        [[nodiscard]] auto solvepnp_ransac
+        (
+            const std::vector<std::pair<point3d, keypoint>>& correspondences
+        ) const
+            -> pose_data;
+
+        /**
+         * @brief Returns a refined pose estimate using Levenberg-Marquardt optimization on inliers from PnP RANSAC.
+         * @param correspondences Correspondences between 3D points and 2D keypoints for PnP refinement
+         * @param pose Pose estimate from RANSAC to refine using LM optimization
+         * @return Pose estimate refined using Levenberg-Marquardt optimization on inliers from RANSAC
+         */
+        [[nodiscard]] auto solvepnp_refinelm
+        (
+            const std::vector<std::pair<point3d, keypoint>>& correspondences,
+            const pose_data&                                 pose
+        ) const
             -> pose_data;
     };
 } // namespace zenslam

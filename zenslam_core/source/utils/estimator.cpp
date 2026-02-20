@@ -1,9 +1,12 @@
 #include "zenslam/utils/estimator.h"
 
+#include <gsl/narrow>
+
 #include "zenslam/pose_estimation/point_estimator.h"
 #include "zenslam/pose_estimation/line_estimator.h"
 #include "zenslam/pose_estimation/combined_estimator.h"
 #include "zenslam/pose_estimation/pose_fusion.h"
+#include "zenslam/utils/rigid_transform.h"
 
 namespace zenslam
 {
@@ -30,7 +33,7 @@ namespace zenslam
         estimate_pose_result result { };
 
         // Combined 3D-3D estimation using both points and lines
-        if (auto pose = _combined_estimator->estimate_3d3d
+        if (const auto pose = _combined_estimator->estimate_3d3d
         (
             points3d_0,
             tracked_1.points3d,
@@ -44,7 +47,7 @@ namespace zenslam
         }
 
         // Combined 3D-2D estimation using both points and lines
-        if (auto pose = _combined_estimator->estimate_3d2d
+        if (const auto pose = _combined_estimator->estimate_3d2d
         (
             points3d_0,
             tracked_1.keypoints[0],
@@ -183,6 +186,16 @@ namespace zenslam
         try
         {
             pose = solvepnp_ransac(correspondences_3d2d);
+
+            if (_options.pnp->use_refinement && pose.inliers.size() >= _options.pnp->min_refinement_inliers)
+            {
+                const auto& inlier_correspondences
+                    = pose.inliers
+                    | std::views::transform([&correspondences_3d2d](const auto& i) { return correspondences_3d2d[i]; })
+                    | std::ranges::to<std::vector>();
+
+                pose = solvepnp_refinelm(inlier_correspondences, pose);
+            }
         }
         catch (const std::exception& e)
         {
@@ -224,8 +237,39 @@ namespace zenslam
             {
                 SPDLOG_WARN("estimate_pose_3d2d with camera 1 also failed:");
                 SPDLOG_WARN("{}", e1.what());
+                SPDLOG_INFO("Trying 3D-3D pose estimation");
 
-                throw std::logic_error("Unable to estimate pose:\n" + std::string(e0.what()) + "\n" + std::string(e1.what()));
+                // Estimate pose 3D-3D
+                const auto& correspondences
+                    = frame_0.points3d
+                    | std::views::values
+                    | std::views::filter([&tracked_1](const auto& point3d) { return tracked_1.points3d.contains(point3d.index); })
+                    | std::views::transform([&tracked_1](const auto& point3d) { return std::make_pair(point3d, tracked_1.points3d.at(point3d.index)); })
+                    | std::ranges::to<std::vector>();
+
+                if (correspondences.size() < 3)
+                {
+                    throw std::logic_error("Not enough 3D-3D correspondences for rigid transform RANSAC: " + std::to_string(correspondences.size()) + " (need >= 3)");
+                }
+
+                const auto& points_0 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d { pair.first }; }) | std::ranges::to<std::vector>();
+                const auto& points_1 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d { pair.second }; }) | std::ranges::to<std::vector>();
+
+                cv::Matx33d         R;
+                cv::Point3d         t;
+                std::vector<size_t> inliers, outliers;
+                std::vector<double> errors;
+
+                auto success = utils::estimate_rigid_ransac(points_0, points_1, R, t, inliers, outliers, errors, _options.threshold_3d3d, 1000);
+
+                if (!success)
+                {
+                    throw std::runtime_error("Rigid transform estimation (3D-3D) failed");
+                }
+
+                pose.pose     = cv::Affine3d { R, t };
+                pose.inliers  = inliers | std::views::transform([&correspondences](const auto& idx) { return correspondences[idx].first.index; }) | std::ranges::to<std::vector>();
+                pose.outliers = outliers | std::views::transform([&correspondences](const auto& idx) { return correspondences[idx].first.index; }) | std::ranges::to<std::vector>();
             }
         }
 
@@ -265,7 +309,7 @@ namespace zenslam
         cv::Mat          rvec, tvec;
         std::vector<int> inliers;
 
-        const auto& success = cv::solvePnPRansac(object_points, image_points, _calibration.camera_matrix[0], { }, rvec, tvec, false, 100, 8.0f, 0.99, inliers);
+        const auto& success = cv::solvePnPRansac(object_points, image_points, _calibration.camera_matrix[0], { }, rvec, tvec, false, 100, _options.pnp->threshold, 0.99, inliers);
 
         if (!success)
         {
@@ -279,12 +323,51 @@ namespace zenslam
 
         cv::Matx33d R;
         cv::Rodrigues(rvec, R);
-        cv::Vec3d t = tvec;
 
         pose_data pose { };
-        pose.pose    = cv::Affine3d(R, t);
-        pose.inliers = inliers | std::views::transform([&correspondences](const auto& idx) { return correspondences[idx].first.index; }) | std::ranges::to<std::vector>();
+        pose.pose    = cv::Affine3d(R, tvec);
+        pose.inliers = inliers | std::views::transform([](const auto& i) { return size_t { gsl::narrow<size_t>(i) }; }) | std::ranges::to<std::vector>();
 
         return pose;
+    }
+
+    auto estimator::solvepnp_refinelm
+    (
+        const std::vector<std::pair<point3d, keypoint>>& correspondences,
+        const pose_data&                                 pose
+    ) const
+        -> pose_data
+    {
+        if (correspondences.size() < 4)
+        {
+            throw std::invalid_argument("cv::solvePnP: needs at least 4 correspondences, but got " + std::to_string(correspondences.size()));
+        }
+
+        const auto& object_points
+            = correspondences
+            | std::views::transform([](const auto& pair) { return cv::Point3f(pair.first.x, pair.first.y, pair.first.z); })
+            | std::ranges::to<std::vector>();
+
+        const auto& image_points
+            = correspondences
+            | std::views::transform([](const auto& pair) { return pair.second.pt; })
+            | std::ranges::to<std::vector>();
+
+        cv::Mat rvec { };
+        cv::Mat tvec { };
+        cv::Rodrigues(pose.pose.rotation(), rvec);
+        tvec = pose.pose.translation();
+
+        if (rvec.empty() || tvec.empty())
+        {
+            throw std::runtime_error("Invalid initial pose for cv::solvePnPRefineLM: empty rotation or translation vector");
+        }
+
+        cv::solvePnPRefineLM(object_points, image_points, _calibration.camera_matrix[0], { }, rvec, tvec, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 1e-6));
+
+        cv::Matx33d R;
+        cv::Rodrigues(rvec, R);
+
+        return { cv::Affine3d(R, tvec), pose.indices, pose.inliers, pose.outliers };
     }
 } // namespace zenslam
