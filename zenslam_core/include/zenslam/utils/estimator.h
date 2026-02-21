@@ -6,8 +6,8 @@
 #include "zenslam/calibration/calibration.h"
 #include "zenslam/frame/estimated.h"
 #include "zenslam/frame/tracked.h"
-#include "zenslam/options.h"
 #include "zenslam/pose_estimation/pose_fusion.h"
+#include "zenslam/slam_options.h"
 
 // Forward declarations to avoid including heavy headers
 namespace zenslam::pose_estimation

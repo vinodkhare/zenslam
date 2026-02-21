@@ -1,7 +1,5 @@
 #include "zenslam/slam_options.h"
 
-#include <algorithm>
-
 #include <boost/program_options.hpp>
 
 #include <magic_enum/magic_enum.hpp>
@@ -10,9 +8,9 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "zenslam/gui_options.h"
 #include "zenslam/option_parser.h"
 #include "zenslam/option_printer.h"
-#include "zenslam/utils/utils.h"
 
 namespace zenslam
 {

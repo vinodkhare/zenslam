@@ -11,7 +11,6 @@
 #include "zenslam/motion/integrator.h"
 #include "zenslam/option.h"
 #include "zenslam/options_base.h"
-#include "zenslam/gui_options.h"
 #include "zenslam/pnp_options.h"
 #include "zenslam/essential_options.h"
 #include "zenslam/rigid_options.h"

@@ -1,5 +1,6 @@
 #include "zenslam/tracking/tracker.h"
 
+#include <iostream>
 #include <thread>
 #include <utility>
 
@@ -9,9 +10,9 @@
 #include "zenslam/mapping/triangulation_utils.h"
 #include "zenslam/mapping/triangulator.h"
 #include "zenslam/matching/matcher.h"
+#include "zenslam/matching/matching_utils.h"
+#include "zenslam/time_this.h"
 #include "zenslam/tracking/tracking_utils.h"
-#include "zenslam/utils/utils_opencv.h"
-#include "zenslam/utils/utils_slam.h"
 
 namespace zenslam
 {
@@ -38,7 +39,17 @@ namespace zenslam
         map<point3d>  points3d    = {};
         map<line3d>   lines3d     = {};
 
+        // Timing variables
+        std::chrono::system_clock::duration time_stereo_tracking{0};
+        std::chrono::system_clock::duration time_cross_tracking{0};
+        std::chrono::system_clock::duration time_triangulation{0};
+        std::chrono::system_clock::duration time_keyline_matching{0};
+        std::chrono::system_clock::duration time_keyline_triangulation{0};
+        std::chrono::system_clock::duration time_total{0};
+        auto timer_total = time_this(time_total);
+
         {
+            auto timer_stereo = time_this(time_stereo_tracking);
             std::jthread thread_0
             {
                 [&]()
@@ -117,58 +128,84 @@ namespace zenslam
             };
         }
 
-        // find keypoints_0 which are not in keypoints_1
-        map<keypoint> keypoints_0_untracked{};
-        for (const auto& [index, keypoint_0] : keypoints_0)
+        // Cross-camera (stereo) keypoint tracking
         {
-            if (!keypoints_1.contains(index))
+            auto timer_cross = time_this(time_cross_tracking);
+            // find keypoints_0 which are not in keypoints_1
+            map<keypoint> keypoints_0_untracked{};
+            for (const auto& [index, keypoint_0] : keypoints_0)
             {
-                keypoints_0_untracked.emplace(index, keypoint_0);
+                if (!keypoints_1.contains(index))
+                {
+                    keypoints_0_untracked.emplace(index, keypoint_0);
+                }
             }
+
+            auto keypoints_1_tracked = track_keypoints(frame_1.pyramids[0], frame_1.pyramids[1], keypoints_0_untracked);
+            keypoints_1.add(keypoints_1_tracked);
+
+            map<keypoint> keypoints_1_untracked{};
+            for (const auto& [index, keypoint_1] : keypoints_1)
+            {
+                if (!keypoints_0.contains(index))
+                {
+                    keypoints_1_untracked.emplace(index, keypoint_1);
+                }
+            }
+
+            auto keypoints_0_tracked = track_keypoints(frame_1.pyramids[1], frame_1.pyramids[0], keypoints_1_untracked);
+            keypoints_0.add(keypoints_0_tracked);
         }
 
-        auto keypoints_1_tracked = track_keypoints(frame_1.pyramids[0], frame_1.pyramids[1], keypoints_0_untracked);
-        keypoints_1.add(keypoints_1_tracked);
-
-        map<keypoint> keypoints_1_untracked{};
-        for (const auto& [index, keypoint_1] : keypoints_1)
+        // Triangulate keypoints
         {
-            if (!keypoints_0.contains(index))
-            {
-                keypoints_1_untracked.emplace(index, keypoint_1);
-            }
+            auto timer_tri = time_this(time_triangulation);
+            // Match keypoints
+            // keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
+            const auto& triangulated = _triangulator.triangulate_keypoints(keypoints_0, keypoints_1, frame_1.undistorted[0]);
+            points3d.add(triangulated);
         }
-
-        auto keypoints_0_tracked = track_keypoints(frame_1.pyramids[1], frame_1.pyramids[0], keypoints_1_untracked);
-        keypoints_0.add(keypoints_0_tracked);
-
-        // Match keypoints
-        // keypoints_1 *= _matcher.match_keypoints(keypoints_0, keypoints_1);
-        const auto& triangulated = _triangulator.triangulate_keypoints(keypoints_0, keypoints_1, frame_1.undistorted[0]);
-        points3d.add(triangulated);
 
         // Match keylines using the fundamental matrix
-        const auto keyline_matches = utils::match_keylines
-        (
-            keylines_0,
-            keylines_1,
-            _calibration.fundamental_matrix[0],
-            _options.epipolar_threshold
-        );
+        {
+            auto timer_kl_match = time_this(time_keyline_matching);
+            const auto keyline_matches = utils::match_keylines
+            (
+                keylines_0,
+                keylines_1,
+                _calibration.fundamental_matrix[0],
+                _options.epipolar_threshold
+            );
 
-        // Update keylines with matches (remap indices)
-        keylines_1 *= keyline_matches;
+            // Update keylines with matches (remap indices)
+            keylines_1 *= keyline_matches;
+        }
 
         // Triangulate keylines
-        lines3d += utils::triangulate_keylines
-        (
-            keylines_0,
-            keylines_1,
-            _calibration.projection_matrix[0],
-            _calibration.projection_matrix[1],
-            _options,
-            _calibration.cameras[1].pose_in_cam0.translation()
-        );
+        {
+            auto timer_kl_tri = time_this(time_keyline_triangulation);
+            lines3d += utils::triangulate_keylines
+            (
+                keylines_0,
+                keylines_1,
+                _calibration.projection_matrix[0],
+                _calibration.projection_matrix[1],
+                _options,
+                _calibration.cameras[1].pose_in_cam0.translation()
+            );
+        }
+
+        // Log timing information
+        auto ms = [](const auto& duration) 
+        { 
+            return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(); 
+        };
+        std::cout << "[TIMING] track() - Total: " << ms(time_total) << "ms "
+                  << "| Stereo: " << ms(time_stereo_tracking) << "ms "
+                  << "| Cross: " << ms(time_cross_tracking) << "ms "
+                  << "| Triangulation: " << ms(time_triangulation) << "ms "
+                  << "| KL Match: " << ms(time_keyline_matching) << "ms "
+                  << "| KL Tri: " << ms(time_keyline_triangulation) << "ms" << std::endl;
 
         return {frame_1, {keypoints_0, keypoints_1}, {keylines_0, keylines_1}, points3d, lines3d};
     }

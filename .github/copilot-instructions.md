@@ -18,3 +18,4 @@
 - To debug the application consider adding logging statements and examining the output to understand the issue
 - When looking at build output, don't use `tail`, instead always look at all output
 - Monitor build times and optimize CMake configuration to minimize unnecessary rebuilds, e.g., by using `ccache` or adjusting CMake settings to reduce rebuild scope.
+- Use the RAII (Resource Acquisition Is Initialization) pattern for managing resources in C++ to ensure proper cleanup and avoid memory leaks.
