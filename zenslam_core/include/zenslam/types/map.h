@@ -75,7 +75,7 @@ namespace zenslam
         auto values_unmatched(const map<S>& other) const -> auto;
 
         template <typename T_SLICE>
-        auto values_sliced(const std::function<T_SLICE(const T&)>& slice_function) const -> auto;
+        [[nodiscard]] auto values_sliced(const std::function<T_SLICE(const T&)>& slice_function) const -> auto;
 
         // ordered element access
         auto operator()(size_t i) const -> const T&; // get item by insertion order
@@ -88,6 +88,8 @@ namespace zenslam
 
         // remap indices
         auto operator*=(const std::vector<cv::DMatch>& matches) -> void; // remap indices based on matches
+
+        void add(const std::vector<T>& items, const bool& overwrite = false);
 
     private:
         std::vector<size_t> _indices = { };
@@ -253,6 +255,18 @@ namespace zenslam
         for (const auto& [index, item] : *this)
         {
             this->_indices.push_back(index);
+        }
+    }
+
+    template <indexable T>
+    void map<T>::add(const std::vector<T>& items, const bool& overwrite)
+    {
+        for (const auto& item : items)
+        {
+            if (overwrite || !this->contains(item.index))
+            {
+                (*this)[item.index] = item;
+            }
         }
     }
 }

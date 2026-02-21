@@ -102,7 +102,9 @@ namespace zenslam
         std::vector<point3d> points3d;
         for (size_t i = 0; i < points3d_all.size(); ++i)
         {
-            if (points3d_all[i].z > 1 &&
+            if (points3d_all[i].z > 0 &&
+                cv::norm(points3d_all[i]) > _options.triangulation_min_depth &&
+                cv::norm(points3d_all[i]) < _options.triangulation_max_depth &&
                 errors_0[i] < _options.triangulation_reprojection_threshold &&
                 errors_1[i] < _options.triangulation_reprojection_threshold &&
                 angles[i] > 0.25 && angles[i] < 180 - 0.25)

@@ -30,14 +30,14 @@ namespace zenslam
     ) const
         -> estimate_pose_result
     {
-        estimate_pose_result result { };
+        estimate_pose_result result{};
 
         // Combined 3D-3D estimation using both points and lines
         if (const auto pose = _combined_estimator->estimate_3d3d
         (
             points3d_0,
             tracked_1.points3d,
-            std::map<size_t, line3d> { },
+            std::map<size_t, line3d>{},
             // No previous lines in this overload
             tracked_1.lines3d
         ))
@@ -89,7 +89,7 @@ namespace zenslam
     ) const
         -> estimate_pose_result
     {
-        estimate_pose_result result { };
+        estimate_pose_result result{};
 
         // Combined 3D-3D estimation
         if
@@ -182,7 +182,7 @@ namespace zenslam
             throw std::logic_error("Not enough 3D-2D correspondences for PnP RANSAC: " + std::to_string(correspondences_3d2d.size()) + " (need >= 4)");
         }
 
-        pose_data pose { };
+        pose_data pose{};
         try
         {
             pose = solvepnp_ransac(correspondences_3d2d);
@@ -214,10 +214,10 @@ namespace zenslam
     {
         if (tracked_1.index == 0)
         {
-            return { };
+            return {};
         }
 
-        pose_data pose { };
+        pose_data pose{};
         try
         {
             pose = estimate_pose_3d2d(frame_0, tracked_1, 0);
@@ -252,8 +252,8 @@ namespace zenslam
                     throw std::logic_error("Not enough 3D-3D correspondences for rigid transform RANSAC: " + std::to_string(correspondences.size()) + " (need >= 3)");
                 }
 
-                const auto& points_0 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d { pair.first }; }) | std::ranges::to<std::vector>();
-                const auto& points_1 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d { pair.second }; }) | std::ranges::to<std::vector>();
+                const auto& points_0 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d{pair.first}; }) | std::ranges::to<std::vector>();
+                const auto& points_1 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d{pair.second}; }) | std::ranges::to<std::vector>();
 
                 cv::Matx33d         R;
                 cv::Point3d         t;
@@ -267,13 +267,13 @@ namespace zenslam
                     throw std::runtime_error("Rigid transform estimation (3D-3D) failed");
                 }
 
-                pose.pose     = cv::Affine3d { R, t };
+                pose.pose     = cv::Affine3d{R, t};
                 pose.inliers  = inliers | std::views::transform([&correspondences](const auto& idx) { return correspondences[idx].first.index; }) | std::ranges::to<std::vector>();
                 pose.outliers = outliers | std::views::transform([&correspondences](const auto& idx) { return correspondences[idx].first.index; }) | std::ranges::to<std::vector>();
             }
         }
 
-        return { .pose_3d2d = pose, .chosen_pose = pose.pose, .chosen_count = pose.inliers.size() };
+        return {.pose_3d2d = pose, .chosen_pose = pose.pose, .chosen_count = pose.inliers.size()};
     }
 
     auto estimator::estimate_pose_weighted
@@ -306,10 +306,15 @@ namespace zenslam
             | std::views::transform([](const auto& pair) { return pair.second.pt; })
             | std::ranges::to<std::vector>();
 
-        cv::Mat          rvec, tvec;
+        auto R    = cv::Matx33d::eye();
+        auto rvec = cv::Vec3d::zeros();
+        auto tvec = cv::Vec3d::zeros();
+
+        cv::Rodrigues(R, rvec);
+
         std::vector<int> inliers;
 
-        const auto& success = cv::solvePnPRansac(object_points, image_points, _calibration.camera_matrix[0], { }, rvec, tvec, false, 100, _options.pnp->threshold, 0.99, inliers);
+        const auto& success = cv::solvePnPRansac(object_points, image_points, _calibration.camera_matrix[0], {}, rvec, tvec, true, 100, _options.pnp->threshold, 0.99, inliers);
 
         if (!success)
         {
@@ -321,12 +326,11 @@ namespace zenslam
             throw std::logic_error("cv::solvePnPRansac returned < 4 inliers, which is insufficient for a valid pose estimation");
         }
 
-        cv::Matx33d R;
         cv::Rodrigues(rvec, R);
 
-        pose_data pose { };
+        pose_data pose{};
         pose.pose    = cv::Affine3d(R, tvec);
-        pose.inliers = inliers | std::views::transform([](const auto& i) { return size_t { gsl::narrow<size_t>(i) }; }) | std::ranges::to<std::vector>();
+        pose.inliers = inliers | std::views::transform([](const auto& i) { return size_t{gsl::narrow<size_t>(i)}; }) | std::ranges::to<std::vector>();
 
         return pose;
     }
@@ -353,21 +357,21 @@ namespace zenslam
             | std::views::transform([](const auto& pair) { return pair.second.pt; })
             | std::ranges::to<std::vector>();
 
-        cv::Mat rvec { };
-        cv::Mat tvec { };
+        auto rvec = cv::Vec3d::zeros();
+        auto tvec = cv::Vec3d::zeros();
         cv::Rodrigues(pose.pose.rotation(), rvec);
         tvec = pose.pose.translation();
 
-        if (rvec.empty() || tvec.empty())
-        {
-            throw std::runtime_error("Invalid initial pose for cv::solvePnPRefineLM: empty rotation or translation vector");
-        }
+        // if (rvec.empty() || tvec.empty())
+        // {
+        //     throw std::runtime_error("Invalid initial pose for cv::solvePnPRefineLM: empty rotation or translation vector");
+        // }
 
-        cv::solvePnPRefineLM(object_points, image_points, _calibration.camera_matrix[0], { }, rvec, tvec, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 1e-6));
+        cv::solvePnPRefineLM(object_points, image_points, _calibration.camera_matrix[0], {}, rvec, tvec, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 1e-6));
 
         cv::Matx33d R;
         cv::Rodrigues(rvec, R);
 
-        return { cv::Affine3d(R, tvec), pose.indices, pose.inliers, pose.outliers };
+        return {cv::Affine3d(R, tvec), pose.indices, pose.inliers, pose.outliers};
     }
 } // namespace zenslam

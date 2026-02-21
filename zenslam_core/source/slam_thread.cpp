@@ -1,6 +1,5 @@
 #include "zenslam/slam_thread.h"
 
-#include <cmath>
 #include <utility>
 
 #include <spdlog/spdlog.h>
@@ -18,7 +17,6 @@
 #include "zenslam/tracking/tracker.h"
 #include "zenslam/utils/utils.h"
 #include "zenslam/utils/utils_slam.h"
-#include "zenslam/utils/utils_std.h"
 #include "zenslam/frame/durations.h"
 #include "zenslam/frame/estimated.h"
 #include "zenslam/frame/system.h"
@@ -110,60 +108,16 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { system.durations.tracking };
 
-                tracked = tracker.track(system[0], processed, pose_predicted);
+                tracked = tracker.track(system[0], processed);
 
-                // Update counts related to point features
-                const auto& kp0_prev = system[0].keypoints[0];
-                const auto& kp1_prev = system[0].keypoints[1];
-                const auto& kp0_cur  = tracked.keypoints[0];
-                const auto& kp1_cur  = tracked.keypoints[1];
+                const auto& matched_count_0 = tracked.keypoints[0].keys_matched(system[0].keypoints[0]).size();
+                const auto& matched_count_1 = tracked.keypoints[1].keys_matched(system[0].keypoints[1]).size();
+                const auto& matched_count = tracked.keypoints[0].keys_matched(tracked.keypoints[1]).size();
 
-                system.counts.points.features_l         = kp0_cur.size();
-                system.counts.points.features_r         = kp1_cur.size();
-                system.counts.points.features_l_tracked = kp0_cur.keys_matched(kp0_prev).size();
-                system.counts.points.features_r_tracked = kp1_cur.keys_matched(kp1_prev).size();
-                system.counts.points.features_l_new     = system.counts.points.features_l - system.counts.points.features_l_tracked;
-                system.counts.points.features_r_new     = system.counts.points.features_r - system.counts.points.features_r_tracked;
-                system.counts.points.features_total     = system.counts.points.features_l + system.counts.points.features_r;
-                system.counts.points.matches_stereo     = kp0_cur.keys_matched(kp1_cur).size();
-                system.counts.points.triangulated_3d    = tracked.points3d.size();
-
-                // Update counts related to line features
-                const auto& kl0_prev = system[0].keylines[0];
-                const auto& kl1_prev = system[0].keylines[1];
-                const auto& kl0_cur  = tracked.keylines[0];
-                const auto& kl1_cur  = tracked.keylines[1];
-
-                system.counts.lines.features_l         = kl0_cur.size();
-                system.counts.lines.features_r         = kl1_cur.size();
-                system.counts.lines.features_l_tracked = kl0_cur.keys_matched(kl0_prev).size();
-                system.counts.lines.features_r_tracked = kl1_cur.keys_matched(kl1_prev).size();
-                system.counts.lines.features_l_new     = system.counts.lines.features_l - system.counts.lines.features_l_tracked;
-                system.counts.lines.features_r_new     = system.counts.lines.features_r - system.counts.lines.features_r_tracked;
-                system.counts.lines.features_total     = system.counts.lines.features_l + system.counts.lines.features_r;
-                system.counts.lines.matches_stereo     = kl0_cur.keys_matched(kl1_cur).size();
-                system.counts.lines.triangulated_3d    = tracked.lines3d.size();
-
-                // Compute quality metrics
-                // Response statistics (feature strength)
-                auto responses_l = kp0_cur | std::views::transform([](const auto& pair) { return pair.second.response; }) | std::ranges::to<std::vector>();
-                auto responses_r = kp1_cur | std::views::transform([](const auto& pair) { return pair.second.response; }) | std::ranges::to<std::vector>();
-
-                system.counts.response_mean_l = utils::mean(responses_l);
-                system.counts.response_mean_r = utils::mean(responses_r);
-                system.counts.response_std_l  = utils::std_dev(responses_l);
-                system.counts.response_std_r  = utils::std_dev(responses_r);
-
-                // KLT success rate
-                if (!kp0_prev.empty())
-                {
-                    system.counts.klt_success_rate = static_cast<double>(system.counts.points.features_l_tracked) / static_cast<double>(kp0_prev.size());
-                    system.counts.klt_success_rate = static_cast<double>(system.counts.points.features_l_tracked) / static_cast<double>(kp0_prev.size());
-                }
-                else
-                {
-                    system.counts.klt_success_rate = std::nan("nan");
-                }
+                SPDLOG_INFO("#matched ( ->L): {}", matched_count_0);
+                SPDLOG_INFO("#matched ( ->R): {}", matched_count_1);
+                SPDLOG_INFO("#matched (L->R): {}", matched_count);
+                SPDLOG_INFO("#triangulated: {}", tracked.points3d.size());
             }
 
             // ESTIMATE
@@ -199,7 +153,7 @@ void zenslam::slam_thread::loop()
             system[0] = std::move(system[1]);
         }
 
-        system.counts.print();
-        system.durations.print();
+        //system.counts.print();
+        //system.durations.print();
     }
 }
