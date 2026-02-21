@@ -8,6 +8,8 @@
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 
+#include <opencv2/calib3d.hpp>
+
 namespace
 {
     struct local_observation

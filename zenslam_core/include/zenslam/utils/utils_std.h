@@ -1,9 +1,12 @@
 #pragma once
 
+#include <cmath>
 #include <map>
 #include <numeric>
 #include <ranges>
 #include <vector>
+#include <ranges>
+#include <algorithm>
 
 // This namespace contains utility functions that depend only on the std:: namespace
 namespace zenslam::utils

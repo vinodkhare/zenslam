@@ -142,6 +142,3 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 # Add ugpm headers (preint) to include path
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
-
-# Enable precompiled headers for zenslam_core only
-target_precompile_headers(${PROJECT_NAME} PRIVATE include/zenslam/pch.h)

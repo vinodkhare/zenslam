@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <spdlog/spdlog.h>
+#include <preint/preint.h>
 
 namespace zenslam
 {

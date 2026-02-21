@@ -2,6 +2,8 @@
 
 #include <gsl/narrow>
 
+#include <opencv2/calib3d.hpp>
+
 #include "zenslam/pose_estimation/point_estimator.h"
 #include "zenslam/pose_estimation/line_estimator.h"
 #include "zenslam/pose_estimation/combined_estimator.h"

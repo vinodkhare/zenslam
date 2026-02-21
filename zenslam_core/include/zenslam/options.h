@@ -6,12 +6,12 @@
 
 #include <spdlog/common.h>
 
-#include "zenslam/io/folder_options.h"
-#include "zenslam/gui_options.h"
 #include "slam_options.h"
-#include "zenslam/io/verb.h"
 
+#include "zenslam/gui_options.h"
 #include "zenslam/option.h"
+#include "zenslam/io/folder_options.h"
+#include "zenslam/io/verb.h"
 
 namespace zenslam
 {

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <opencv2/calib3d.hpp>
+
 namespace zenslam
 {
     keyframe_selector::keyframe_selector(keyframe_options options)

@@ -2,9 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
-#include <numeric>
 
 #include <spdlog/spdlog.h>
+
+#include <opencv2/core.hpp>
 
 namespace zenslam
 {
