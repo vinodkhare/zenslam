@@ -126,6 +126,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         opencv_calib3d
         opencv_core
         opencv_features2d
+        opencv_imgcodecs
         opencv_imgproc
         opencv_line_descriptor
         opencv_video
