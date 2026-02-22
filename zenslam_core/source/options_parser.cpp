@@ -68,7 +68,6 @@ namespace zenslam
 
         opts.clahe_enabled         = get_or_default(node, "clahe_enabled", opts.clahe_enabled);
         opts.stereo_rectify        = get_or_default(node, "stereo_rectify", opts.stereo_rectify);
-        opts.use_parallel_detector = get_or_default(node, "use_parallel_detector", opts.use_parallel_detector);
         opts.cell_size             = get_size(node, "cell_size", opts.cell_size);
         opts.fast_threshold        = get_or_default(node, "fast_threshold", opts.fast_threshold);
         opts.keyline_max_length    = get_or_default(node, "keyline_max_length", opts.keyline_max_length);

@@ -12,7 +12,6 @@ namespace zenslam
     {
         bool                clahe_enabled         = false;
         bool                stereo_rectify        = false;
-        bool                use_parallel_detector = true;
         cv::Size            cell_size             = cv::Size(16, 16);
         int                 fast_threshold        = 10;
         double              keyline_max_length    = 128; // Maximum length of a keyline in pixels

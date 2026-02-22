@@ -3,9 +3,12 @@
 #include <algorithm>
 #include <ranges>
 
+#include <__thread/jthread.h>
+
 #include <opencv2/features2d.hpp>
 #include <opencv2/video/tracking.hpp>
 
+#include "zenslam/detection/keypoint_detector_simple.h"
 #include "zenslam/matching/matcher.h"
 
 namespace zenslam
@@ -19,6 +22,18 @@ namespace zenslam
         _triangulator(_calibration, opts),
         _system(system)
     {
+        switch (_detection.algorithm)
+        {
+        case detection_algorithm::SIMPLE:
+            _detector = std::make_shared<keypoint_detector_simple>(_detection);
+            break;
+        case detection_algorithm::GRID:
+            _detector = std::make_shared<keypoint_detector_grid>(_detection);
+            break;
+        case detection_algorithm::PARALLEL_GRID:
+            _detector = std::make_shared<keypoint_detector_parallel>(_detection);
+            break;
+        }
     }
 
     auto keypoint_tracker::track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> std::array<map<keypoint>, 2>
@@ -26,54 +41,52 @@ namespace zenslam
         map<keypoint> keypoints_0 = { };
         map<keypoint> keypoints_1 = { };
 
-        // Track keypoints
-        const auto& keypoints_0_tracked = track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0]);
-        keypoints_0.add(keypoints_0_tracked);
-
-        std::vector<keypoint> keypoints_0_detected { };
-        if (_detection.use_parallel_detector)
         {
-            keypoints_0_detected = _keypoint_detector_parallel.detect_keypoints(frame_1.undistorted[0], keypoints_0);
+            std::jthread thread_0
+            {
+                [&]()
+                {
+                    // Track keypoints
+                    const auto& keypoints_0_tracked = track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0]);
+                    keypoints_0.add(keypoints_0_tracked);
+
+                    auto keypoints_0_detected = _detector->detect_keypoints(frame_1.undistorted[0], keypoints_0);
+
+                    assign_landmark_indices
+                    (
+                        keypoints_0_detected,
+                        _system.points3d,
+                        _system[0].pose.translation(),
+                        _tracking.landmark_match_radius,
+                        _tracking.landmark_match_distance
+                    );
+
+                    keypoints_0.add(keypoints_0_detected);
+                }
+            };
+
+            std::jthread thread_1
+            {
+                [&]()
+                {
+                    const auto& keypoints_1_tracked = track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1]);
+                    keypoints_1.add(keypoints_1_tracked);
+
+                    auto keypoints_1_detected = _detector->detect_keypoints(frame_1.undistorted[1], keypoints_1);
+
+                    assign_landmark_indices
+                    (
+                        keypoints_1_detected,
+                        _system.points3d,
+                        _system[0].pose.translation(),
+                        _tracking.landmark_match_radius,
+                        _tracking.landmark_match_distance
+                    );
+
+                    keypoints_1.add(keypoints_1_detected);
+                }
+            };
         }
-        else
-        {
-            keypoints_0_detected = _keypoint_detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
-        }
-
-        assign_landmark_indices
-        (
-            keypoints_0_detected,
-            _system.points3d,
-            _system[0].pose.translation(),
-            _tracking.landmark_match_radius,
-            _tracking.landmark_match_distance
-        );
-
-        keypoints_0.add(keypoints_0_detected);
-
-        const auto& keypoints_1_tracked = track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1]);
-        keypoints_1.add(keypoints_1_tracked);
-
-        std::vector<keypoint> keypoints_1_detected { };
-        if (_detection.use_parallel_detector)
-        {
-            keypoints_1_detected = _keypoint_detector_parallel.detect_keypoints(frame_1.undistorted[1], keypoints_1);
-        }
-        else
-        {
-            keypoints_1_detected = _keypoint_detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
-        }
-
-        keypoint_tracker::assign_landmark_indices
-        (
-            keypoints_1_detected,
-            _system.points3d,
-            _system[0].pose.translation(),
-            _tracking.landmark_match_radius,
-            _tracking.landmark_match_distance
-        );
-
-        keypoints_1.add(keypoints_1_detected);
 
         // Cross-camera (stereo) keypoint tracking
         {

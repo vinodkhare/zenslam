@@ -69,7 +69,7 @@ add_library(${PROJECT_NAME}
         # Detection
         source/detection/keyline_detector.cpp
         source/detection/correspondence_utils.cpp
-        source/detection/keypoint_detector.cpp
+        source/detection/keypoint_detector_grid.cpp
         source/detection/keypoint_detector_parallel.cpp
         source/detection/keypoint_detector_simple.cpp
         

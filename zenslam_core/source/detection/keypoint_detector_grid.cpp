@@ -1,4 +1,4 @@
-#include "zenslam/detection/keypoint_detector.h"
+#include "zenslam/detection/keypoint_detector_grid.h"
 
 #include <gsl/narrow>
 
@@ -6,7 +6,7 @@
 
 #include "zenslam/utils/utils_opencv.h"
 
-zenslam::keypoint_detector::keypoint_detector(const detection_options& options) :
+zenslam::keypoint_detector_grid::keypoint_detector_grid(const detection_options& options) :
     _options(options)
 {
     switch (options.feature_detector)
@@ -36,7 +36,7 @@ zenslam::keypoint_detector::keypoint_detector(const detection_options& options) 
     }
 }
 
-std::vector<zenslam::keypoint> zenslam::keypoint_detector::detect_keypoints(const cv::Mat& image, const map<keypoint>& keypoints_existing) const
+std::vector<zenslam::keypoint> zenslam::keypoint_detector_grid::detect_keypoints(const cv::Mat& image, const map<keypoint>& keypoints_existing) const
 {
     // Calculate grid dimensions
         const auto& grid_size = cv::Size(image.cols, image.rows) / _options.cell_size;

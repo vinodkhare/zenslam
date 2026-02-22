@@ -7,7 +7,7 @@
 #include "zenslam/all_options.h"
 #include "zenslam/calibration/calibration.h"
 #include "zenslam/detection/keyline_detector.h"
-#include "zenslam/detection/keypoint_detector.h"
+#include "zenslam/detection/keypoint_detector_grid.h"
 #include "zenslam/detection/keypoint_detector_parallel.h"
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/system.h"
@@ -44,14 +44,13 @@ namespace zenslam
         [[nodiscard]] auto triangulate(const std::array<map<keypoint>, 2>& keypoints, const cv::Mat& image) const -> point3d_cloud;
 
     private:
-        calibration                _calibration                = { };
-        tracking_options           _tracking                   = { };
-        detection_options          _detection                  = { };
-        triangulation_options      _triangulation              = { };
-        matcher                    _matcher                    = { slam_options { }, false };
-        triangulator               _triangulator               = { _calibration, slam_options { } };
-        keypoint_detector          _keypoint_detector          = { _detection };
-        keypoint_detector_parallel _keypoint_detector_parallel = { _detection };
+        calibration                        _calibration                = { };
+        tracking_options                   _tracking                   = { };
+        detection_options                  _detection                  = { };
+        triangulation_options              _triangulation              = { };
+        matcher                            _matcher                    = { slam_options { }, false };
+        triangulator                       _triangulator               = { _calibration, slam_options { } };
+        std::shared_ptr<keypoint_detector> _detector                   = { };
 
         const frame::system& _system;
 

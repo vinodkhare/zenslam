@@ -25,12 +25,12 @@ namespace zenslam
     void options_printer::print_detection(const detection_options& opts) {
         SPDLOG_INFO("[detection] clahe_enabled: {}", opts.clahe_enabled);
         SPDLOG_INFO("[detection] stereo_rectify: {}", opts.stereo_rectify);
-        SPDLOG_INFO("[detection] use_parallel_detector: {}", opts.use_parallel_detector);
         SPDLOG_INFO("[detection] cell_size: [{}, {}]", opts.cell_size.width, opts.cell_size.height);
         SPDLOG_INFO("[detection] fast_threshold: {}", opts.fast_threshold);
         SPDLOG_INFO("[detection] keyline_max_length: {}", opts.keyline_max_length);
         SPDLOG_INFO("[detection] feature_detector: {}", magic_enum::enum_name(opts.feature_detector));
         SPDLOG_INFO("[detection] descriptor: {}", magic_enum::enum_name(opts.descriptor));
+        SPDLOG_INFO("[detection] algorithm: {}", magic_enum::enum_name(opts.algorithm));
     }
 
     void options_printer::print_tracking(const tracking_options& opts) {
