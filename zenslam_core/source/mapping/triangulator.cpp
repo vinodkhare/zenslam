@@ -115,4 +115,22 @@ namespace zenslam
 
         return points3d;
     }
+
+    auto triangulator::triangulate_keylines(const map<keyline>& keylines_0, const map<keyline>& keylines_1, const cv::Mat& color_image) const -> line3d_cloud
+    {
+        const auto vec = utils::triangulate_keylines
+        (
+            keylines_0,
+            keylines_1,
+            _calibration.projection_matrix[0],
+            _calibration.projection_matrix[1],
+            _options,
+            _calibration.cameras[1].pose_in_cam0.translation()
+        );
+
+        line3d_cloud lines3d{};
+        lines3d.add(vec);
+
+        return lines3d;
+    }
 }

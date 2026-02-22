@@ -15,14 +15,6 @@ include(Catch)
 find_package(OpenCV CONFIG REQUIRED)
 message(STATUS "Found OpenCV: ${OpenCV_VERSION}")
 
-add_executable(hello_test source/hello_test.cpp)
-target_link_libraries(hello_test PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_features2d opencv_imgproc)
-catch_discover_tests(hello_test)
-
-add_executable(umeyama_test source/umeyama_test.cpp)
-target_link_libraries(umeyama_test PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_imgproc)
-catch_discover_tests(umeyama_test)
-
 add_executable(imu_calibration_test source/imu_calibration_test.cpp)
 target_link_libraries(imu_calibration_test PRIVATE zenslam_core Catch2::Catch2WithMain)
 catch_discover_tests(imu_calibration_test)

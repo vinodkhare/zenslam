@@ -173,7 +173,7 @@ TEST_CASE("grid_detector::detect_keypoints vs detect_keypoints_par Benchmark", "
     opts.detection.fast_threshold = 10;
     opts.detection.cell_size      = cv::Size(64, 64);  // ~30x17 grid cells for 1920x1080
     
-    auto detector = zenslam::detector::create(opts);
+    auto detector = zenslam::detector::create(opts.detection);
     
     // Empty existing keypoints map (detecting all new keypoints)
     zenslam::map<zenslam::keypoint> existing_keypoints;

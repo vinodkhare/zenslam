@@ -32,25 +32,22 @@ namespace zenslam
          */
         [[nodiscard]] auto track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> std::array<map<keypoint>, 2>;
 
-        auto triangulate(const std::array<map<keypoint>, 2>& keypoints, const cv::Mat& image) const -> point3d_cloud;
-
         /**
-         * @brief Returns the keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.
-         * @param pyramid_0 Image pyramid of the previous frame.
-         * @param pyramid_1 Image pyramid of the current frame.
-         * @param keypoints_map_0 Keypoints from the previous frame to track.
-         * @return Keypoints in the current frame corresponding to the input keypoints, with updated positions and tracking status.
+         * @brief Triangulates 3D points from the tracked keypoints in the current frame.
+         * @param keypoints Tracked keypoints in the current frame for both cameras.
+         * @param image Optional color image to extract colors for the triangulated points.
+         * @return Triangulated 3D points as a point cloud.
          */
-        [[nodiscard]] auto track_keypoints(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const map<keypoint>& keypoints_map_0) const -> std::vector<keypoint>;
+        [[nodiscard]] auto triangulate(const std::array<map<keypoint>, 2>& keypoints, const cv::Mat& image) const -> point3d_cloud;
 
     private:
-        calibration           _calibration   = {};
-        tracking_options      _tracking      = {};
-        detection_options     _detection     = {};
-        triangulation_options _triangulation = {};
-        matcher               _matcher       = {slam_options{}, false};
-        triangulator          _triangulator  = {_calibration, slam_options{}};
-        detector              _detector      = {};
+        calibration           _calibration   = { };
+        tracking_options      _tracking      = { };
+        detection_options     _detection     = { };
+        triangulation_options _triangulation = { };
+        matcher               _matcher       = { slam_options { }, false };
+        triangulator          _triangulator  = { _calibration, slam_options { } };
+        detector              _detector      = { };
 
         const frame::system& _system;
 
@@ -71,6 +68,13 @@ namespace zenslam
             double                 max_descriptor_distance
         ) -> void;
 
-        friend class tracker;
+        /**
+         * @brief Returns the keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.
+         * @param pyramid_0 Image pyramid of the previous frame.
+         * @param pyramid_1 Image pyramid of the current frame.
+         * @param keypoints_map_0 Keypoints from the previous frame to track.
+         * @return Keypoints in the current frame corresponding to the input keypoints, with updated positions and tracking status.
+         */
+        [[nodiscard]] auto track_keypoints(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const map<keypoint>& keypoints_map_0) const -> std::vector<keypoint>;
     };
 } // namespace zenslam
