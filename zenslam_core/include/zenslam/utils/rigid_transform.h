@@ -14,11 +14,13 @@ namespace zenslam::utils
      * @param t Output translation vector
      * @return True if estimation was successful, false otherwise
      */
-    auto estimate_rigid(
+    auto estimate_rigid
+    (
         const std::vector<cv::Point3d>& points3d_0,
         const std::vector<cv::Point3d>& points3d_1,
         cv::Matx33d&                    R,
-        cv::Point3d&                    t) -> bool;
+        cv::Point3d&                    t
+    ) -> bool;
 
     /** RANSAC wrapper for estimate_rigid: returns best R, t, and inlier/outlier indices
      *
@@ -33,7 +35,8 @@ namespace zenslam::utils
      * @param max_iterations Maximum RANSAC iterations
      * @return True if successful, false otherwise
      */
-    auto estimate_rigid_ransac(
+    auto estimate_rigid_ransac
+    (
         const std::vector<cv::Point3d>& src,
         const std::vector<cv::Point3d>& dst,
         cv::Matx33d&                    best_R,
@@ -42,7 +45,8 @@ namespace zenslam::utils
         std::vector<size_t>&            outlier_indices,
         std::vector<double>&            errors,
         double                          threshold      = 0.01,
-        int                             max_iterations = 1000) -> bool;
+        int                             max_iterations = 1000
+    ) -> bool;
 
     /** Compute optimal rigid transformation using Umeyama's method (closed-form solution).
      *
@@ -51,9 +55,11 @@ namespace zenslam::utils
      * @param R Output rotation matrix
      * @param t Output translation vector
      */
-    auto umeyama(
+    auto umeyama
+    (
         const std::vector<cv::Point3d>& src,
         const std::vector<cv::Point3d>& dst,
         cv::Matx33d&                    R,
-        cv::Point3d&                    t) -> void;
+        cv::Point3d&                    t
+    ) -> void;
 }

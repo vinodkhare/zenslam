@@ -4,32 +4,32 @@ BasedOnStyle: LLVM
 AccessModifierOffset: -4
 AlignAfterOpenBracket: AlwaysBreak
 AlignArrayOfStructures: Left
-AlignConsecutiveAssignments:
+AlignConsecutiveAssignments: true
+AlignConsecutiveBitFields: 
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: false
-  AlignCompound: true
-  PadOperators: true
-AlignConsecutiveBitFields:
+  AlignCompound: false
+  PadOperators: false
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: 
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: false
-AlignConsecutiveDeclarations:
+  AlignCompound: false
+  PadOperators: false
+AlignConsecutiveShortCaseStatements: 
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: false
-AlignConsecutiveMacros:
-  Enabled: true
-  AcrossEmptyLines: false
-  AcrossComments: false
-AlignConsecutiveShortCaseStatements:
-  Enabled: true
-  AcrossEmptyLines: false
-  AcrossComments: false
+  AlignCaseColons: false
 AlignEscapedNewlines: Left
-AlignOperands: Align
+AlignOperands: false
 AlignTrailingComments: true
-AllowShortIfStatementsOnASingleLine: false
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: false
 BinPackParameters: false
@@ -42,14 +42,14 @@ BraceWrapping:
   AfterNamespace: true
   AfterStruct: true
   AfterUnion: true
-  AfterExternBlock: true
-  BeforeCatch: true
-  BeforeElse: true
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
   BeforeLambdaBody: true
-  BeforeWhile: true
-  SplitEmptyFunction: true
-  SplitEmptyRecord: true
-  SplitEmptyNamespace: true
+  BeforeWhile: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false

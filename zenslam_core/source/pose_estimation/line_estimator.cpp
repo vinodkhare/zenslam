@@ -4,6 +4,7 @@
 #include <gsl/narrow>
 #include <spdlog/spdlog.h>
 
+#include "zenslam/detection/correspondence_utils.h"
 #include "zenslam/utils/rigid_transform.h"
 #include "zenslam/utils/utils_slam.h"
 #include "zenslam/pose_estimation/common.h"
@@ -136,14 +137,14 @@ namespace zenslam::pose_estimation
 
         for (const auto& endpoint_idx : endpoint_inliers)
         {
-            const size_t line_idx = endpoint_idx / 2;
+            const auto line_idx = endpoint_idx / 2;
             if (line_idx < indices.size())
                 unique_line_inliers.insert(indices[line_idx]);
         }
 
         for (const auto& endpoint_idx : endpoint_outliers)
         {
-            const size_t line_idx = endpoint_idx / 2;
+            const auto line_idx = endpoint_idx / 2;
             if (line_idx < indices.size())
                 unique_line_outliers.insert(indices[line_idx]);
         }

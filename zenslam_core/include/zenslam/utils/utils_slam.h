@@ -6,22 +6,22 @@
 #include <map>
 #include <ranges>
 
-#include "zenslam/detection/correspondence_utils.h"
 #include "zenslam/matching/matching_utils.h"
 #include "zenslam/types/line3d.h"
 #include "zenslam/types/point3d.h"
 
 // Inline operators for geometric transformations
-inline auto operator-(const std::vector<cv::Point2d>& lhs, const std::vector<cv::Point2f>& rhs)
+inline auto operator-
+(
+    const std::vector<cv::Point2d>& lhs,
+    const std::vector<cv::Point2f>& rhs
+)
     -> std::vector<cv::Point2d>
 {
     std::vector<cv::Point2d> difference;
     difference.reserve(lhs.size());
 
-    for (auto i = 0; i < lhs.size(); ++i)
-    {
-        difference.emplace_back(lhs[i] - cv::Point2d(rhs[i].x, rhs[i].y));
-    }
+    for (auto i = 0; i < lhs.size(); ++i) { difference.emplace_back(lhs[i] - cv::Point2d(rhs[i].x, rhs[i].y)); }
 
     return difference;
 }
@@ -37,12 +37,11 @@ inline auto operator*(const cv::Affine3d& pose, const zenslam::line3d& line) -> 
     return transformed_line;
 }
 
-inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::line3d>& lines)
-    -> zenslam::map<zenslam::line3d>
+inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::line3d>& lines) -> zenslam::map<zenslam::line3d>
 {
-    zenslam::map<zenslam::line3d> transformed_lines {};
+    zenslam::map<zenslam::line3d> transformed_lines{};
 
-    for (const auto line : lines | std::views::values)
+    for (const auto& line : lines | std::views::values)
     {
         transformed_lines[line.index]       = pose * line;
         transformed_lines[line.index].index = line.index;

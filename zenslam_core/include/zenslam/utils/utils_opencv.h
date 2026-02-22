@@ -8,9 +8,7 @@
 #include <opencv2/core/mat.hpp>
 
 #include "zenslam/all_options.h"
-
 #include "zenslam/frame/estimated.h"
-
 #include "zenslam/types/point3d.h"
 
 namespace zenslam::utils

@@ -11,51 +11,51 @@ namespace zenslam::pose_estimation
     auto pose_fusion::compute_weight(const pose_data& pose, const std::string& method_type) -> double
     {
         // Must have meaningful data
-        const size_t inliers = pose.inliers.size();
+        const auto inliers = pose.inliers.size();
         if (inliers < 3)  // Minimum 3 inliers needed
             return 0.0;
 
-        const size_t total_corr = pose.indices.size();
+        const auto total_corr = pose.indices.size();
         if (total_corr == 0)
             return 0.0;
 
         // Inlier ratio: strict requirement
-        const double inlier_ratio = static_cast<double>(inliers) / static_cast<double>(total_corr);
+        const auto inlier_ratio = static_cast<double>(inliers) / static_cast<double>(total_corr);
         
         // Penalize low inlier ratios heavily
         if (inlier_ratio < 0.3)
             return 0.01 * inlier_ratio;
         
         // Error quality component
-        double error_quality = 1.0;
+        auto error_quality = 1.0;
         if (!pose.errors.empty())
         {
-            const double mean_error = utils::mean(pose.errors);
-            const double std_error = utils::std_dev(pose.errors);
+            const auto mean_error = utils::mean(pose.errors);
+            const auto std_error = utils::std_dev(pose.errors);
             
             // Check for outlier errors
-            const double error_threshold = mean_error + 2.0 * std_error;
+            const auto error_threshold = mean_error + 2.0 * std_error;
             const size_t good_errors = std::ranges::count_if(pose.errors,
                 [error_threshold](const double err) { return err <= error_threshold; });
             
             // Reduce confidence if too many outlier errors
-            const double error_consistency = static_cast<double>(good_errors) / pose.errors.size();
+            const auto error_consistency = static_cast<double>(good_errors) / pose.errors.size();
             if (error_consistency < 0.7)
                 error_quality *= 0.5;
             
             // Error scale: tuned for typical SLAM reprojection errors
-            const double error_scale = (method_type == "3d3d" || method_type == "3d3d_lines") ? 0.1 : 3.0;
+            const auto error_scale = (method_type == "3d3d" || method_type == "3d3d_lines") ? 0.1 : 3.0;
             error_quality *= std::exp(-mean_error / error_scale);
         }
 
         // Feature type reliability
-        const double type_weight = method_type.find("lines") != std::string::npos ? 0.9 : 1.0;
+        const auto type_weight = method_type.find("lines") != std::string::npos ? 0.9 : 1.0;
         
         // Scale by absolute inlier count
-        const double inlier_boost = std::min(1.0, static_cast<double>(inliers) / 50.0);
+        const auto inlier_boost = std::min(1.0, static_cast<double>(inliers) / 50.0);
 
         // Combine: inlier_ratio (0.4) + error_quality (0.4) + inlier_boost (0.2)
-        const double confidence = (inlier_ratio * 0.4 + error_quality * 0.4 + inlier_boost * 0.2) * type_weight;
+        const auto confidence = (inlier_ratio * 0.4 + error_quality * 0.4 + inlier_boost * 0.2) * type_weight;
 
         return std::clamp(confidence, 0.0, 1.0);
     }
@@ -65,38 +65,37 @@ namespace zenslam::pose_estimation
         const double method_weight,
         const std::string& method_type) -> std::pair<double, double>
     {
-        const size_t inliers = pose.inliers.size();
-        const size_t total_corr = pose.indices.size();
+        const auto inliers = pose.inliers.size();
+        const auto total_corr = pose.indices.size();
         
         // No valid pose = maximum uncertainty
         if (inliers < 3 || total_corr == 0 || method_weight < 1e-6)
             return {10.0, 0.5};
         
         // Base uncertainty from inlier ratio
-        const double inlier_ratio = static_cast<double>(inliers) / static_cast<double>(total_corr);
-        const double ratio_uncertainty = (1.0 - inlier_ratio) / std::sqrt(inlier_ratio);
+        const auto inlier_ratio = static_cast<double>(inliers) / static_cast<double>(total_corr);
+        const auto ratio_uncertainty = (1.0 - inlier_ratio) / std::sqrt(inlier_ratio);
         
         // Error-based uncertainty
-        double error_std = 0.0;
+        auto error_std = 0.0;
         if (pose.errors.size() > 2)
-        {
-            double mean_error = utils::mean(pose.errors);
+        { auto mean_error = utils::mean(pose.errors);
             error_std = utils::std_dev(pose.errors);
             
             // Normalize to meters for 2D methods (pixel to meter conversion)
             if (method_type != "3d3d" && method_type != "3d3d_lines")
             {
-                const double pixel_to_meter = 0.01;  // Rough approximation
+                const auto pixel_to_meter = 0.01;  // Rough approximation
                 mean_error *= pixel_to_meter;
                 error_std *= pixel_to_meter;
             }
         }
         
         // Combined translation uncertainty (meters)
-        double trans_std = std::sqrt(error_std * error_std + ratio_uncertainty * ratio_uncertainty);
+        auto trans_std = std::sqrt(error_std * error_std + ratio_uncertainty * ratio_uncertainty);
         
         // Rotation uncertainty (radians)
-        double rot_std = 0.1 * trans_std;
+        auto rot_std = 0.1 * trans_std;
         
         // Scale by method weight (less confident = more uncertainty)
         trans_std /= (method_weight + 0.1);
@@ -115,7 +114,7 @@ namespace zenslam::pose_estimation
         double w_3d3d_lines, double w_3d2d_lines) -> cv::Matx33d
     {
         // Select rotation from method with highest weight
-        const double max_weight = std::max({w_3d3d, w_3d2d, w_2d2d, w_3d3d_lines, w_3d2d_lines});
+        const auto max_weight = std::max({w_3d3d, w_3d2d, w_2d2d, w_3d3d_lines, w_3d2d_lines});
 
         if (max_weight == w_3d3d && w_3d3d > 0.0)
             return result.pose_3d3d.pose.rotation();
@@ -136,7 +135,7 @@ namespace zenslam::pose_estimation
         const double w_3d3d, const double w_3d2d, const double w_2d2d,
         const double w_3d3d_lines, const double w_3d2d_lines) -> cv::Vec3d
     {
-        cv::Vec3d fused = cv::Vec3d::zeros();
+        auto fused = cv::Vec3d::zeros();
 
         if (w_3d3d > 0)
             fused += result.pose_3d3d.pose.translation() * w_3d3d;
@@ -157,13 +156,13 @@ namespace zenslam::pose_estimation
         weighted_pose_result fused{};
 
         // Compute individual weights
-        const double w_3d3d = compute_weight(result.pose_3d3d, "3d3d");
-        const double w_3d2d = compute_weight(result.pose_3d2d, "3d2d");
-        const double w_2d2d = compute_weight(result.pose_2d2d, "2d2d");
-        const double w_3d3d_lines = compute_weight(result.pose_3d3d_lines, "3d3d_lines");
-        const double w_3d2d_lines = compute_weight(result.pose_3d2d_lines, "3d2d_lines");
+        const auto w_3d3d = compute_weight(result.pose_3d3d, "3d3d");
+        const auto w_3d2d = compute_weight(result.pose_3d2d, "3d2d");
+        const auto w_2d2d = compute_weight(result.pose_2d2d, "2d2d");
+        const auto w_3d3d_lines = compute_weight(result.pose_3d3d_lines, "3d3d_lines");
+        const auto w_3d2d_lines = compute_weight(result.pose_3d2d_lines, "3d2d_lines");
 
-        const double weight_sum = w_3d3d + w_3d2d + w_2d2d + w_3d3d_lines + w_3d2d_lines;
+        const auto weight_sum = w_3d3d + w_3d2d + w_2d2d + w_3d3d_lines + w_3d2d_lines;
 
         // If no valid poses, return identity
         if (weight_sum < 1e-9)
@@ -209,11 +208,11 @@ namespace zenslam::pose_estimation
             fused.best_method_inliers = result.pose_3d2d_lines.inliers.size();
 
         // Fuse pose components
-        const cv::Vec3d fused_translation = fuse_translations(
+        const auto fused_translation = fuse_translations(
             result, fused.weight_3d3d, fused.weight_3d2d, fused.weight_2d2d,
             fused.weight_3d3d_lines, fused.weight_3d2d_lines);
 
-        const cv::Matx33d fused_rotation = select_best_rotation(
+        const auto fused_rotation = select_best_rotation(
             result, fused.weight_3d3d, fused.weight_3d2d, fused.weight_2d2d,
             fused.weight_3d3d_lines, fused.weight_3d2d_lines);
 
@@ -254,8 +253,8 @@ namespace zenslam::pose_estimation
                             fused.weight_3d2d_lines * cov_3d2d_lines_r;
 
         // Build 6x6 covariance matrix (diagonal)
-        const double trans_var = fused.translation_std * fused.translation_std;
-        const double rot_var = fused.rotation_std * fused.rotation_std;
+        const auto trans_var = fused.translation_std * fused.translation_std;
+        const auto rot_var = fused.rotation_std * fused.rotation_std;
         
         fused.pose_covariance = cv::Matx66d::zeros();
         fused.pose_covariance(0, 0) = trans_var;

@@ -5,12 +5,11 @@
 #include <set>
 #include <vector>
 
-#include <opencv2/core.hpp>
-
-#include <zenslam/all_options.h>
-#include "zenslam/io/reader_thread.h"
-#include "zenslam/slam_thread.h"
 #include "window.h"
+
+#include "zenslam/all_options.h"
+#include "zenslam/slam_thread.h"
+#include "zenslam/io/reader_thread.h"
 
 namespace zenslam
 {
