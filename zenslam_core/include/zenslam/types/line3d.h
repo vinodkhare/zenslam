@@ -9,5 +9,6 @@ namespace zenslam
         static size_t index_next;
 
         size_t index = { };
+        cv::Mat descriptor = { };
     };
 }

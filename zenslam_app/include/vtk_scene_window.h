@@ -21,10 +21,7 @@ namespace zenslam
     {
     public:
         /**
-         * @brief Construct a VTK scene window.
-        /**
          * @brief Constructs a VTK-based 3D visualization window.
-         *
          * @param options Reference to SLAM options for controlling visualization.
          * @param gui_options Reference to GUI options (point cloud opacity and size).
          * @param trajectory_estimated Reference to estimated trajectory history.

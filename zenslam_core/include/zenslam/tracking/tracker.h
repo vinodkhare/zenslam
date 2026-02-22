@@ -11,6 +11,7 @@
 #include "zenslam/mapping/triangulator.h"
 #include "zenslam/matching/matcher.h"
 #include "zenslam/types/keyline.h"
+#include "zenslam/types/line3d_cloud.h"
 
 namespace zenslam
 {
@@ -77,5 +78,16 @@ namespace zenslam
             const cv::Point3d&     camera_center,
             double                 match_radius,
             double                 max_descriptor_distance) const -> void;
+
+        /**
+         *  @brief Assign landmark indices to keylines based on descriptor match.
+         *  @param keylines Keylines to assign landmark indices to.
+         *  @param lines3d  3D lines to match against.
+         *  @param max_descriptor_distance Maximum allowed descriptor distance for matching.
+         */
+        auto               assign_landmark_indices(
+            std::vector<keyline>& keylines,
+            const line3d_cloud&   lines3d,
+            double                max_descriptor_distance) const -> void;
     };
 } // namespace zenslam
