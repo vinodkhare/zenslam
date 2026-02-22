@@ -29,6 +29,7 @@ namespace zenslam
         [[nodiscard]] auto track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> frame::tracked;
 
     private:
+        tracking_options _options = { };
         keypoint_tracker _keypoint_tracker;
         keyline_tracker  _keyline_tracker;
         calibration      _calibration;

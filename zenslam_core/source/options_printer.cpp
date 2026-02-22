@@ -37,6 +37,7 @@ namespace zenslam
         SPDLOG_INFO("[tracking] klt_window_size: [{}, {}]", opts.klt_window_size.width, opts.klt_window_size.height);
         SPDLOG_INFO("[tracking] klt_max_level: {}", opts.klt_max_level);
         SPDLOG_INFO("[tracking] klt_threshold: {}", opts.klt_threshold);
+        SPDLOG_INFO("[tracking] use_keylines: {}", opts.use_keylines);
     }
 
     void options_printer::print_triangulation(const triangulation_options& opts) {

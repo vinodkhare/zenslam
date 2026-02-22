@@ -47,6 +47,7 @@ namespace zenslam
         double   klt_min_tracked_ratio   = 0.6;
         double   landmark_match_distance = 32.0; // Descriptor distance threshold for matching keypoints to landmarks
         double   landmark_match_radius   = 50.0; // Radius in meters for landmark matching around the camera
+        bool     use_keylines            = true;  // Enable keyline tracking and triangulation
     };
 
     // ========================================================================

@@ -95,6 +95,7 @@ namespace zenslam
         opts.klt_min_tracked_ratio = get_or_default(node, "klt_min_tracked_ratio", opts.klt_min_tracked_ratio);
         opts.landmark_match_distance = get_or_default(node, "landmark_match_distance", opts.landmark_match_distance);
         opts.landmark_match_radius = get_or_default(node, "landmark_match_radius", opts.landmark_match_radius);
+        opts.use_keylines = get_or_default(node, "use_keylines", opts.use_keylines);
 
         return opts;
     }

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <opencv2/core.hpp>
 #include <ranges>
+
+#include <opencv2/core.hpp>
 
 #include "zenslam/all_options.h"
 #include "zenslam/calibration/calibration.h"

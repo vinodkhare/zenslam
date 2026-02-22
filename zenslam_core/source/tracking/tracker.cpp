@@ -20,6 +20,7 @@
 namespace zenslam
 {
     tracker::tracker(calibration calib, slam_options opts, frame::system& system) :
+        _options { opts.tracking },
         _keypoint_tracker(calib, opts, system),
         _keyline_tracker(calib, opts, system),
         _calibration(std::move(calib)),
@@ -56,11 +57,13 @@ namespace zenslam
                 points3d = _keypoint_tracker.triangulate(keypoints, frame_1.undistorted[0]);
             }
 
+            if (_options.use_keylines)
             {
                 time_this time_this { time_keyline_tracking };
                 keylines = _keyline_tracker.track(frame_0, frame_1);
             }
 
+            if (_options.use_keylines)
             {
                 time_this time_this { time_keyline_triangulation };
                 lines3d = _keyline_tracker.triangulate(keylines, frame_1.undistorted[0]);

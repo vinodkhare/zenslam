@@ -53,8 +53,9 @@ slam:
     klt_max_level: 3
     klt_threshold: 1.0
     klt_min_tracked_ratio: 0.6
-    landmark_match_distance: 32.0  # Max descriptor distance for 2D->3D landmark association
-    landmark_match_radius: 20.0    # Radius (m) around camera for 2D->3D landmark association
+    landmark_match_distance: 32.0   # Max descriptor distance for 2D->3D landmark association
+    landmark_match_radius: 20.0     # Radius (m) around camera for 2D->3D landmark association
+    use_keylines: false             # Use keylines for tracking, can improve robustness in low-texture environments but may increase computational cost
 
   # Keyframe selection configuration (nested)
   keyframe:
