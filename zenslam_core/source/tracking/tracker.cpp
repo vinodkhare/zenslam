@@ -19,24 +19,14 @@
 namespace zenslam
 {
     tracker::tracker(calibration calib, slam_options opts, frame::system& system) :
-        _calibration(std::move(calib)),
-        _tracking(opts.tracking),
-        _detection(opts.detection),
-        _triangulation(opts.triangulation),
-        _epipolar_threshold(opts.epipolar_threshold),
-        _matcher(opts, opts.descriptor == descriptor_type::ORB || opts.descriptor == descriptor_type::FREAK),
-        _triangulator(_calibration, opts),
-        _detector(detector::create(opts)),
+        _calibration(std::move(calib)), _tracking(opts.tracking), _detection(opts.detection), _triangulation(opts.triangulation), _epipolar_threshold(opts.epipolar_threshold),
+        _matcher(opts, opts.descriptor == descriptor_type::ORB || opts.descriptor == descriptor_type::FREAK), _triangulator(_calibration, opts), _detector(detector::create(opts)),
         _system(system)
     {
     }
 
     auto tracker::assign_landmark_indices(
-        std::vector<keypoint>& keypoints,
-        const point3d_cloud&   points3d,
-        const cv::Point3d&     camera_center,
-        const double           match_radius,
-        const double           max_descriptor_distance) const -> void
+        std::vector<keypoint>& keypoints, const point3d_cloud& points3d, const cv::Point3d& camera_center, const double match_radius, const double max_descriptor_distance) const -> void
     {
         if (keypoints.empty() || points3d.empty())
         {
@@ -53,9 +43,9 @@ namespace zenslam
             }
         }
 
-        std::vector<size_t> landmark_indices;
+        std::vector<size_t>  landmark_indices;
         std::vector<cv::Mat> landmark_descriptors;
-        const size_t reserve_size = nearby_points.empty() ? points3d.size() : nearby_points.size();
+        const size_t         reserve_size = nearby_points.empty() ? points3d.size() : nearby_points.size();
         landmark_indices.reserve(reserve_size);
         landmark_descriptors.reserve(reserve_size);
 
@@ -91,7 +81,7 @@ namespace zenslam
             return;
         }
 
-        std::vector<size_t> keypoint_rows;
+        std::vector<size_t>  keypoint_rows;
         std::vector<cv::Mat> keypoint_descriptors;
         keypoint_rows.reserve(keypoints.size());
         keypoint_descriptors.reserve(keypoints.size());
@@ -130,7 +120,7 @@ namespace zenslam
             }
         }
 
-        cv::BFMatcher matcher(is_binary ? cv::NORM_HAMMING : cv::NORM_L2, false);
+        cv::BFMatcher           matcher(is_binary ? cv::NORM_HAMMING : cv::NORM_L2, false);
         std::vector<cv::DMatch> matches;
         matcher.match(descriptors2d, descriptors3d, matches);
 
@@ -182,11 +172,7 @@ namespace zenslam
                                         }
 
                                         assign_landmark_indices(
-                                            keypoints_0_detected,
-                                            _system.points3d,
-                                            _system[0].pose.translation(),
-                                            _tracking.landmark_match_radius,
-                                            _tracking.landmark_match_distance);
+                                            keypoints_0_detected, _system.points3d, _system[0].pose.translation(), _tracking.landmark_match_radius, _tracking.landmark_match_distance);
 
                                         keypoints_0.add(keypoints_0_detected);
 
@@ -214,11 +200,7 @@ namespace zenslam
                                         }
 
                                         assign_landmark_indices(
-                                            keypoints_1_detected,
-                                            _system.points3d,
-                                            _system[0].pose.translation(),
-                                            _tracking.landmark_match_radius,
-                                            _tracking.landmark_match_distance);
+                                            keypoints_1_detected, _system.points3d, _system[0].pose.translation(), _tracking.landmark_match_radius, _tracking.landmark_match_distance);
 
                                         keypoints_1.add(keypoints_1_detected);
 
@@ -280,10 +262,10 @@ namespace zenslam
         // Triangulate keylines
         {
             slam_options options;
-            options.triangulation = _triangulation;
+            options.triangulation  = _triangulation;
 
-            auto timer_kl_tri  = time_this(time_keyline_triangulation);
-            lines3d           += utils::triangulate_keylines(
+            auto timer_kl_tri      = time_this(time_keyline_triangulation);
+            lines3d               += utils::triangulate_keylines(
                 keylines_0, keylines_1, _calibration.projection_matrix[0], _calibration.projection_matrix[1], options, _calibration.cameras[1].pose_in_cam0.translation());
         }
 
