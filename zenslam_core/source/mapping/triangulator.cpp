@@ -103,10 +103,10 @@ namespace zenslam
         for (size_t i = 0; i < points3d_all.size(); ++i)
         {
             if (points3d_all[i].z > 0 &&
-                cv::norm(points3d_all[i]) > _options.triangulation_min_depth &&
-                cv::norm(points3d_all[i]) < _options.triangulation_max_depth &&
-                errors_0[i] < _options.triangulation_reprojection_threshold &&
-                errors_1[i] < _options.triangulation_reprojection_threshold &&
+                cv::norm(points3d_all[i]) > _options.triangulation.min_depth &&
+                cv::norm(points3d_all[i]) < _options.triangulation.max_depth &&
+                errors_0[i] < _options.triangulation.reprojection_threshold &&
+                errors_1[i] < _options.triangulation.reprojection_threshold &&
                 angles[i] > 0.25 && angles[i] < 180 - 0.25)
             {
                 points3d.emplace_back(points3d_all[i]);

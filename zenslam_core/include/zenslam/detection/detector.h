@@ -4,7 +4,7 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/line_descriptor/descriptor.hpp>
 
-#include "zenslam/options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/map.h"

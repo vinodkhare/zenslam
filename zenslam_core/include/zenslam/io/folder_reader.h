@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <vector>
 
-#include "zenslam/io/folder_options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/frame/sensor.h"
 
 namespace zenslam

@@ -6,7 +6,7 @@
 
 #include <concurrentqueue/moodycamel/concurrentqueue.h>
 
-#include "zenslam/options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/frame/system.h"
 #include "zenslam/types/event.h"
 
@@ -17,7 +17,7 @@ namespace zenslam
     public:
         event<frame::system> on_frame;
 
-        explicit slam_thread(options options);
+        explicit slam_thread(all_options options);
         ~slam_thread();
 
         void enqueue(const frame::sensor& frame);
@@ -25,7 +25,7 @@ namespace zenslam
     private:
         using concurrent_queue = moodycamel::ConcurrentQueue<frame::sensor>;
 
-        options                   _options = { };
+        all_options           _options = { };
         std::mutex                _mutex   = { };
         std::condition_variable   _cv      = { };
         std::queue<frame::sensor> _queue   = { };

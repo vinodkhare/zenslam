@@ -2,6 +2,7 @@
 
 #include <opencv2/core.hpp>
 
+#include "zenslam/all_options.h"
 #include "zenslam/calibration/calibration.h"
 #include "zenslam/detection/detector.h"
 #include "zenslam/matching/matcher.h"

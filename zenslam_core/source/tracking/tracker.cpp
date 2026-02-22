@@ -60,7 +60,7 @@ namespace zenslam
                     keypoints_0.add(keypoints_0_tracked);
 
                     std::vector<keypoint> keypoints_0_detected{};
-                    if (_options.use_parallel_detector)
+                    if (_options.detection.use_parallel_detector)
                     {
                         keypoints_0_detected = _detector.detect_keypoints_par(frame_1.undistorted[0], keypoints_0);
                     }
@@ -85,7 +85,7 @@ namespace zenslam
                     keylines_0 += track_keylines(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keylines[0]);
 
                     // Detect new keylines (avoiding areas where tracked keylines exist)
-                    keylines_0 += _detector.detect_keylines(frame_1.undistorted[0], keylines_0, _options.keyline_mask_margin);
+                    keylines_0 += _detector.detect_keylines(frame_1.undistorted[0], keylines_0, _options.triangulation.keyline_mask_margin);
                 }
             };
 
@@ -98,7 +98,7 @@ namespace zenslam
                     keypoints_1.add(keypoints_1_tracked);
 
                     std::vector<keypoint> keypoints_1_detected{};
-                    if (_options.use_parallel_detector)
+                    if (_options.detection.use_parallel_detector)
                     {
                         keypoints_1_detected = _detector.detect_keypoints_par(frame_1.undistorted[1], keypoints_1);
                     }
@@ -123,7 +123,7 @@ namespace zenslam
                     keylines_1 += track_keylines(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keylines[1]);
 
                     // Detect new keylines (avoiding areas where tracked keylines exist)
-                    keylines_1 += _detector.detect_keylines(frame_1.undistorted[1], keylines_1, _options.keyline_mask_margin);
+                    keylines_1 += _detector.detect_keylines(frame_1.undistorted[1], keylines_1, _options.triangulation.keyline_mask_margin);
                 }
             };
         }
@@ -243,8 +243,8 @@ namespace zenslam
             points_1,
             status,
             errors,
-            _options.klt_window_size,
-            _options.klt_max_level,
+            _options.tracking.klt_window_size,
+            _options.tracking.klt_max_level,
             cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
             cv::OPTFLOW_LK_GET_MIN_EIGENVALS
         );
@@ -259,8 +259,8 @@ namespace zenslam
             points_0_back,
             status_back,
             errors,
-            _options.klt_window_size,
-            _options.klt_max_level,
+            _options.tracking.klt_window_size,
+            _options.tracking.klt_max_level,
             cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
             cv::OPTFLOW_LK_GET_MIN_EIGENVALS
         );
@@ -276,7 +276,7 @@ namespace zenslam
             if
             (
                 status[i] && status_back[i] &&
-                cv::norm(points_0_back[i] - points_0[i]) < _options.klt_threshold
+                cv::norm(points_0_back[i] - points_0[i]) < _options.tracking.klt_threshold
             )
             {
                 candidate_points_0.push_back(points_0[i]);

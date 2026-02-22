@@ -7,19 +7,17 @@
 
 #include <opencv2/core.hpp>
 
-#include <zenslam/options.h>
+#include <zenslam/all_options.h>
 #include "zenslam/io/reader_thread.h"
 #include "zenslam/slam_thread.h"
 #include "window.h"
 
 namespace zenslam
 {
-    class options;
-
     class application
     {
     public:
-        explicit application(options options);
+        explicit application(all_options options);
         ~application();
 
         void render();
@@ -31,7 +29,7 @@ namespace zenslam
         std::mutex    _mutex  = { };
         frame::system _system = { };
 
-        options          _options       = { };
+        all_options      _options       = { };
         slam_thread      _slam_thread   = slam_thread { _options };
         reader_thread    _reader_thread = reader_thread { _options.folder };
         std::set<size_t> _line_indices  = { };

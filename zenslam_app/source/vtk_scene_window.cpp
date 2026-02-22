@@ -94,7 +94,7 @@ namespace zenslam { namespace
 
     vtk_scene_window::vtk_scene_window
     (
-        const options&            options,
+        const slam_options&       options,
         gui_options&              gui_options,
         std::vector<cv::Point3d>& trajectory_estimated,
         std::vector<cv::Point3d>& trajectory_gt

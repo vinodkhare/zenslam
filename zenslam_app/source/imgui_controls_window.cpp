@@ -120,20 +120,26 @@ namespace zenslam
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
         ImGui::BeginChild("viz_section", ImVec2(0, 160.0f), true);
 
-        ImGui::Checkbox("Show Keypoints", &_gui_options.show_keypoints.value());
-        ImGui::Checkbox("Show Keylines", &_gui_options.show_keylines.value());
-        ImGui::SliderFloat("Point Cloud Opacity", &_gui_options.point_cloud_opacity.value(), 0.0f, 1.0f, "%.2f");
-        ImGui::SliderFloat("Point Size", &_gui_options.point_size.value(), 1.0f, 20.0f, "%.1f");
+        ImGui::Checkbox("Show Keypoints", &_gui_options.show_keypoints);
+        ImGui::Checkbox("Show Keylines", &_gui_options.show_keylines);
+
+        auto point_cloud_opacity = static_cast<float>(_gui_options.point_cloud_opacity);
+        if (ImGui::SliderFloat("Point Cloud Opacity", &point_cloud_opacity, 0.0f, 1.0f, "%.2f"))
+        {
+            _gui_options.point_cloud_opacity = point_cloud_opacity;
+        }
+
+        ImGui::SliderFloat("Point Size", &_gui_options.point_size, 1.0f, 20.0f, "%.1f");
 
         // Color picker for keylines (single keyline color)
         const auto& s = _gui_options.keyline_single_color; // B, G, R
         ImVec4      color_rgba
         (
-            static_cast<float>(s.value()[2]) / 255.0f,
+            static_cast<float>(s[2]) / 255.0f,
             // R
-            static_cast<float>(s.value()[1]) / 255.0f,
+            static_cast<float>(s[1]) / 255.0f,
             // G
-            static_cast<float>(s.value()[0]) / 255.0f,
+            static_cast<float>(s[0]) / 255.0f,
             // B
             1.0f
         );

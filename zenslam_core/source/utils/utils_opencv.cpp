@@ -429,8 +429,8 @@ auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, cons
             utils::cast<cv::line_descriptor::KeyLine>(keylines_1_matched),
             line_matches,
             matches_image,
-            gui_options.keyline_match_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : gui_options.keyline_match_color.value(),
-            gui_options.keyline_single_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : gui_options.keyline_single_color.value(),
+            gui_options.keyline_match_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : gui_options.keyline_match_color,
+            gui_options.keyline_single_color == cv::Scalar(-1, -1, -1) ? cv::viz::Color::all(-1) : gui_options.keyline_single_color,
             std::vector<char>(line_matches.size(), true),
             cv::line_descriptor::DrawLinesMatchesFlags::DRAW_OVER_OUTIMG,
             gui_options.keyline_thickness
@@ -525,7 +525,7 @@ auto zenslam::utils::projection_decompose(const cv::Matx34d& projection) -> std:
 auto zenslam::utils::pyramid(const cv::Mat& image, const slam_options& options) -> std::vector<cv::Mat>
 {
     std::vector<cv::Mat> pyramid { };
-    cv::buildOpticalFlowPyramid(image, pyramid, options.klt_window_size, options.klt_max_level);
+    cv::buildOpticalFlowPyramid(image, pyramid, options.tracking.klt_window_size, options.tracking.klt_max_level);
     return pyramid;
 }
 

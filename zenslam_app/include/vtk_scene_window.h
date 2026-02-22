@@ -1,8 +1,7 @@
 #pragma once
 
 #include "window.h"
-#include <zenslam/options.h>
-#include <zenslam/gui_options.h>
+#include <zenslam/all_options.h>
 #include <memory>
 #include <vector>
 
@@ -23,6 +22,8 @@ namespace zenslam
     public:
         /**
          * @brief Construct a VTK scene window.
+        /**
+         * @brief Constructs a VTK-based 3D visualization window.
          *
          * @param options Reference to SLAM options for controlling visualization.
          * @param gui_options Reference to GUI options (point cloud opacity and size).
@@ -31,7 +32,7 @@ namespace zenslam
          */
         vtk_scene_window
         (
-            const options&            options,
+            const slam_options&       options,
             gui_options&              gui_options,
             std::vector<cv::Point3d>& trajectory_estimated,
             std::vector<cv::Point3d>& trajectory_gt
@@ -65,7 +66,7 @@ namespace zenslam
         ) const;
 
     private:
-        const options&            _options;
+        const slam_options&       _options;
         gui_options&              _gui_options;
         std::vector<cv::Point3d>& _trajectory_estimated;
         std::vector<cv::Point3d>& _trajectory_gt;

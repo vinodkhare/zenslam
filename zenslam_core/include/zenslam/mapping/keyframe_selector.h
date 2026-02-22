@@ -2,7 +2,7 @@
 
 #include "zenslam/frame/counts.h"
 #include "zenslam/frame/estimated.h"
-#include "zenslam/slam_options.h"
+#include "zenslam/all_options.h"
 
 namespace zenslam
 {

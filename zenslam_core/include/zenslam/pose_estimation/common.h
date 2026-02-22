@@ -44,16 +44,16 @@ namespace zenslam::pose_estimation
             result.rvec,
             result.tvec,
             false,
-            options.pnp->iterations,
-            options.pnp->threshold,
-            options.pnp->confidence,
+            options.pnp.iterations,
+            options.pnp.threshold,
+            options.pnp.confidence,
             result.inliers);
 
         if (!result.success)
             return result;
 
         // Refine using inliers with LM optimization
-        if (options.pnp->use_refinement && result.inliers.size() >= static_cast<size_t>(options.pnp->min_refinement_inliers))
+        if (options.pnp.use_refinement && result.inliers.size() >= static_cast<size_t>(options.pnp.min_refinement_inliers))
         {
             std::vector<cv::Point3d> inlier_points3d;
             std::vector<cv::Point2d> inlier_points2d;
@@ -125,4 +125,4 @@ namespace zenslam::pose_estimation
 } // namespace zenslam::pose_estimation
 
 // Include slam_options after other definitions to avoid circular dependencies
-#include "zenslam/slam_options.h"
+#include "zenslam/all_options.h"

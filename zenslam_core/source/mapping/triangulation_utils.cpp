@@ -7,6 +7,7 @@
 
 #include <opencv2/calib3d.hpp>
 
+#include "zenslam/utils/utils.h"
 #include "zenslam/utils/utils_opencv.h"
 #include "zenslam/utils/utils_slam.h"
 #include "zenslam/types/keyline.h"
@@ -109,10 +110,10 @@ auto zenslam::utils::triangulate_keylines(
     {
         if (points3d_cv_0[i].z > 1 && points3d_cv_1[i].z > 1 && points3d_cv_0[i].z < 30 &&
             points3d_cv_1[i].z < 30 &&
-            errors_0_0[i] < options.triangulation_reprojection_threshold &&
-            errors_1_0[i] < options.triangulation_reprojection_threshold &&
-            errors_0_1[i] < options.triangulation_reprojection_threshold &&
-            errors_1_1[i] < options.triangulation_reprojection_threshold &&
+            errors_0_0[i] < options.triangulation.reprojection_threshold &&
+            errors_1_0[i] < options.triangulation.reprojection_threshold &&
+            errors_0_1[i] < options.triangulation.reprojection_threshold &&
+            errors_1_1[i] < options.triangulation.reprojection_threshold &&
             angles_0[i] > 0.25 && angles_0[i] < 180 - 0.25 && angles_1[i] > 0.25 &&
             angles_1[i] < 180 - 0.25 && ang[i] > 45.0 && ang[i] < 135.0)
         {

@@ -3,6 +3,7 @@
 #include <gsl/narrow>
 
 #include <opencv2/calib3d.hpp>
+#include <spdlog/spdlog.h>
 
 #include "zenslam/pose_estimation/point_estimator.h"
 #include "zenslam/pose_estimation/line_estimator.h"
@@ -189,7 +190,7 @@ namespace zenslam
         {
             pose = solvepnp_ransac(correspondences_3d2d);
 
-            if (_options.pnp->use_refinement && pose.inliers.size() >= _options.pnp->min_refinement_inliers)
+            if (_options.pnp.use_refinement && pose.inliers.size() >= _options.pnp.min_refinement_inliers)
             {
                 const auto& inlier_correspondences
                     = pose.inliers
@@ -316,7 +317,7 @@ namespace zenslam
 
         std::vector<int> inliers;
 
-        const auto& success = cv::solvePnPRansac(object_points, image_points, _calibration.camera_matrix[0], {}, rvec, tvec, true, 100, _options.pnp->threshold, 0.99, inliers);
+        const auto& success = cv::solvePnPRansac(object_points, image_points, _calibration.camera_matrix[0], {}, rvec, tvec, true, 100, _options.pnp.threshold, 0.99, inliers);
 
         if (!success)
         {

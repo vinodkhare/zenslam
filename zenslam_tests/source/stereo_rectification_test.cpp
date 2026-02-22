@@ -14,7 +14,7 @@
 
 #include <zenslam/frame/estimated.h>
 #include <zenslam/optimization/local_bundle_adjustment.h>
-#include <zenslam/options.h>
+#include <zenslam/all_options.h>
 #include <zenslam/place_recognition/bow_database.h>
 #include <zenslam/place_recognition/bow_vocabulary.h>
 #include <zenslam/types/point3d_cloud.h>
@@ -302,20 +302,19 @@ namespace
 
 TEST_CASE("Stereo rectification option", "[options][stereo_rectify]")
 {
-    using zenslam::options;
+    using zenslam::all_options;
 
     SECTION("Default stereo_rectify is false")
     {
-        const auto opts = options{};
-        REQUIRE(opts.slam->stereo_rectify == false);
+        const auto opts = all_options{};
+        REQUIRE(opts.slam.detection.stereo_rectify == false);
     }
 
     SECTION("stereo_rectify can be set to true")
     {
-        auto opts = options{};
-        opts.slam->stereo_rectify = true;
-        REQUIRE(opts.slam->stereo_rectify == true);
-        REQUIRE_NOTHROW(opts.slam->validate());
+        auto opts = all_options{};
+        opts.slam.detection.stereo_rectify = true;
+        REQUIRE(opts.slam.detection.stereo_rectify == true);
     }
 }
 

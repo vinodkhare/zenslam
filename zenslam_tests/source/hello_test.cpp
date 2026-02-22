@@ -8,7 +8,7 @@
 #include <opencv2/core/types.hpp>
 
 #include "zenslam/detection/detector.h"
-#include "zenslam/options.h"
+#include "zenslam/all_options.h"
 
 TEST_CASE (
 "Hello World Test"
@@ -167,13 +167,13 @@ TEST_CASE("grid_detector::detect_keypoints vs detect_keypoints_par Benchmark", "
     }
     
     // Create grid_detector with typical SLAM settings
-    zenslam::options opts;
-    opts.slam->feature = zenslam::feature_type::FAST;
-    opts.slam->descriptor = zenslam::descriptor_type::ORB;
-    opts.slam->fast_threshold = 10;
-    opts.slam->cell_size = cv::Size(64, 64);  // ~30x17 grid cells for 1920x1080
+    zenslam::slam_options opts;
+    opts.feature_detector = zenslam::feature_type::FAST;
+    opts.descriptor       = zenslam::descriptor_type::ORB;
+    opts.detection.fast_threshold = 10;
+    opts.detection.cell_size      = cv::Size(64, 64);  // ~30x17 grid cells for 1920x1080
     
-    auto detector = zenslam::detector::create(opts.slam);
+    auto detector = zenslam::detector::create(opts);
     
     // Empty existing keypoints map (detecting all new keypoints)
     zenslam::map<zenslam::keypoint> existing_keypoints;

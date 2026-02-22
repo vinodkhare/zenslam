@@ -8,6 +8,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "zenslam/utils/utils.h"
 #include "zenslam/utils/utils_opencv.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/keypoint.h"
@@ -336,7 +337,7 @@ auto zenslam::utils::match_keypoints3d(
         points3d.size(),
         matches_cv.size(),
         matches.size(),
-        options.reprojection_threshold_3d2d.value());
+        options.reprojection_threshold_3d2d);
 
     return matches;
 }

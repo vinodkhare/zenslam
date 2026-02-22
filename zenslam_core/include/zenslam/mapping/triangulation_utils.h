@@ -4,7 +4,7 @@
 
 #include <opencv2/core/types.hpp>
 
-#include "zenslam/options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/line3d.h"
 

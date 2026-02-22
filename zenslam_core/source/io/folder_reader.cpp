@@ -80,7 +80,7 @@ namespace zenslam
     folder_reader::folder_reader(const class folder_options& options) : _timescale(options.timescale)
     {
         scan_directories(options.root / options.left, options.root / options.right);
-        if (!options.imu_file.value().empty())
+        if (!options.imu_file.empty())
         {
             load_imu_data(options.imu_file);
         }

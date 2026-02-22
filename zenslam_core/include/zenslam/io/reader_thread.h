@@ -5,7 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "zenslam/io/folder_options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/io/folder_reader.h"
 #include "zenslam/frame/sensor.h"
 #include "zenslam/types/event.h"

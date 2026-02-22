@@ -15,13 +15,13 @@ namespace zenslam
         auto feature_detector  = cv::Ptr<cv::Feature2D>();
         auto feature_describer = cv::Ptr<cv::Feature2D>();
 
-        switch (options.feature)
+        switch (options.feature_detector)
         {
         case feature_type::FAST:
-            feature_detector = cv::FastFeatureDetector::create(options.fast_threshold);
+            feature_detector = cv::FastFeatureDetector::create(options.detection.fast_threshold);
             break;
         case feature_type::ORB:
-            feature_detector = cv::ORB::create(500, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, options.fast_threshold);
+            feature_detector = cv::ORB::create(500, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, options.detection.fast_threshold);
             break;
         case feature_type::SIFT:
             feature_detector = cv::SIFT::create();
@@ -45,7 +45,7 @@ namespace zenslam
 
         detector._detector      = feature_detector;
         detector._describer     = feature_describer;
-        detector._cell_size     = options.cell_size;
+        detector._cell_size     = options.detection.cell_size;
         detector._line_detector = cv::line_descriptor::LSDDetector::createLSDDetector();
 
         return detector;

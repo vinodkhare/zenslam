@@ -40,10 +40,9 @@ find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
 
 add_library(${PROJECT_NAME}
         # Core
-        source/slam_options.cpp
         source/slam_thread.cpp
-        source/gui_options.cpp
-        source/options.cpp
+        source/options_parser.cpp
+        source/options_printer.cpp
         source/processor.cpp
         source/time_this.cpp
         
@@ -100,7 +99,6 @@ add_library(${PROJECT_NAME}
         source/utils/estimator.cpp
         
         # I/O
-        source/io/folder_options.cpp
         source/io/folder_reader.cpp
         source/io/groundtruth.cpp
         source/io/verb.cpp

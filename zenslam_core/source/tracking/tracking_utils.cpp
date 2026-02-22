@@ -7,7 +7,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/video/tracking.hpp>
 
-#include "zenslam/options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/types/keyline.h"
 
 auto zenslam::utils::track_keylines(
@@ -52,8 +52,8 @@ auto zenslam::utils::track_keylines(
         start_points_1,
         status_start_fwd,
         err_start_fwd,
-        options.klt_window_size,
-        options.klt_max_level,
+        options.tracking.klt_window_size,
+        options.tracking.klt_max_level,
         cv::TermCriteria(
             cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
             99,
@@ -67,8 +67,8 @@ auto zenslam::utils::track_keylines(
         end_points_1,
         status_end_fwd,
         err_end_fwd,
-        options.klt_window_size,
-        options.klt_max_level,
+        options.tracking.klt_window_size,
+        options.tracking.klt_max_level,
         cv::TermCriteria(
             cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
             99,
@@ -90,8 +90,8 @@ auto zenslam::utils::track_keylines(
         start_points_0_back,
         status_start_bwd,
         err_start_bwd,
-        options.klt_window_size,
-        options.klt_max_level,
+        options.tracking.klt_window_size,
+        options.tracking.klt_max_level,
         cv::TermCriteria(
             cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
             99,
@@ -105,8 +105,8 @@ auto zenslam::utils::track_keylines(
         end_points_0_back,
         status_end_bwd,
         err_end_bwd,
-        options.klt_window_size,
-        options.klt_max_level,
+        options.tracking.klt_window_size,
+        options.tracking.klt_max_level,
         cv::TermCriteria(
             cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
             99,
@@ -131,7 +131,7 @@ auto zenslam::utils::track_keylines(
 
             // Accept the track only if both endpoints pass the forward-backward
             // threshold
-            if (fb_error_start < options.klt_threshold && fb_error_end < options.klt_threshold)
+            if (fb_error_start < options.tracking.klt_threshold && fb_error_end < options.tracking.klt_threshold)
             {
                 auto tracked_keyline = keylines_0[i];
 

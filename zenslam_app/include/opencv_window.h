@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <zenslam/gui_options.h>
+#include <zenslam/all_options.h>
 
 #include "window.h"
 

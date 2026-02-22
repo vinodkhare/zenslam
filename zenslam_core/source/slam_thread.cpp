@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <magic_enum/magic_enum.hpp>
+
 #include <spdlog/spdlog.h>
 
 #include <vtk-9.3/vtkLogger.h>
@@ -22,7 +24,7 @@
 #include "zenslam/frame/system.h"
 #include "zenslam/frame/writer.h"
 
-zenslam::slam_thread::slam_thread(options options) :
+zenslam::slam_thread::slam_thread(all_options options) :
     _options { std::move(options) } { vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF); }
 
 
@@ -45,7 +47,7 @@ void zenslam::slam_thread::enqueue(const frame::sensor& frame)
 
 void zenslam::slam_thread::loop()
 {
-    const auto& calibration = calibration::parse(_options.folder->calibration_file, _options.folder->imu_calibration_file, _options.slam->stereo_rectify);
+    const auto& calibration = calibration::parse(_options.folder.calibration_file, _options.folder.imu_calibration_file, _options.slam.detection.stereo_rectify);
 
     frame::system system { };
 
@@ -57,15 +59,15 @@ void zenslam::slam_thread::loop()
     inertial_predictor      inertial { cv::Vec3d { 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
     gravity_estimator       gravity_estimator { };
 
-    auto ground_truth = groundtruth::read(_options.folder->groundtruth_file);
-    auto writer       = frame::writer(_options.folder->output / "frame_data.csv");
+    auto ground_truth = groundtruth::read(_options.folder.groundtruth_file);
+    auto writer       = frame::writer(_options.folder.output / "frame_data.csv");
 
     calibration.print();
 
     // Set configuration strings once
-    system.counts.detector_type   = magic_enum::enum_name(_options.slam->feature.value());
-    system.counts.descriptor_type = magic_enum::enum_name(_options.slam->descriptor.value());
-    system.counts.matcher_type    = magic_enum::enum_name(_options.slam->matcher.value());
+    system.counts.detector_type   = magic_enum::enum_name(_options.slam.feature_detector);
+    system.counts.descriptor_type = magic_enum::enum_name(_options.slam.descriptor);
+    system.counts.matcher_type    = magic_enum::enum_name(_options.slam.matcher);
 
     while (!_stop_token.stop_requested())
     {

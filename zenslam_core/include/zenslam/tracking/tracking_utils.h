@@ -4,8 +4,9 @@
 
 #include <opencv2/core/mat.hpp>
 
-#include "zenslam/options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/types/keyline.h"
+#include "zenslam/types/map.h"
 
 namespace zenslam::utils
 {
@@ -19,7 +20,7 @@ namespace zenslam::utils
      * @param pyramid_0 The image pyramid of the first frame.
      * @param pyramid_1 The image pyramid of the second frame.
      * @param keylines_map_0 A map of keylines in the first frame to be tracked.
-     * @param options SLAM options that include KLT parameters (window size, max level, threshold).
+    * @param options SLAM options that include tracking KLT parameters.
      * @return A vector of tracked keylines in frame_1.
      */
     auto track_keylines(

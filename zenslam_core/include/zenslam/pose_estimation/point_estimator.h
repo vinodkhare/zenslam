@@ -5,7 +5,7 @@
 
 #include "zenslam/calibration/calibration.h"
 #include "zenslam/utils/pose_data.h"
-#include "zenslam/slam_options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/point3d.h"
 

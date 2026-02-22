@@ -6,8 +6,8 @@
 #include <opencv2/core/types.hpp>
 #include <opencv2/features2d.hpp>
 
-#include "zenslam/options.h"
-#include "zenslam/slam_options.h"
+#include "zenslam/all_options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/point3d_cloud.h"

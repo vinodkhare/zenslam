@@ -316,9 +316,9 @@ auto zenslam::local_bundle_adjustment::optimize(
         auto* cost_function = new ceres::AutoDiffCostFunction<reprojection_error, 2, 6, 3>(
             new reprojection_error(observation.pixel, _camera_matrix));
         ceres::LossFunction* loss_function = nullptr;
-        if (_options.refine_landmarks.value())
+        if (_options.refine_landmarks)
         {
-            loss_function = new ceres::HuberLoss(_options.huber_delta.value());
+            loss_function = new ceres::HuberLoss(_options.huber_delta);
         }
 
         problem.AddResidualBlock(
@@ -345,7 +345,7 @@ auto zenslam::local_bundle_adjustment::optimize(
         }
     }
 
-    if (!_options.refine_landmarks.value())
+    if (!_options.refine_landmarks)
     {
         for (size_t i = 0; i < keyframe_ids.size(); ++i)
         {
@@ -367,9 +367,9 @@ auto zenslam::local_bundle_adjustment::optimize(
     }
 
     ceres::Solver::Options solver_options;
-    solver_options.max_num_iterations = std::max(1, _options.max_iterations.value());
+    solver_options.max_num_iterations = std::max(1, _options.max_iterations);
     solver_options.num_threads = 1;
-    solver_options.linear_solver_type = _options.refine_landmarks.value() ? ceres::SPARSE_SCHUR : ceres::DENSE_QR;
+    solver_options.linear_solver_type = _options.refine_landmarks ? ceres::SPARSE_SCHUR : ceres::DENSE_QR;
     solver_options.trust_region_strategy_type = ceres::LEVENBERG_MARQUARDT;
     solver_options.minimizer_progress_to_stdout = false;
 

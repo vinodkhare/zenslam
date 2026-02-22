@@ -3,7 +3,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 
-#include "zenslam/options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/map.h"
 

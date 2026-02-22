@@ -7,7 +7,7 @@
 #include <opencv2/core/affine.hpp>
 #include <opencv2/core/mat.hpp>
 
-#include "zenslam/options.h"
+#include "zenslam/all_options.h"
 
 #include "zenslam/frame/estimated.h"
 

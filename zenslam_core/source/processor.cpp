@@ -28,7 +28,7 @@ auto zenslam::processor::process
             {
                 processed.images[0] = utils::convert_color(sensor.images[0], cv::COLOR_BGR2GRAY);
 
-                if (_options.clahe_enabled)
+                if (_options.detection.clahe_enabled)
                 {
                     processed.images[0] = utils::apply_clahe(processed.images[0], _clahe);
                 }
@@ -44,7 +44,7 @@ auto zenslam::processor::process
             {
                 processed.images[1] = utils::convert_color(sensor.images[1], cv::COLOR_BGR2GRAY);
 
-                if (_options.clahe_enabled)
+                if (_options.detection.clahe_enabled)
                 {
                     processed.images[1] = utils::apply_clahe(processed.images[1], _clahe);
                 }

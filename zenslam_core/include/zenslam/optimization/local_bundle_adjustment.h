@@ -7,7 +7,7 @@
 #include <opencv2/core.hpp>
 
 #include "zenslam/frame/estimated.h"
-#include "zenslam/slam_options.h"
+#include "zenslam/all_options.h"
 #include "zenslam/types/point3d_cloud.h"
 
 namespace zenslam

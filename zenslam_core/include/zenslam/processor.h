@@ -5,7 +5,7 @@
 
 #include "zenslam/calibration/calibration.h"
 #include "zenslam/motion/integrator.h"
-#include "options.h"
+#include "zenslam/all_options.h"
 
 #include "frame/processed.h"
 #include "frame/sensor.h"
