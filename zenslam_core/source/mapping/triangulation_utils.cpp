@@ -108,8 +108,14 @@ auto zenslam::utils::triangulate_keylines(
     std::vector<line3d> lines3d { };
     for (auto i = 0; i < points3d_cv_0.size(); ++i)
     {
-        if (points3d_cv_0[i].z > 1 && points3d_cv_1[i].z > 1 && points3d_cv_0[i].z < 30 &&
-            points3d_cv_1[i].z < 30 &&
+        const auto depth_0 = cv::norm(points3d_cv_0[i]);
+        const auto depth_1 = cv::norm(points3d_cv_1[i]);
+
+        if (points3d_cv_0[i].z > 0 && points3d_cv_1[i].z > 0 &&
+            depth_0 > options.triangulation.min_depth &&
+            depth_0 < options.triangulation.max_depth &&
+            depth_1 > options.triangulation.min_depth &&
+            depth_1 < options.triangulation.max_depth &&
             errors_0_0[i] < options.triangulation.reprojection_threshold &&
             errors_1_0[i] < options.triangulation.reprojection_threshold &&
             errors_0_1[i] < options.triangulation.reprojection_threshold &&
