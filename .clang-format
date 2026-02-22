@@ -6,26 +6,26 @@ AlignAfterOpenBracket: AlwaysBreak
 AlignArrayOfStructures: Left
 AlignConsecutiveAssignments:
   Enabled: true
-  AcrossEmptyLines: true
-  AcrossComments: true
+  AcrossEmptyLines: false
+  AcrossComments: false
   AlignCompound: true
   PadOperators: true
 AlignConsecutiveBitFields:
   Enabled: true
-  AcrossEmptyLines: true
-  AcrossComments: true
+  AcrossEmptyLines: false
+  AcrossComments: false
 AlignConsecutiveDeclarations:
   Enabled: true
-  AcrossEmptyLines: true
-  AcrossComments: true
+  AcrossEmptyLines: false
+  AcrossComments: false
 AlignConsecutiveMacros:
   Enabled: true
-  AcrossEmptyLines: true
-  AcrossComments: true
+  AcrossEmptyLines: false
+  AcrossComments: false
 AlignConsecutiveShortCaseStatements:
   Enabled: true
-  AcrossEmptyLines: true
-  AcrossComments: true
+  AcrossEmptyLines: false
+  AcrossComments: false
 AlignEscapedNewlines: Left
 AlignOperands: Align
 AlignTrailingComments: true

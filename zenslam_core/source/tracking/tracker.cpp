@@ -1,5 +1,6 @@
 #include "zenslam/tracking/tracker.h"
 
+#include <algorithm>
 #include <iostream>
 #include <ranges>
 #include <thread>
@@ -152,13 +153,19 @@ namespace zenslam
         std::chrono::system_clock::duration time_total { 0 };
         auto                                timer_total = time_this(time_total);
 
+        std::vector<keypoint>               keypoints_0_detected_all {};
+        std::vector<keypoint>               keypoints_1_detected_all {};
+        size_t                              keypoints_0_tracked_count = 0;
+        size_t                              keypoints_1_tracked_count = 0;
+
         {
             auto         timer_stereo = time_this(time_stereo_tracking);
             std::jthread thread_0 { [&]()
                                     {
                                         // Track keypoints
-                                        const auto& keypoints_0_tracked = track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0]);
+                                        const auto& keypoints_0_tracked                      = track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0]);
 
+                                        keypoints_0_tracked_count = keypoints_0_tracked.size();
                                         keypoints_0.add(keypoints_0_tracked);
 
                                         std::vector<keypoint> keypoints_0_detected {};
@@ -174,6 +181,7 @@ namespace zenslam
                                         assign_landmark_indices(
                                             keypoints_0_detected, _system.points3d, _system[0].pose.translation(), _tracking.landmark_match_radius, _tracking.landmark_match_distance);
 
+                                        keypoints_0_detected_all = keypoints_0_detected;
                                         keypoints_0.add(keypoints_0_detected);
 
                                         // Track keylines
@@ -186,7 +194,8 @@ namespace zenslam
             std::jthread thread_1 { [&]()
                                     {
                                         // Track keypoints
-                                        const auto& keypoints_1_tracked = track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1]);
+                                        const auto& keypoints_1_tracked                      = track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1]);
+                                        keypoints_1_tracked_count = keypoints_1_tracked.size();
                                         keypoints_1.add(keypoints_1_tracked);
 
                                         std::vector<keypoint> keypoints_1_detected {};
@@ -202,6 +211,7 @@ namespace zenslam
                                         assign_landmark_indices(
                                             keypoints_1_detected, _system.points3d, _system[0].pose.translation(), _tracking.landmark_match_radius, _tracking.landmark_match_distance);
 
+                                        keypoints_1_detected_all = keypoints_1_detected;
                                         keypoints_1.add(keypoints_1_detected);
 
                                         // Track keylines
@@ -239,6 +249,46 @@ namespace zenslam
 
             auto keypoints_0_tracked = track_keypoints(frame_1.pyramids[1], frame_1.pyramids[0], keypoints_1_untracked);
             keypoints_0.add(keypoints_0_tracked);
+        }
+
+        // Descriptor matching for new keypoints when KLT tracking is weak
+        {
+            const auto   prev_left     = frame_0.keypoints[0].size();
+            const auto   prev_right    = frame_0.keypoints[1].size();
+            const double ratio_left    = prev_left > 0 ? static_cast<double>(keypoints_0_tracked_count) / static_cast<double>(prev_left) : 1.0;
+            const double ratio_right   = prev_right > 0 ? static_cast<double>(keypoints_1_tracked_count) / static_cast<double>(prev_right) : 1.0;
+            const double tracked_ratio = std::min(ratio_left, ratio_right);
+
+            if (tracked_ratio < _tracking.klt_min_tracked_ratio)
+            {
+                const auto  prev_keypoints_left  = frame_0.keypoints[0].values() | std::ranges::to<std::vector>();
+                const auto  prev_keypoints_right = frame_0.keypoints[1].values() | std::ranges::to<std::vector>();
+                const auto  matches_left         = _matcher.match_keypoints(prev_keypoints_left, keypoints_0_detected_all);
+                const auto  matches_right        = _matcher.match_keypoints(prev_keypoints_right, keypoints_1_detected_all);
+                
+                std::vector<cv::DMatch> filtered_left;
+                filtered_left.reserve(matches_left.size());
+                for (const auto& match : matches_left)
+                {
+                    if (!keypoints_0.contains(match.queryIdx))
+                    {
+                        filtered_left.emplace_back(match);
+                    }
+                }
+
+                std::vector<cv::DMatch> filtered_right;
+                filtered_right.reserve(matches_right.size());
+                for (const auto& match : matches_right)
+                {
+                    if (!keypoints_1.contains(match.queryIdx))
+                    {
+                        filtered_right.emplace_back(match);
+                    }
+                }
+
+                keypoints_0 *= filtered_left;
+                keypoints_1 *= filtered_right;
+            }
         }
 
         // Triangulate keypoints
@@ -295,7 +345,6 @@ namespace zenslam
         }
 
         const auto&        keypoints_0 = keypoints_map_0.values() | std::ranges::to<std::vector>();
-
         const auto&        points_0    = keypoints_map_0.values_sliced<cv::Point2f>([](const keypoint& kp) { return kp.pt; }) | std::ranges::to<std::vector>();
 
         auto               points_1    = points_1_predicted;

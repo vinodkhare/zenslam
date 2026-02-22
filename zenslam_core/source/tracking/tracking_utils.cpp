@@ -10,11 +10,8 @@
 #include "zenslam/all_options.h"
 #include "zenslam/types/keyline.h"
 
-auto zenslam::utils::track_keylines(
-    const std::vector<cv::Mat>& pyramid_0,
-    const std::vector<cv::Mat>& pyramid_1,
-    const map<keyline>&         keylines_map_0,
-    const slam_options&         options) -> std::vector<keyline>
+auto zenslam::utils::track_keylines(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const map<keyline>& keylines_map_0, const slam_options& options)
+    -> std::vector<keyline>
 {
     if (keylines_map_0.empty())
     {
@@ -54,10 +51,7 @@ auto zenslam::utils::track_keylines(
         err_start_fwd,
         options.tracking.klt_window_size,
         options.tracking.klt_max_level,
-        cv::TermCriteria(
-            cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
-            99,
-            0.001),
+        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
         cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 
     cv::calcOpticalFlowPyrLK(
@@ -69,10 +63,7 @@ auto zenslam::utils::track_keylines(
         err_end_fwd,
         options.tracking.klt_window_size,
         options.tracking.klt_max_level,
-        cv::TermCriteria(
-            cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
-            99,
-            0.001),
+        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
         cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 
     // Backward tracking: track from frame 1 back to frame 0
@@ -92,10 +83,7 @@ auto zenslam::utils::track_keylines(
         err_start_bwd,
         options.tracking.klt_window_size,
         options.tracking.klt_max_level,
-        cv::TermCriteria(
-            cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
-            99,
-            0.001),
+        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
         cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 
     cv::calcOpticalFlowPyrLK(
@@ -107,10 +95,7 @@ auto zenslam::utils::track_keylines(
         err_end_bwd,
         options.tracking.klt_window_size,
         options.tracking.klt_max_level,
-        cv::TermCriteria(
-            cv::TermCriteria::COUNT | cv::TermCriteria::EPS,
-            99,
-            0.001),
+        cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
         cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 
     // Filter keylines based on forward-backward consistency
@@ -120,14 +105,11 @@ auto zenslam::utils::track_keylines(
     for (size_t i = 0; i < keylines_0.size(); ++i)
     {
         // Check if both endpoints were successfully tracked in both directions
-        if (status_start_fwd[i] && status_end_fwd[i] && status_start_bwd[i] &&
-            status_end_bwd[i])
+        if (status_start_fwd[i] && status_end_fwd[i] && status_start_bwd[i] && status_end_bwd[i])
         {
             // Compute forward-backward error for both endpoints
-            const auto fb_error_start =
-                static_cast<float>(cv::norm(start_points_0_back[i] - start_points_0[i]));
-            const auto fb_error_end =
-                static_cast<float>(cv::norm(end_points_0_back[i] - end_points_0[i]));
+            const auto fb_error_start = static_cast<float>(cv::norm(start_points_0_back[i] - start_points_0[i]));
+            const auto fb_error_end   = static_cast<float>(cv::norm(end_points_0_back[i] - end_points_0[i]));
 
             // Accept the track only if both endpoints pass the forward-backward
             // threshold
@@ -148,10 +130,9 @@ auto zenslam::utils::track_keylines(
                 // Update keyline length
                 const auto dx = tracked_keyline.endPointX - tracked_keyline.startPointX;
                 const auto dy = tracked_keyline.endPointY - tracked_keyline.startPointY;
-                tracked_keyline.lineLength = std::sqrt(dx * dx + dy * dy);
 
-                // Update keyline angle
-                tracked_keyline.angle = std::atan2(dy, dx) * 180.0f / static_cast<float>(CV_PI);
+                tracked_keyline.lineLength = std::sqrt(dx * dx + dy * dy);
+                tracked_keyline.angle      = std::atan2(dy, dx) * 180.0f / static_cast<float>(CV_PI);
 
                 tracked_keylines.push_back(tracked_keyline);
             }
