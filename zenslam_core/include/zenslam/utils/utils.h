@@ -18,13 +18,13 @@ namespace zenslam::utils
     inline constexpr std::string_view version = "0.0.1";
 
     inline std::map<std::string, spdlog::level::level_enum> log_levels_from_string = {
-        {"trace", spdlog::level::trace},
-        {"debug", spdlog::level::debug},
-        {"info", spdlog::level::info},
-        {"warn", spdlog::level::warn},
-        {"error", spdlog::level::err},
-        {"critical", spdlog::level::critical},
-        {"off", spdlog::level::off}
+        { "trace", spdlog::level::trace },
+        { "debug", spdlog::level::debug },
+        { "info", spdlog::level::info },
+        { "warn", spdlog::level::warn },
+        { "error", spdlog::level::err },
+        { "critical", spdlog::level::critical },
+        { "off", spdlog::level::off }
     };
 
     inline auto log_levels_to_string = invert(log_levels_from_string);
@@ -65,7 +65,7 @@ namespace zenslam::utils
     template <typename T>
     auto vecnorm(const std::vector<cv::Point_<T>>& vec) -> std::vector<T>
     {
-        std::vector<T> vecnorm{};
+        std::vector<T> vecnorm { };
         for (const auto& v : vec) { vecnorm.emplace_back(cv::norm(v)); }
         return vecnorm;
     }

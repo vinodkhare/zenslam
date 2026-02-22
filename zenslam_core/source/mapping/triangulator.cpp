@@ -36,7 +36,7 @@ namespace zenslam
     {
     }
 
-    auto triangulator::triangulate_keypoints(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1, const cv::Mat& color_image) const -> std::vector<point3d>
+    auto triangulator::triangulate_keypoints(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1, const cv::Mat& color_image) const -> point3d_cloud
     {
         const auto& points2f_0 = utils::to_points(keypoints_0.values_matched(keypoints_1) | std::ranges::to<std::vector>());
         const auto& points2f_1 = utils::to_points(keypoints_1.values_matched(keypoints_0) | std::ranges::to<std::vector>());
@@ -78,11 +78,11 @@ namespace zenslam
                 else if (color_image.type() == CV_8UC1)
                 {
                     const auto intensity = color_image.at<uchar>(y, x);
-                    colors.push_back(cv::Vec3b(intensity, intensity, intensity)); // Grayscale to RGB
+                    colors.emplace_back(intensity, intensity, intensity); // Grayscale to RGB
                 }
                 else
                 {
-                    colors.push_back(cv::Vec3b(255, 255, 255)); // Default to black if unsupported type
+                    colors.emplace_back(255, 255, 255); // Default to black if unsupported type
                 }
             }
         }
@@ -99,7 +99,7 @@ namespace zenslam
             | epipolar_angles(_calibration.cameras[1].pose_in_cam0.translation())
             | std::ranges::to<std::vector>();
 
-        std::vector<point3d> points3d;
+        point3d_cloud points3d;
         for (size_t i = 0; i < points3d_all.size(); ++i)
         {
             if (points3d_all[i].z > 0 &&
@@ -109,7 +109,7 @@ namespace zenslam
                 errors_1[i] < _options.triangulation.reprojection_threshold &&
                 angles[i] > 0.25 && angles[i] < 180 - 0.25)
             {
-                points3d.emplace_back(points3d_all[i]);
+                points3d.add(points3d_all[i]);
             }
         }
 

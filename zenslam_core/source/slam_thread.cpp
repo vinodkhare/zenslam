@@ -8,8 +8,8 @@
 
 #include <vtk-9.3/vtkLogger.h>
 
-#include "zenslam/processor.h"
 #include "zenslam/formatters.h"
+#include "zenslam/processor.h"
 #include "zenslam/time_this.h"
 #include "zenslam/calibration/calibration.h"
 #include "zenslam/frame/durations.h"
@@ -23,10 +23,9 @@
 #include "zenslam/tracking/tracker.h"
 #include "zenslam/utils/estimator.h"
 #include "zenslam/utils/utils.h"
-#include "zenslam/utils/utils_slam.h"
 
 zenslam::slam_thread::slam_thread(all_options options) :
-    _options{std::move(options)} { vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF); }
+    _options { std::move(options) } { vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF); }
 
 
 zenslam::slam_thread::~slam_thread()
@@ -39,7 +38,7 @@ zenslam::slam_thread::~slam_thread()
 void zenslam::slam_thread::enqueue(const frame::sensor& frame)
 {
     {
-        std::lock_guard lock{_mutex};
+        std::lock_guard lock { _mutex };
         _queue.push(frame);
     }
     _cv.notify_one();
@@ -55,16 +54,16 @@ void zenslam::slam_thread::loop()
         _options.slam.detection.stereo_rectify
     );
 
-    frame::system system{};
+    frame::system system { };
 
     // Create tracker (owns descriptor matcher configured from options)
-    processor          processor{_options.slam, calibration};
-    tracker            tracker{calibration, _options.slam, system};
-    const estimator    estimator{calibration, _options.slam};
-    motion_predictor   motion{};
-    inertial_predictor inertial{cv::Vec3d{0.0, 9.81, 0.0}, calibration.cameras[0].pose_in_imu0};
-    gravity_estimator  gravity_estimator{};
-    bool               is_gravity_estimated{};
+    processor          processor { _options.slam, calibration };
+    tracker            tracker { calibration, _options.slam, system };
+    const estimator    estimator { calibration, _options.slam };
+    motion_predictor   motion { };
+    inertial_predictor inertial { cv::Vec3d { 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
+    gravity_estimator  gravity_estimator { };
+    bool               is_gravity_estimated { };
 
     auto ground_truth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer       = frame::writer(_options.folder.output / "frame_data.csv");
@@ -79,14 +78,14 @@ void zenslam::slam_thread::loop()
     while (!_stop_token.stop_requested())
     {
         {
-            time_this t{system.durations.total};
+            time_this t { system.durations.total };
 
             // READ FRAME
-            frame::sensor sensor{};
+            frame::sensor sensor { };
             {
-                time_this time_this{system.durations.wait};
+                time_this time_this { system.durations.wait };
 
-                std::unique_lock lock{_mutex};
+                std::unique_lock lock { _mutex };
                 _cv.wait(lock, [this] { return !_queue.empty() || _stop_token.stop_requested(); });
 
                 if (_stop_token.stop_requested() && _queue.empty())
@@ -99,25 +98,25 @@ void zenslam::slam_thread::loop()
             }
 
             // PREPROCESS
-            frame::processed processed{};
+            frame::processed processed { };
             {
-                time_this time_this{system.durations.processing};
+                time_this time_this { system.durations.processing };
 
                 processed = processor.process(sensor);
             }
 
             // PREDICT POSE
-            cv::Affine3d pose_predicted{};
-            cv::Affine3d pose_inertial{};
+            cv::Affine3d pose_predicted { };
+            cv::Affine3d pose_inertial { };
             {
                 pose_predicted = motion.predict(system[0], processed);
                 pose_inertial  = inertial.predict(system[0], processed);
             }
 
             // TRACK
-            frame::tracked tracked = {};
+            frame::tracked tracked = { };
             {
-                time_this time_this{system.durations.tracking};
+                time_this time_this { system.durations.tracking };
 
                 tracked = tracker.track(system[0], processed);
 
@@ -132,11 +131,11 @@ void zenslam::slam_thread::loop()
             }
 
             // ESTIMATE
-            frame::estimated slam_frame = {};
+            frame::estimated slam_frame = { };
             {
-                time_this time_this{system.durations.estimation};
+                time_this time_this { system.durations.estimation };
 
-                estimate_pose_result estimate_result{};
+                estimate_pose_result estimate_result { };
                 try
                 {
                     estimate_result = estimator.estimate_pose_new(system[0], tracked);
@@ -153,16 +152,10 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO("#pose inertial:  {}", pose_inertial);
 
                 // Apply pose update (estimate is relative camera pose between frames)
-                system[1] = frame::estimated{tracked, system[0].pose * estimate_result.chosen_pose.inv()};
+                system[1] = frame::estimated { tracked, system[0].pose * estimate_result.chosen_pose.inv() };
 
                 system.points3d += system[1].pose * system[1].points3d;
                 system.lines3d  += system[1].pose * system[1].lines3d;
-
-                if (system[1].index % 10 == 0)
-                {
-                    system.points3d.buildIndex();
-                    system.lines3d.buildIndex();
-                }
 
                 system.counts.map_points = system.points3d.size();
                 system.counts.map_lines  = system.lines3d.size();
@@ -176,7 +169,7 @@ void zenslam::slam_thread::loop()
 
                 if (gravity_estimator.has_estimate() && !is_gravity_estimated)
                 {
-                    cv::Vec3d g_estimated = gravity_estimator.estimate();
+                    auto g_estimated = gravity_estimator.estimate();
                     inertial.set_gravity_in_world(g_estimated);
                     SPDLOG_INFO("Estimated gravity vector in world frame: {}", g_estimated);
                     is_gravity_estimated = true;

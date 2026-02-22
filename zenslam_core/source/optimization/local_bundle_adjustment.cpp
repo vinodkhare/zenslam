@@ -68,12 +68,12 @@ namespace
 
     auto affine_to_pose_parameter(const cv::Affine3d& pose) -> std::array<double, 6>
     {
-        const cv::Matx33d rotation_matrix = pose.rotation();
+        const auto rotation_matrix = pose.rotation();
         cv::Mat rotation_cv(3, 3, CV_64F);
 
-        for (int r = 0; r < 3; ++r)
+        for (auto r = 0; r < 3; ++r)
         {
-            for (int c = 0; c < 3; ++c)
+            for (auto c = 0; c < 3; ++c)
             {
                 rotation_cv.at<double>(r, c) = rotation_matrix(r, c);
             }
@@ -82,7 +82,7 @@ namespace
         cv::Mat axis_angle_cv;
         cv::Rodrigues(rotation_cv, axis_angle_cv);
 
-        const cv::Vec3d translation = pose.translation();
+        const auto translation = pose.translation();
         return {
             axis_angle_cv.at<double>(0, 0),
             axis_angle_cv.at<double>(1, 0),
@@ -104,9 +104,9 @@ namespace
         cv::Rodrigues(axis_angle_cv, rotation_cv);
 
         cv::Matx33d rotation_matrix;
-        for (int r = 0; r < 3; ++r)
+        for (auto r = 0; r < 3; ++r)
         {
-            for (int c = 0; c < 3; ++c)
+            for (auto c = 0; c < 3; ++c)
             {
                 rotation_matrix(r, c) = rotation_cv.at<double>(r, c);
             }
@@ -129,12 +129,12 @@ namespace
             return 0.0;
         }
 
-        const double fx = camera_matrix(0, 0);
-        const double fy = camera_matrix(1, 1);
-        const double cx = camera_matrix(0, 2);
-        const double cy = camera_matrix(1, 2);
+        const auto fx = camera_matrix(0, 0);
+        const auto fy = camera_matrix(1, 1);
+        const auto cx = camera_matrix(0, 2);
+        const auto cy = camera_matrix(1, 2);
 
-        double squared_error_sum = 0.0;
+        auto squared_error_sum = 0.0;
         size_t residual_count = 0;
 
         for (const auto& obs : observations)
@@ -160,11 +160,11 @@ namespace
                 continue;
             }
 
-            const double u = fx * (point_camera[0] / point_camera[2]) + cx;
-            const double v = fy * (point_camera[1] / point_camera[2]) + cy;
+            const auto u = fx * (point_camera[0] / point_camera[2]) + cx;
+            const auto v = fy * (point_camera[1] / point_camera[2]) + cy;
 
-            const double du = u - obs.pixel.x;
-            const double dv = v - obs.pixel.y;
+            const auto du = u - obs.pixel.x;
+            const auto dv = v - obs.pixel.y;
 
             squared_error_sum += du * du + dv * dv;
             residual_count += 2;
@@ -213,7 +213,7 @@ auto zenslam::local_bundle_adjustment::optimize(
 
     for (size_t keyframe_param_index = 0; keyframe_param_index < keyframe_ids.size(); ++keyframe_param_index)
     {
-        const size_t keyframe_id = keyframe_ids[keyframe_param_index];
+        const auto keyframe_id = keyframe_ids[keyframe_param_index];
         auto& keyframe = keyframes.at(keyframe_id);
         keyframe_index_by_id[keyframe_id] = keyframe_param_index;
         keyframe_ptrs.push_back(&keyframe);
@@ -234,7 +234,7 @@ auto zenslam::local_bundle_adjustment::optimize(
 
     for (size_t landmark_param_index = 0; landmark_param_index < landmark_ids.size(); ++landmark_param_index)
     {
-        const size_t landmark_id = landmark_ids[landmark_param_index];
+        const auto landmark_id = landmark_ids[landmark_param_index];
         auto& landmark = landmarks.at(landmark_id);
         landmark_index_by_id[landmark_id] = landmark_param_index;
         landmark_ptrs.push_back(&landmark);
@@ -263,7 +263,7 @@ auto zenslam::local_bundle_adjustment::optimize(
             }
 
             const cv::Point3d point_w{ landmark_it->second.x, landmark_it->second.y, landmark_it->second.z };
-            const cv::Point3d point_c = keyframe.pose * point_w;
+            const auto point_c = keyframe.pose * point_w;
             if (!std::isfinite(point_c.z) || point_c.z <= 1e-3)
             {
                 continue;

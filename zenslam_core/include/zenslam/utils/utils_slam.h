@@ -26,17 +26,6 @@ inline auto operator-
     return difference;
 }
 
-inline auto operator*(const cv::Affine3d& pose, const zenslam::line3d& line) -> zenslam::line3d
-{
-    zenslam::line3d transformed_line;
-
-    transformed_line.index = line.index;
-    transformed_line[0]    = pose * line[0];
-    transformed_line[1]    = pose * line[1];
-
-    return transformed_line;
-}
-
 inline auto operator*(const cv::Affine3d& pose, const zenslam::map<zenslam::line3d>& lines) -> zenslam::map<zenslam::line3d>
 {
     zenslam::map<zenslam::line3d> transformed_lines{};

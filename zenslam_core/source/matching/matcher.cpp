@@ -56,7 +56,7 @@ namespace zenslam
             return matches_new;
 
         std::vector<cv::DMatch> matches {};
-        const bool              use_ratio_test { _options.matcher == matcher_type::KNN || _options.matcher == matcher_type::FLANN };
+        const auto use_ratio_test { _options.matcher == matcher_type::KNN || _options.matcher == matcher_type::FLANN };
 
         if (use_ratio_test)
         {
@@ -87,7 +87,7 @@ namespace zenslam
             auto                    points_r = matches | std::views::transform([&unmatched_r](const auto& match) { return unmatched_r[match.trainIdx].pt; }) | std::ranges::to<std::vector>();
 
             std::vector<uchar>      inlier_mask;
-            cv::Mat                 fundamental = cv::findFundamentalMat(points_l, points_r, cv::FM_RANSAC, _options.epipolar_threshold, 0.99, inlier_mask);
+            auto fundamental = cv::findFundamentalMat(points_l, points_r, cv::FM_RANSAC, _options.epipolar_threshold, 0.99, inlier_mask);
 
             // Keep only inliers
             std::vector<cv::DMatch> filtered_matches;
@@ -164,7 +164,7 @@ namespace zenslam
         cv::vconcat(descriptors_1_list, descriptors_r);
 
         std::vector<cv::DMatch> matches {};
-        const bool              use_ratio_test { _options.matcher == matcher_type::KNN || _options.matcher == matcher_type::FLANN };
+        const auto use_ratio_test { _options.matcher == matcher_type::KNN || _options.matcher == matcher_type::FLANN };
 
         if (use_ratio_test)
         {

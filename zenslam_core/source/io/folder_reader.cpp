@@ -1,8 +1,8 @@
 #include "zenslam/io/folder_reader.h"
 
 #include <algorithm>
-#include <opencv2/imgcodecs.hpp>
 #include <rapidcsv.h>
+#include <opencv2/imgcodecs.hpp>
 #include <spdlog/spdlog.h>
 
 namespace zenslam
@@ -100,7 +100,7 @@ namespace zenslam
             // TUM-VI format: timestamp[ns],omega_x[rad/s],omega_y,omega_z,alpha_x[m/s^2],alpha_y,alpha_z
             const rapidcsv::Document doc(imu_file.string(), rapidcsv::LabelParams(0, -1));
 
-            const size_t row_count = doc.GetRowCount();
+            const auto row_count = doc.GetRowCount();
             _imu_measurements.reserve(row_count);
 
             for (size_t i = 0; i < row_count; ++i)
@@ -172,7 +172,7 @@ namespace zenslam
         if (!_imu_measurements.empty())
         {
             // Get previous frame timestamp (or 0 for first frame)
-            const double prev_timestamp = (_current_index > 0) ? std::stod(_left_files[_current_index - 1].stem().string()) * _timescale : 0.0;
+            const auto prev_timestamp = (_current_index > 0) ? std::stod(_left_files[_current_index - 1].stem().string()) * _timescale : 0.0;
 
             // Find all IMU measurements in the interval (prev_timestamp, frame.timestamp]
             while (_imu_index < _imu_measurements.size() && _imu_measurements[_imu_index].timestamp <= prev_timestamp)

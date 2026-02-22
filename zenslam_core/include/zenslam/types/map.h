@@ -90,6 +90,7 @@ namespace zenslam
         // remap indices
         auto operator*=(const std::vector<cv::DMatch>& matches) -> void; // remap indices based on matches
 
+        void add(const T& item, const bool& overwrite = false);
         void add(const std::vector<T>& items, const bool& overwrite = false);
 
     private:
@@ -256,6 +257,15 @@ namespace zenslam
         for (const auto& [index, item] : *this)
         {
             this->_indices.push_back(index);
+        }
+    }
+
+    template <indexable T>
+    void map<T>::add(const T& item, const bool& overwrite)
+    {
+        if (overwrite || !this->contains(item.index))
+        {
+            (*this)[item.index] = item;
         }
     }
 

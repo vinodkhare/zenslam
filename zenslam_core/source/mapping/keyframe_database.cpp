@@ -58,9 +58,9 @@ namespace zenslam
             return result;
         }
 
-        const size_t start = _order.size() > max_count ? _order.size() - max_count : 0;
+        const auto start = _order.size() > max_count ? _order.size() - max_count : 0;
         result.reserve(_order.size() - start);
-        for (size_t i = start; i < _order.size(); ++i)
+        for (auto i = start; i < _order.size(); ++i)
         {
             if (const auto* entry = get(_order[i]))
             {
@@ -77,11 +77,11 @@ namespace zenslam
             return it->second;
         }
 
-        const frame::estimated entry = frame;
+        const auto entry = frame;
 
         for (const auto& [id, other] : _keyframes)
         {
-            const size_t shared = compute_shared(entry, other);
+            const auto shared = compute_shared(entry, other);
             if (shared >= _min_shared_features)
             {
                 _covisibility[entry.index][id] = shared;
@@ -127,8 +127,8 @@ namespace zenslam
 
     auto keyframe_database::compute_shared(const frame::estimated& a, const frame::estimated& b) const -> size_t
     {
-        const size_t shared_points = a.keypoints[0].keys_matched(b.keypoints[0]).size();
-        const size_t shared_lines = a.keylines[0].keys_matched(b.keylines[0]).size();
+        const auto shared_points = a.keypoints[0].keys_matched(b.keypoints[0]).size();
+        const auto shared_lines = a.keylines[0].keys_matched(b.keylines[0]).size();
         return shared_points + shared_lines;
     }
 }

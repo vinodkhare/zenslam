@@ -25,8 +25,8 @@ auto zenslam::gravity_estimator::add(const frame::estimated& estimated_curr, con
     const auto& p1 = _pose_history[1];
     const auto& p2 = _pose_history[2];
 
-    const double dt01 = p1.timestamp - p0.timestamp;
-    const double dt12 = p2.timestamp - p1.timestamp;
+    const auto dt01 = p1.timestamp - p0.timestamp;
+    const auto dt12 = p2.timestamp - p1.timestamp;
 
     if (dt01 <= 0.0 || dt12 <= 0.0)
     {
@@ -34,19 +34,19 @@ auto zenslam::gravity_estimator::add(const frame::estimated& estimated_curr, con
     }
 
     // Compute velocities in world frame
-    const cv::Vec3d v01 = (p1.position - p0.position) / dt01;
-    const cv::Vec3d v12 = (p2.position - p1.position) / dt12;
+    const auto v01 = (p1.position - p0.position) / dt01;
+    const auto v12 = (p2.position - p1.position) / dt12;
 
     // Compute acceleration in world frame using central difference
-    const double    dt_avg      = (dt01 + dt12) / 2.0;
-    const cv::Vec3d a_cam_world = (v12 - v01) / dt_avg;
+    const auto dt_avg      = (dt01 + dt12) / 2.0;
+    const auto a_cam_world = (v12 - v01) / dt_avg;
 
     // Transform acceleration from world to camera frame at p1 (middle frame)
-    const cv::Vec3d a_cam = p1.rotation.t() * a_cam_world;
+    const auto a_cam = p1.rotation.t() * a_cam_world;
 
     // Transform from camera to IMU frame
-    const cv::Matx33d R_imu_cam  = T_cam_imu.rotation().t();
-    const cv::Vec3d   a_imu_true = R_imu_cam * a_cam;
+    const auto R_imu_cam  = T_cam_imu.rotation().t();
+    const auto a_imu_true = R_imu_cam * a_cam;
 
     // Get average measured acceleration from IMU data between frames
     if (estimated_curr.imu_data.empty())
@@ -60,18 +60,18 @@ auto zenslam::gravity_estimator::add(const frame::estimated& estimated_curr, con
     {
         a_measured_sum += imu.acc;
     }
-    const cv::Vec3d a_imu_measured = a_measured_sum / static_cast<double>(estimated_curr.imu_data.size());
+    const auto a_imu_measured = a_measured_sum / static_cast<double>(estimated_curr.imu_data.size());
 
     // The residual is gravity: a_measured = a_true - g  =>  g = a_true - a_measured
-    const cv::Vec3d g_imu = a_imu_true - a_imu_measured;
+    const auto g_imu = a_imu_true - a_imu_measured;
 
     // Transform gravity back to world frame
-    const cv::Matx33d R_cam_imu = T_cam_imu.rotation();
-    const cv::Vec3d   g_cam     = R_cam_imu * g_imu;
-    const cv::Vec3d   g_world   = p1.rotation * g_cam;
+    const auto R_cam_imu = T_cam_imu.rotation();
+    const auto g_cam     = R_cam_imu * g_imu;
+    const auto g_world   = p1.rotation * g_cam;
 
     // Sanity check: gravity magnitude should be around 9.8 m/s²
-    const double g_mag = cv::norm(g_world);
+    const auto g_mag = cv::norm(g_world);
     if (g_mag > 6.0 && g_mag < 15.0) // Allow some noise but reject outliers
     {
         _gravity_samples.push_back(g_world);
@@ -111,7 +111,7 @@ auto zenslam::gravity_estimator::estimate() const -> cv::Vec3d
         std::ranges::nth_element(vals, vals.begin() + n / 2);
         if (n % 2 == 0)
         {
-            const double m1 = vals[n / 2];
+            const auto m1 = vals[n / 2];
             std::ranges::nth_element(vals, vals.begin() + n / 2ul - 1);
             return (m1 + vals[n / 2 - 1]) / 2.0;
         }

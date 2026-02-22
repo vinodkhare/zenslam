@@ -28,16 +28,16 @@ namespace zenslam
         }
 
         // Compute TF-IDF histogram
-        cv::Mat histogram = compute_tfidf_histogram(descriptors);
+        auto histogram = compute_tfidf_histogram(descriptors);
 
         // Store histogram
         _frame_histograms[frame_id] = histogram;
         _frame_order.push_back(frame_id);
 
         // Update inverted index
-        for (int word_id = 0; word_id < histogram.cols; ++word_id)
+        for (auto word_id = 0; word_id < histogram.cols; ++word_id)
         {
-            float weight = histogram.at<float>(0, word_id);
+            auto weight = histogram.at<float>(0, word_id);
             if (weight > 0.0f)
             {
                 _inverted_index[word_id].push_back(frame_id);
@@ -66,7 +66,7 @@ namespace zenslam
         }
 
         // Compute query histogram
-        cv::Mat query_histogram = compute_tfidf_histogram(query_descriptors);
+        auto query_histogram = compute_tfidf_histogram(query_descriptors);
 
         // Score all frames
         std::vector<match_candidate> candidates;
@@ -92,13 +92,13 @@ namespace zenslam
             }
 
             // Compute cosine similarity
-            double similarity = histogram_similarity(query_histogram, histogram);
+            auto similarity = histogram_similarity(query_histogram, histogram);
 
             if (similarity >= min_score)
             {
                 // Count matching words
-                int matching_words = 0;
-                for (int i = 0; i < histogram.cols; ++i)
+                auto matching_words = 0;
+                for (auto i = 0; i < histogram.cols; ++i)
                 {
                     if (query_histogram.at<float>(0, i) > 0.0f &&
                         histogram.at<float>(0, i) > 0.0f)
@@ -208,13 +208,13 @@ namespace zenslam
     cv::Mat bow_database::compute_tfidf_histogram(
         const std::vector<cv::Mat>& descriptors) const
     {
-        int vocab_sz = _vocabulary.get().vocab_size();
+        auto vocab_sz = _vocabulary.get().vocab_size();
         cv::Mat histogram = cv::Mat::zeros(1, vocab_sz, CV_32F);
 
         // Count word occurrences (TF)
         for (const auto& desc : descriptors)
         {
-            int word_id = _vocabulary.get().descriptor_to_word(desc);
+            auto word_id = _vocabulary.get().descriptor_to_word(desc);
             if (word_id >= 0 && word_id < vocab_sz)
             {
                 histogram.at<float>(0, word_id) += 1.0f;
@@ -224,15 +224,15 @@ namespace zenslam
         // Apply IDF weighting
         if (!_frame_histograms.empty())
         {
-            int num_frames = gsl::narrow_cast<int>(_frame_histograms.size());
-            for (int word_id = 0; word_id < vocab_sz; ++word_id)
+            auto num_frames = gsl::narrow_cast<int>(_frame_histograms.size());
+            for (auto word_id = 0; word_id < vocab_sz; ++word_id)
             {
                 if (histogram.at<float>(0, word_id) > 0.0f)
                 {
-                    int num_frames_with_word = gsl::narrow_cast<int>(frames_with_word(word_id).size());
+                    auto num_frames_with_word = gsl::narrow_cast<int>(frames_with_word(word_id).size());
                     if (num_frames_with_word > 0)
                     {
-                        float idf = std::log(static_cast<float>(num_frames) / num_frames_with_word);
+                        auto idf = std::log(static_cast<float>(num_frames) / num_frames_with_word);
                         histogram.at<float>(0, word_id) *= idf;
                     }
                 }
@@ -255,8 +255,8 @@ namespace zenslam
         }
 
         // Cosine similarity: dot product of unit vectors
-        double dot_product = 0.0;
-        for (int i = 0; i < hist1.cols; ++i)
+        auto dot_product = 0.0;
+        for (auto i = 0; i < hist1.cols; ++i)
         {
             dot_product += hist1.at<float>(0, i) * hist2.at<float>(0, i);
         }

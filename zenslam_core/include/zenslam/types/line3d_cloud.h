@@ -15,7 +15,7 @@ namespace zenslam
 
         line3d_cloud(const line3d_cloud& other);
 
-        auto                 operator=(const line3d_cloud& other) -> line3d_cloud&;
+        auto operator=(const line3d_cloud& other) -> line3d_cloud&;
 
         // Must have these methods for nanoflann
         [[nodiscard]] size_t kdtree_get_point_count() const;
@@ -49,3 +49,13 @@ namespace zenslam
         [[nodiscard]] auto match(const keyline& keyline, double max_descriptor_distance = 32.0) const -> std::optional<line3d>;
     };
 } // namespace zenslam
+
+inline auto operator*(const cv::Affine3d& pose, const zenslam::line3d_cloud& cloud) -> zenslam::line3d_cloud
+{
+    zenslam::line3d_cloud cloud_trans { };
+    for (const auto& line3d : cloud | std::views::values)
+    {
+        cloud_trans[line3d.index] = pose * line3d;
+    }
+    return cloud_trans;
+}

@@ -10,8 +10,8 @@
 #include <opencv2/line_descriptor.hpp>
 #include <opencv2/video/tracking.hpp>
 
-#include "zenslam/utils/utils_std.h"
 #include "zenslam/frame/estimated.h"
+#include "zenslam/utils/utils_std.h"
 
 auto zenslam::utils::apply_clahe(const cv::Mat& image, const cv::Ptr<cv::CLAHE>& clahe) -> cv::Mat
 {
@@ -217,10 +217,10 @@ void zenslam::utils::draw_keylines
 
 auto zenslam::utils::project_point(const cv::Matx33d& camera_matrix, const cv::Affine3d& pose, const cv::Point3d& point_w) -> cv::Point2d
 {
-    const cv::Point3d point_c = pose * point_w;
+    const auto point_c = pose * point_w;
 
-    const double u = camera_matrix(0, 0) * (point_c.x / point_c.z) + camera_matrix(0, 2);
-    const double v = camera_matrix(1, 1) * (point_c.y / point_c.z) + camera_matrix(1, 2);
+    const auto u = camera_matrix(0, 0) * (point_c.x / point_c.z) + camera_matrix(0, 2);
+    const auto v = camera_matrix(1, 1) * (point_c.y / point_c.z) + camera_matrix(1, 2);
 
     return { u, v };
 }

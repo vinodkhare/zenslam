@@ -7,11 +7,11 @@
 
 #include <opencv2/calib3d.hpp>
 
+#include "zenslam/types/keyline.h"
+#include "zenslam/types/line3d.h"
 #include "zenslam/utils/utils.h"
 #include "zenslam/utils/utils_opencv.h"
 #include "zenslam/utils/utils_slam.h"
-#include "zenslam/types/keyline.h"
-#include "zenslam/types/line3d.h"
 
 namespace
 {

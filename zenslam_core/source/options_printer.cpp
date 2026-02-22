@@ -1,7 +1,7 @@
 #include "zenslam/options_printer.h"
 
-#include <spdlog/spdlog.h>
 #include <magic_enum/magic_enum.hpp>
+#include <spdlog/spdlog.h>
 
 namespace zenslam
 {

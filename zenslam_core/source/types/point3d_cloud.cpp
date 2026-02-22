@@ -71,6 +71,11 @@ auto zenslam::point3d_cloud::size() const -> size_t
     return map::size();
 }
 
+auto zenslam::point3d_cloud::contains_index(size_t index) const -> bool
+{
+    return map::contains(index);
+}
+
 auto zenslam::point3d_cloud::match(const keypoint& keypoint, const double max_descriptor_distance) const -> std::optional<point3d>
 {
     if (keypoint.descriptor.empty())

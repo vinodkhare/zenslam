@@ -15,7 +15,7 @@ namespace zenslam
 
         point3d_cloud(const point3d_cloud& other);
 
-        auto                 operator=(const point3d_cloud& other) -> point3d_cloud&;
+        auto operator=(const point3d_cloud& other) -> point3d_cloud&;
 
         // Must have these methods for nanoflann
         [[nodiscard]] size_t kdtree_get_point_count() const;
@@ -35,6 +35,13 @@ namespace zenslam
         [[nodiscard]] auto size() const -> size_t;
 
         /**
+         * Return true if a point3d with the given index exists in the cloud, false otherwise
+         * @param index Index of the point3d to check for existence in the cloud
+         * @return true if a point3d with the given index exists in the cloud, false otherwise
+         */
+        [[nodiscard]] auto contains_index(size_t index) const -> bool;
+
+        /**
          * @brief Check if a keypoint descriptor matches any landmark in the cloud
          *
          * Uses Hamming distance for binary descriptors (ORB) or L2 for float descriptors.
@@ -49,3 +56,16 @@ namespace zenslam
         [[nodiscard]] auto match(const keypoint& keypoint, double max_descriptor_distance = 32.0) const -> std::optional<point3d>;
     };
 } // namespace zenslam
+
+
+inline auto operator*(const cv::Affine3d& pose, const zenslam::point3d_cloud& cloud) -> zenslam::point3d_cloud
+{
+    zenslam::point3d_cloud cloud_trans { };
+    for (const auto& point3d : cloud | std::views::values)
+    {
+        cloud_trans[point3d.index]            = pose * point3d;
+        cloud_trans[point3d.index].index      = point3d.index;
+        cloud_trans[point3d.index].descriptor = point3d.descriptor;
+    }
+    return cloud_trans;
+}

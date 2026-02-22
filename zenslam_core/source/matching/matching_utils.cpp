@@ -8,11 +8,11 @@
 
 #include <spdlog/spdlog.h>
 
-#include "zenslam/utils/utils.h"
-#include "zenslam/utils/utils_opencv.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/point3d_cloud.h"
+#include "zenslam/utils/utils.h"
+#include "zenslam/utils/utils_opencv.h"
 
 auto zenslam::utils::filter(
     const std::vector<cv::KeyPoint>& keypoints0,
@@ -121,8 +121,8 @@ static auto is_in_frustum(
     if (std::abs(projected.at<double>(2)) < 1e-9)
         return false;
 
-    const double u = projected.at<double>(0) / projected.at<double>(2);
-    const double v = projected.at<double>(1) / projected.at<double>(2);
+    const auto u = projected.at<double>(0) / projected.at<double>(2);
+    const auto v = projected.at<double>(1) / projected.at<double>(2);
 
     // Check if within image bounds (with margin)
     return (u >= -margin && u < image_width + margin &&
@@ -201,7 +201,7 @@ auto zenslam::utils::match_keypoints3d(
         const auto& projected_pt = projected_all[point3d_idx];
 
         // Compute reprojection error
-        const double error = cv::norm(projected_pt - cv::Point2d(keypoint.pt));
+        const auto error = cv::norm(projected_pt - cv::Point2d(keypoint.pt));
 
         // Filter by reprojection threshold
         if (error < threshold)
@@ -319,7 +319,7 @@ auto zenslam::utils::match_keypoints3d(
         const auto& projected_pt = projected_all[point3d_idx];
 
         // Compute reprojection error
-        const double error = cv::norm(projected_pt - cv::Point2d(keypoint.pt));
+        const auto error = cv::norm(projected_pt - cv::Point2d(keypoint.pt));
 
         // Filter by configured reprojection threshold
         if (error < options.reprojection_threshold_3d2d)

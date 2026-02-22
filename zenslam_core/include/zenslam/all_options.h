@@ -95,7 +95,7 @@ namespace zenslam
     struct pnp_options
     {
         int    iterations             = 1000;
-        int    threshold              = 3;
+        float  threshold              = 3;
         double confidence             = 0.99;
         bool   use_refinement         = false;
         int    min_refinement_inliers = 4;
@@ -204,5 +204,4 @@ namespace zenslam
         gui_options    gui;
         slam_options   slam;
     };
-
 } // namespace zenslam

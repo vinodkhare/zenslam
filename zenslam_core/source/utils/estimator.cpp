@@ -7,9 +7,9 @@
 #include <opencv2/calib3d.hpp>
 #include <spdlog/spdlog.h>
 
-#include "zenslam/pose_estimation/point_estimator.h"
-#include "zenslam/pose_estimation/line_estimator.h"
 #include "zenslam/pose_estimation/combined_estimator.h"
+#include "zenslam/pose_estimation/line_estimator.h"
+#include "zenslam/pose_estimation/point_estimator.h"
 #include "zenslam/pose_estimation/pose_fusion.h"
 #include "zenslam/utils/rigid_transform.h"
 
@@ -17,7 +17,7 @@ namespace zenslam
 {
     estimator::estimator(calibration calib, slam_options opts) :
         _calibration(std::move(calib)),
-        _options(std::move(opts)),
+        _options(opts),
         _point_estimator(std::make_unique<pose_estimation::point_estimator>(_calibration, _options)),
         _line_estimator(std::make_unique<pose_estimation::line_estimator>(_calibration, _options)),
         _combined_estimator(std::make_unique<pose_estimation::combined_estimator>(_calibration, _options))
@@ -284,7 +284,7 @@ namespace zenslam
                 const auto& correspondences
                     = frame_0.points3d
                     | std::views::values
-                    | std::views::filter([&tracked_1](const auto& point3d) { return tracked_1.points3d.contains(point3d.index); })
+                    | std::views::filter([&tracked_1](const auto& point3d) { return tracked_1.points3d.contains_index(point3d.index); })
                     | std::views::transform([&tracked_1](const auto& point3d) { return std::make_pair(point3d, tracked_1.points3d.at(point3d.index)); })
                     | std::ranges::to<std::vector>();
 
@@ -399,7 +399,7 @@ namespace zenslam
             | std::ranges::to<std::vector>();
 
         auto rvec = cv::Vec3d::zeros();
-        auto tvec = cv::Vec3d::zeros();
+        cv::Vec3d tvec = {};
         cv::Rodrigues(pose.pose.rotation(), rvec);
         tvec = pose.pose.translation();
 

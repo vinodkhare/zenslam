@@ -72,6 +72,8 @@ add_library(${PROJECT_NAME}
         
         # Tracking
         source/tracking/tracker.cpp
+        source/tracking/keypoint_tracker.cpp
+        source/tracking/keyline_tracker.cpp
         source/tracking/tracking_utils.cpp
         
         # Matching

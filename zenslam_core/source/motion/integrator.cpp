@@ -1,8 +1,8 @@
 #include "zenslam/motion/integrator.h"
 
 #include <utility>
-#include <spdlog/spdlog.h>
 #include <preint/preint.h>
+#include <spdlog/spdlog.h>
 
 namespace zenslam
 {
@@ -45,8 +45,8 @@ namespace zenslam
     static cv::Matx<double,9,9> eigenToMatx9x9(const Eigen::Matrix<double,9,9>& M)
     {
         cv::Matx<double,9,9> out;
-        for (int r = 0; r < 9; ++r)
-            for (int c = 0; c < 9; ++c)
+        for (auto r = 0; r < 9; ++r)
+            for (auto c = 0; c < 9; ++c)
                 out(r,c) = M(r,c);
         return out;
     }
@@ -77,7 +77,7 @@ namespace zenslam
             return integral { };
         }
 
-        constexpr int overlap_factor = 8;
+        constexpr auto overlap_factor = 8;
         const auto    overlap_period = (end - start) * overlap_factor; // 8 times of period as advised
 
         std::vector<frame::imu> to_integrate = { };

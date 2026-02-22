@@ -33,10 +33,10 @@ namespace zenslam
         _clusters.resize(_levels + 1);
         _cluster_sizes.resize(_levels + 1);
 
-        for (int level = 0; level <= _levels; ++level)
+        for (auto level = 0; level <= _levels; ++level)
         {
-            int num_nodes_at_level = 1;
-            for (int i = 0; i < level; ++i)
+            auto num_nodes_at_level = 1;
+            for (auto i = 0; i < level; ++i)
             {
                 num_nodes_at_level *= _branching_factor;
             }
@@ -78,26 +78,26 @@ namespace zenslam
         }
 
         // Recursive case: cluster descriptors and recurse into each cluster
-        cv::Mat cluster_assignments = kmeans_cluster(descriptors, _branching_factor, iterations);
+        auto cluster_assignments = kmeans_cluster(descriptors, _branching_factor, iterations);
 
         // Group descriptors by cluster
         std::map<int, std::vector<cv::Mat>> cluster_to_descriptors;
-        for (int i = 0; i < descriptors.size(); ++i)
+        for (auto i = 0; i < descriptors.size(); ++i)
         {
-            int cluster_id = cluster_assignments.at<int>(i, 0);
+            auto cluster_id = cluster_assignments.at<int>(i, 0);
             cluster_to_descriptors[cluster_id].push_back(descriptors[i]);
         }
 
         // For each cluster, recurse
-        int num_nodes_at_next_level = 1;
-        for (int i = 0; i < level + 1; ++i)
+        auto num_nodes_at_next_level = 1;
+        for (auto i = 0; i < level + 1; ++i)
         {
             num_nodes_at_next_level *= _branching_factor;
         }
 
-        for (int child_idx = 0; child_idx < _branching_factor; ++child_idx)
+        for (auto child_idx = 0; child_idx < _branching_factor; ++child_idx)
         {
-            int child_node_idx = node_idx * _branching_factor + child_idx;
+            auto child_node_idx = node_idx * _branching_factor + child_idx;
 
             if (cluster_to_descriptors.contains(child_idx))
             {
@@ -131,7 +131,7 @@ namespace zenslam
         {
             // Compute mean of all descriptors as this node's center
             cv::Mat center = cv::Mat::zeros(1, combined_descriptors.cols, combined_descriptors.type());
-            for (int i = 0; i < combined_descriptors.rows; ++i)
+            for (auto i = 0; i < combined_descriptors.rows; ++i)
             {
                 center += combined_descriptors.row(i);
             }
@@ -188,18 +188,18 @@ namespace zenslam
             return -1;
         }
 
-        cv::Mat query = descriptor.clone();
+        auto query = descriptor.clone();
         if (query.type() != CV_32F)
         {
             query.convertTo(query, CV_32F);
         }
 
-        int node_idx = 0;
+        auto node_idx = 0;
 
         // Traverse tree from root to leaf
-        for (int level = 0; level < _levels; ++level)
+        for (auto level = 0; level < _levels; ++level)
         {
-            const std::vector<cv::Mat>& next_level_clusters = _clusters[level + 1];
+            const auto& next_level_clusters = _clusters[level + 1];
 
             if (node_idx < 0)
             {
@@ -208,18 +208,18 @@ namespace zenslam
             }
 
             // Find nearest cluster center at this level
-            int num_children = _branching_factor;
-            double min_dist = std::numeric_limits<double>::max();
-            int nearest_child = 0;
+            auto num_children = _branching_factor;
+            auto min_dist = std::numeric_limits<double>::max();
+            auto nearest_child = 0;
 
-            for (int child_idx = 0; child_idx < num_children; ++child_idx)
+            for (auto child_idx = 0; child_idx < num_children; ++child_idx)
             {
-                int child_node_idx = node_idx * _branching_factor + child_idx;
+                auto child_node_idx = node_idx * _branching_factor + child_idx;
 
                 if (child_node_idx < static_cast<int>(next_level_clusters.size()) &&
                     !next_level_clusters[child_node_idx].empty())
                 {
-                    double dist = cv::norm(query, next_level_clusters[child_node_idx], cv::NORM_L2);
+                    auto dist = cv::norm(query, next_level_clusters[child_node_idx], cv::NORM_L2);
                     if (dist < min_dist)
                     {
                         min_dist = dist;
@@ -243,13 +243,13 @@ namespace zenslam
             return cv::Mat();
         }
 
-        int vocab_sz = vocab_size();
+        auto vocab_sz = vocab_size();
         cv::Mat histogram = cv::Mat::zeros(1, vocab_sz, CV_32F);
 
         // Count word occurrences
         for (const auto& desc : descriptors)
         {
-            int word_id = descriptor_to_word(desc);
+            auto word_id = descriptor_to_word(desc);
             if (word_id >= 0 && word_id < vocab_sz)
             {
                 histogram.at<float>(0, word_id) += 1.0f;
@@ -264,8 +264,8 @@ namespace zenslam
 
     int bow_vocabulary::vocab_size() const
     {
-        int size = 1;
-        for (int i = 0; i < _levels; ++i)
+        auto size = 1;
+        for (auto i = 0; i < _levels; ++i)
         {
             size *= _branching_factor;
         }
@@ -293,7 +293,7 @@ namespace zenslam
 
         // Save cluster centers
         fs << "clusters" << "[";
-        for (int level = 0; level < _levels; ++level)
+        for (auto level = 0; level < _levels; ++level)
         {
             fs << "{";
             for (size_t node = 0; node < _clusters[level].size(); ++node)
@@ -334,7 +334,7 @@ namespace zenslam
     std::vector<cv::Mat> bow_vocabulary::mat_to_vector(const cv::Mat& mat) const
     {
         std::vector<cv::Mat> result;
-        for (int i = 0; i < mat.rows; ++i)
+        for (auto i = 0; i < mat.rows; ++i)
         {
             result.push_back(mat.row(i));
         }

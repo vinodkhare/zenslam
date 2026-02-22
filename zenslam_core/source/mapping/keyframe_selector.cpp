@@ -32,7 +32,7 @@ namespace zenslam
             return decision;
         }
 
-        const cv::Affine3d relative = _last_keyframe_pose.inv() * frame.pose;
+        const auto relative = _last_keyframe_pose.inv() * frame.pose;
 
         decision.translation = cv::norm(relative.translation());
         decision.rotation_deg = compute_rotation_deg(relative);
@@ -67,7 +67,7 @@ namespace zenslam
     {
         cv::Vec3d rvec;
         cv::Rodrigues(relative_pose.rotation(), rvec);
-        const double angle_rad = cv::norm(rvec);
+        const auto angle_rad = cv::norm(rvec);
         return angle_rad * (180.0 / CV_PI);
     }
 
