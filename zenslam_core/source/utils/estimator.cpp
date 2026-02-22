@@ -200,8 +200,8 @@ namespace zenslam
 
                 keypoint keypoint_0 {};
                 keypoint keypoint_1 {};
-                keypoint_0.pt    = cv::Point2f(static_cast<float>(keyline.startPointX), static_cast<float>(keyline.startPointY));
-                keypoint_1.pt    = cv::Point2f(static_cast<float>(keyline.endPointX), static_cast<float>(keyline.endPointY));
+                keypoint_0.pt    = cv::Point2f(gsl::narrow_cast<float>(keyline.startPointX), gsl::narrow_cast<float>(keyline.startPointY));
+                keypoint_1.pt    = cv::Point2f(gsl::narrow_cast<float>(keyline.endPointX), gsl::narrow_cast<float>(keyline.endPointY));
                 keypoint_0.index = line.index;
                 keypoint_1.index = line.index;
 

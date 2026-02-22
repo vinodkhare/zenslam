@@ -313,6 +313,7 @@ auto zenslam::local_bundle_adjustment::optimize(
             continue;
         }
 
+        // Note: Ceres takes ownership of cost_function and loss_function
         auto* cost_function = new ceres::AutoDiffCostFunction<reprojection_error, 2, 6, 3>(
             new reprojection_error(observation.pixel, _camera_matrix));
         ceres::LossFunction* loss_function = nullptr;
@@ -354,6 +355,7 @@ auto zenslam::local_bundle_adjustment::optimize(
                 continue;
             }
 
+            // Note: Ceres takes ownership of the manifold
             problem.SetManifold(keyframe_params[i].data(), new ceres::SubsetManifold(6, { 0, 1, 2 }));
         }
 

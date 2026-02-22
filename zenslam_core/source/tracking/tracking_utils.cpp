@@ -4,6 +4,7 @@
 #include <ranges>
 #include <vector>
 
+#include <gsl/narrow>
 #include <opencv2/core.hpp>
 #include <opencv2/video/tracking.hpp>
 
@@ -108,7 +109,7 @@ auto zenslam::utils::track_keylines(const std::vector<cv::Mat>& pyramid_0, const
         if (status_start_fwd[i] && status_end_fwd[i] && status_start_bwd[i] && status_end_bwd[i])
         {
             // Compute forward-backward error for both endpoints
-            const auto fb_error_start = static_cast<float>(cv::norm(start_points_0_back[i] - start_points_0[i]));
+            const auto fb_error_start = gsl::narrow_cast<float>(cv::norm(start_points_0_back[i] - start_points_0[i]));
             const auto fb_error_end   = static_cast<float>(cv::norm(end_points_0_back[i] - end_points_0[i]));
 
             // Accept the track only if both endpoints pass the forward-backward

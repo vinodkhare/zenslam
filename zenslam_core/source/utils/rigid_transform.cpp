@@ -138,7 +138,7 @@ auto zenslam::utils::estimate_rigid_ransac(
 
         if (inliers.size() > best_inlier_count)
         {
-            best_inlier_count = static_cast<int>(inliers.size());
+            best_inlier_count = gsl::narrow_cast<int>(inliers.size());
             bestR             = R;
             bestt             = t;
             best_inliers      = inliers;

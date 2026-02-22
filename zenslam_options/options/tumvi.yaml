@@ -28,7 +28,7 @@ slam:
   integrator_method: "lpm"   # Options: "lpm" (linear preintegrated measurements), "ugpm" (unified gaussian preintegrated measurements)
   feature:    "FAST"
   descriptor: "ORB"
-  matcher:    "BRUTE"      # Matcher type: BRUTE (cross-check) or KNN (with ratio test)
+  matcher:    "KNN"      # Matcher type: BRUTE (cross-check) or KNN (with ratio test)
   matcher_ratio:  0.8     # Ratio test threshold for KNN matching (0.0-1.0, typically 0.75-0.85)
   fast_threshold: 1
   use_parallel_detector: true

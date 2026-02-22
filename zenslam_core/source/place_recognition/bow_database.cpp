@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include <gsl/narrow>
 #include <spdlog/spdlog.h>
 
 #include <opencv2/core.hpp>
@@ -83,7 +84,7 @@ namespace zenslam
                     int frame_index = std::distance(_frame_order.begin(), frame_pos);
                     int current_index = _frame_order.size() - 1;
 
-                    if (std::abs(current_index - frame_index) < static_cast<int>(min_temporal_distance))
+                    if (std::abs(current_index - frame_index) < gsl::narrow_cast<int>(min_temporal_distance))
                     {
                         continue;  // Skip this frame
                     }
@@ -173,14 +174,14 @@ namespace zenslam
         }
 
         // Save metadata
-        fs << "frame_count" << static_cast<int>(_frame_histograms.size());
+        fs << "frame_count" << gsl::narrow_cast<int>(_frame_histograms.size());
         fs << "vocab_size" << _vocabulary.get().vocab_size();
 
         // Save frame histograms
         fs << "frame_histograms" << "[";
         for (const auto& [frame_id, histogram] : _frame_histograms)
         {
-            fs << "{" << "frame_id" << static_cast<int>(frame_id) << "histogram" << histogram << "}";
+            fs << "{" << "frame_id" << gsl::narrow_cast<int>(frame_id) << "histogram" << histogram << "}";
         }
         fs << "]";
 
@@ -223,12 +224,12 @@ namespace zenslam
         // Apply IDF weighting
         if (!_frame_histograms.empty())
         {
-            int num_frames = static_cast<int>(_frame_histograms.size());
+            int num_frames = gsl::narrow_cast<int>(_frame_histograms.size());
             for (int word_id = 0; word_id < vocab_sz; ++word_id)
             {
                 if (histogram.at<float>(0, word_id) > 0.0f)
                 {
-                    int num_frames_with_word = static_cast<int>(frames_with_word(word_id).size());
+                    int num_frames_with_word = gsl::narrow_cast<int>(frames_with_word(word_id).size());
                     if (num_frames_with_word > 0)
                     {
                         float idf = std::log(static_cast<float>(num_frames) / num_frames_with_word);

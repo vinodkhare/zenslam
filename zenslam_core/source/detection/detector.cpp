@@ -72,8 +72,8 @@ namespace zenslam
         for (const auto& keypoint : keypoints_existing | std::views::values)
         {
             // Calculate which grid cell this keypoint falls into
-            const auto& grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
-            const auto& grid_y = static_cast<int>(keypoint.pt.y) / _cell_size.height;
+            const auto grid_x = gsl::narrow_cast<int>(keypoint.pt.x) / _cell_size.width;
+            const auto grid_y = gsl::narrow_cast<int>(keypoint.pt.y) / _cell_size.height;
 
             // If the keypoint falls within grid bounds, mark the cell as occupied
             if
@@ -189,8 +189,8 @@ namespace zenslam
         for (const auto& keypoint : keypoints_existing | std::views::values)
         {
             // Calculate which grid cell this keypoint falls into
-            const auto& grid_x = static_cast<int>(keypoint.pt.x) / _cell_size.width;
-            const auto& grid_y = static_cast<int>(keypoint.pt.y) / _cell_size.height;
+            const auto grid_x = gsl::narrow_cast<int>(keypoint.pt.x) / _cell_size.width;
+            const auto grid_y = gsl::narrow_cast<int>(keypoint.pt.y) / _cell_size.height;
 
             // If the keypoint falls within grid bounds, mark the cell as occupied
             if
@@ -380,7 +380,7 @@ namespace zenslam
 
             keylines.emplace_back(keylines_cv[i], keyline::index_next);
             if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows))
-                keylines.back().descriptor = descriptors.row(static_cast<int>(i)).clone();
+                keylines.back().descriptor = descriptors.row(gsl::narrow_cast<int>(i)).clone();
             keyline::index_next++;
         }
 

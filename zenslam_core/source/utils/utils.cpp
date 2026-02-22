@@ -32,7 +32,8 @@ auto zenslam::utils::to_keypoints(const std::vector<keypoint>& keypoints) -> std
 auto zenslam::utils::to_map(const std::vector<cv::DMatch>& matches) -> std::map<int, int>
 {
     std::map<int, int> map;
-    std::ranges::transform(matches, std::inserter(map, map.begin()), [](const auto& match) { return std::make_pair(match.queryIdx, match.trainIdx); });
+    std::ranges::transform(matches, std::inserter(map, map.begin()),
+        [](const auto& match) { return std::pair{match.queryIdx, match.trainIdx}; });
     return map;
 }
 
@@ -45,13 +46,12 @@ auto zenslam::utils::to_points(const std::vector<cv::KeyPoint>& keypoints0, cons
     std::vector<cv::Point2f> points1;
     points1.reserve(matches.size());
 
-    for (const auto& match : matches)
-    {
-        points0.push_back(keypoints0[match.queryIdx].pt);
-        points1.push_back(keypoints1[match.trainIdx].pt);
-    }
+    std::ranges::transform(matches, std::back_inserter(points0),
+        [&](const auto& m) { return keypoints0[m.queryIdx].pt; });
+    std::ranges::transform(matches, std::back_inserter(points1),
+        [&](const auto& m) { return keypoints1[m.trainIdx].pt; });
 
-    return std::make_tuple(points0, points1);
+    return {points0, points1};
 }
 
 auto zenslam::utils::to_points(const std::vector<cv::KeyPoint>& keypoints) -> std::vector<cv::Point2f>

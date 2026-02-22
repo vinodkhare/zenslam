@@ -15,7 +15,7 @@
 
 namespace zenslam::utils
 {
-    inline std::string version = "0.0.1";
+    inline constexpr std::string_view version = "0.0.1";
 
     inline std::map<std::string, spdlog::level::level_enum> log_levels_from_string = {
         { "trace", spdlog::level::trace }, { "debug", spdlog::level::debug },       { "info", spdlog::level::info }, { "warn", spdlog::level::warn },

@@ -4,6 +4,7 @@
 #include <cmath>
 #include <ranges>
 
+#include <gsl/narrow>
 #include <opencv2/core.hpp>
 #include <opencv2/ml.hpp>
 #include <spdlog/spdlog.h>
@@ -72,7 +73,7 @@ namespace zenslam
             }
             center /= static_cast<double>(descriptors.size());
             _clusters[level][node_idx] = center;
-            _cluster_sizes[level][node_idx] = static_cast<int>(descriptors.size());
+            _cluster_sizes[level][node_idx] = gsl::narrow_cast<int>(descriptors.size());
             return;
         }
 

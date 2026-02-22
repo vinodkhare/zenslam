@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <optional>
 
 #include <opencv2/core/types.hpp>
 #include <yaml-cpp/yaml.h>

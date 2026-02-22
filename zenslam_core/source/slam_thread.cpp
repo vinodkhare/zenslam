@@ -23,6 +23,7 @@
 #include "zenslam/frame/estimated.h"
 #include "zenslam/frame/system.h"
 #include "zenslam/frame/writer.h"
+#include "zenslam/formatters.h"
 
 zenslam::slam_thread::slam_thread(all_options options) :
     _options { std::move(options) } { vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF); }
@@ -135,6 +136,9 @@ void zenslam::slam_thread::loop()
                     estimate_result.chosen_pose = pose_predicted;
                     estimate_result.chosen_count = 0;
                 }
+
+                SPDLOG_INFO("#pose predicted: {}", pose_predicted);
+                SPDLOG_INFO("#pose estimated: {}", estimate_result.chosen_pose.inv());
 
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated { tracked, system[0].pose * estimate_result.chosen_pose.inv() };

@@ -184,11 +184,11 @@ namespace zenslam::pose_estimation
 
         // Determine best method
         const auto weights = {
-            std::make_pair(fused.weight_3d3d, "3D-3D Points"),
-            std::make_pair(fused.weight_3d2d, "3D-2D Points"),
-            std::make_pair(fused.weight_2d2d, "2D-2D Points"),
-            std::make_pair(fused.weight_3d3d_lines, "3D-3D Lines"),
-            std::make_pair(fused.weight_3d2d_lines, "3D-2D Lines")
+            std::pair{fused.weight_3d3d, "3D-3D Points"},
+            std::pair{fused.weight_3d2d, "3D-2D Points"},
+            std::pair{fused.weight_2d2d, "2D-2D Points"},
+            std::pair{fused.weight_3d3d_lines, "3D-3D Lines"},
+            std::pair{fused.weight_3d2d_lines, "3D-2D Lines"}
         };
         
         const auto best = std::ranges::max_element(weights, 
