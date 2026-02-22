@@ -1,5 +1,7 @@
 #include "zenslam/utils/estimator.h"
 
+#include <algorithm>
+#include <array>
 #include <gsl/narrow>
 
 #include <opencv2/calib3d.hpp>
@@ -173,12 +175,48 @@ namespace zenslam
     pose_data estimator::estimate_pose_3d2d(const frame::estimated& frame_0, const frame::tracked& tracked_1, const size_t& camera_index) const
     {
         // First we estimate the 3D-2D pose
-        const auto correspondences_3d2d
+        auto correspondences_3d2d
             = frame_0.points3d
             | std::views::values
             | std::views::filter([&tracked_1, &camera_index](const auto& point3d) { return tracked_1.keypoints[camera_index].contains(point3d.index); })
             | std::views::transform([&tracked_1, &camera_index](const auto& point3d) { return std::make_pair(point3d, tracked_1.keypoints[camera_index].at(point3d.index)); })
             | std::ranges::to<std::vector>();
+
+        const auto& keylines = tracked_1.keylines[camera_index];
+        const auto  line_correspondences
+            = frame_0.lines3d
+            | std::views::values
+            | std::views::filter([&keylines](const auto& line) { return keylines.contains(line.index); })
+            | std::views::transform([&keylines](const auto& line)
+            {
+                const auto& keyline = keylines.at(line.index);
+
+                point3d endpoint_0 {};
+                point3d endpoint_1 {};
+                static_cast<cv::Point3d&>(endpoint_0) = line[0];
+                static_cast<cv::Point3d&>(endpoint_1) = line[1];
+                endpoint_0.index = line.index;
+                endpoint_1.index = line.index;
+
+                keypoint keypoint_0 {};
+                keypoint keypoint_1 {};
+                keypoint_0.pt    = cv::Point2f(static_cast<float>(keyline.startPointX), static_cast<float>(keyline.startPointY));
+                keypoint_1.pt    = cv::Point2f(static_cast<float>(keyline.endPointX), static_cast<float>(keyline.endPointY));
+                keypoint_0.index = line.index;
+                keypoint_1.index = line.index;
+
+                return std::array<std::pair<point3d, keypoint>, 2>
+                {
+                    std::pair { endpoint_0, keypoint_0 },
+                    std::pair { endpoint_1, keypoint_1 }
+                };
+            })
+            | std::ranges::to<std::vector>();
+
+        std::ranges::for_each(line_correspondences, [&correspondences_3d2d](const auto& pair_set)
+        {
+            correspondences_3d2d.insert(correspondences_3d2d.end(), pair_set.begin(), pair_set.end());
+        });
 
         if (correspondences_3d2d.size() < 4)
         {
