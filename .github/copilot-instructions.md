@@ -18,3 +18,4 @@
 - Use the RAII (Resource Acquisition Is Initialization) pattern for managing resources in C++ to ensure proper cleanup and avoid memory leaks.
 - Optimize for simplicity and ease of use, both for the user and the developer
 - Optimize for long term maintenance and extensibility. 
+- Follow the rule of "one class or struct per file" to the extent possible.

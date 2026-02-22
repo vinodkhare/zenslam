@@ -1,20 +1,17 @@
 #include "zenslam/tracking/keyline_tracker.h"
 
-#include <ranges>
-
 #include <opencv2/features2d.hpp>
 
-#include "zenslam/detection/detector.h"
+#include "zenslam/detection/keyline_detector.h"
 #include "zenslam/tracking/tracking_utils.h"
 
 namespace zenslam
 {
     keyline_tracker::keyline_tracker(calibration calib, slam_options opts, frame::system& system) :
+        _options(opts.detection),
         _calibration(std::move(calib)),
         _tracking(opts.tracking),
-        _detection(opts.detection),
         _triangulation(opts.triangulation),
-        _detector(detector::create(opts.detection)),
         _triangulator { _calibration, opts },
         _system(system)
     {

@@ -6,7 +6,6 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/video/tracking.hpp>
 
-#include "zenslam/detection/detector.h"
 #include "zenslam/matching/matcher.h"
 
 namespace zenslam
@@ -18,7 +17,6 @@ namespace zenslam
         _triangulation(opts.triangulation),
         _matcher(opts, opts.detection.descriptor == descriptor_type::ORB || opts.detection.descriptor == descriptor_type::FREAK),
         _triangulator(_calibration, opts),
-        _detector(detector::create(opts.detection)),
         _system(system)
     {
     }
@@ -35,11 +33,11 @@ namespace zenslam
         std::vector<keypoint> keypoints_0_detected { };
         if (_detection.use_parallel_detector)
         {
-            keypoints_0_detected = _detector.detect_keypoints_par(frame_1.undistorted[0], keypoints_0);
+            keypoints_0_detected = _keypoint_detector_parallel.detect_keypoints(frame_1.undistorted[0], keypoints_0);
         }
         else
         {
-            keypoints_0_detected = _detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
+            keypoints_0_detected = _keypoint_detector.detect_keypoints(frame_1.undistorted[0], keypoints_0);
         }
 
         assign_landmark_indices
@@ -59,11 +57,11 @@ namespace zenslam
         std::vector<keypoint> keypoints_1_detected { };
         if (_detection.use_parallel_detector)
         {
-            keypoints_1_detected = _detector.detect_keypoints_par(frame_1.undistorted[1], keypoints_1);
+            keypoints_1_detected = _keypoint_detector_parallel.detect_keypoints(frame_1.undistorted[1], keypoints_1);
         }
         else
         {
-            keypoints_1_detected = _detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
+            keypoints_1_detected = _keypoint_detector.detect_keypoints(frame_1.undistorted[1], keypoints_1);
         }
 
         keypoint_tracker::assign_landmark_indices

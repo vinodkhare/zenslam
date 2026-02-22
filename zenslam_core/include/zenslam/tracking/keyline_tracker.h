@@ -4,7 +4,7 @@
 
 #include "zenslam/all_options.h"
 #include "zenslam/calibration/calibration.h"
-#include "zenslam/detection/detector.h"
+#include "zenslam/detection/keyline_detector.h"
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/system.h"
 #include "zenslam/mapping/triangulator.h"
@@ -20,7 +20,6 @@ namespace zenslam
     {
     public:
         keyline_tracker(calibration calib, slam_options opts, frame::system& system);
-
 
         /**
          * @brief Returns the tracked keylines in the current frame corresponding to the input keylines from the previous frame, with updated positions and tracking status, along with new detections and triangulated 3D lines added.
@@ -39,11 +38,11 @@ namespace zenslam
         [[nodiscard]] auto triangulate(const std::array<map<keyline>, 2>& keylines, const cv::Mat& image) const -> line3d_cloud;
 
     private:
+        detection_options     _options       = { };
         calibration           _calibration   = { };
         tracking_options      _tracking      = { };
-        detection_options     _detection     = { };
         triangulation_options _triangulation = { };
-        detector              _detector      = { };
+        keyline_detector      _detector      = { _options };
         triangulator          _triangulator;
 
         const frame::system& _system;

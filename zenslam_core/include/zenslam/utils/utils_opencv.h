@@ -88,3 +88,8 @@ namespace zenslam::utils
 
     auto matches(size_t n) -> std::vector<cv::DMatch>;
 }
+
+inline cv::Size operator/(const cv::Size& lhs, const cv::Size& rhs)
+{
+    return { lhs.width / rhs.width, lhs.height / rhs.height };
+}

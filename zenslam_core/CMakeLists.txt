@@ -67,8 +67,10 @@ add_library(${PROJECT_NAME}
         source/calibration/imu_calibration.cpp
         
         # Detection
-        source/detection/detector.cpp
+        source/detection/keyline_detector.cpp
         source/detection/correspondence_utils.cpp
+        source/detection/keypoint_detector.cpp
+        source/detection/keypoint_detector_parallel.cpp
         
         # Tracking
         source/tracking/tracker.cpp
