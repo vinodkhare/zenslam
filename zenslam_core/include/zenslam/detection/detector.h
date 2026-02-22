@@ -22,12 +22,12 @@ namespace zenslam
     {
     public:
         /**
-         * @brief Create a grid detector based on the provided SLAM options
+         * @brief Create a grid detector based on the provided detection options
          *
-         * @param options The SLAM options containing the desired feature detector type and cell size
+         * @param options The detection options containing the desired feature detector type and cell size
          * @return A configured grid_detector instance
          */
-        static auto create(const slam_options& options) -> detector;
+        static auto create(const detection_options& options) -> detector;
 
         /**
          * @brief Detect keypoints in the image using grid-based detection
@@ -66,9 +66,11 @@ namespace zenslam
         [[nodiscard]] std::vector<keyline> detect_keylines(const cv::Mat& image, const map<keyline>& keylines_map, int mask_margin = 10) const;
 
     private:
-        cv::Ptr<cv::Feature2D>                    _detector      = { }; // Underlying detector
-        cv::Ptr<cv::Feature2D>                    _describer     = { };
-        cv::Ptr<cv::line_descriptor::LSDDetector> _line_detector = { }; // Line feature detector
-        cv::Size                                  _cell_size     = { }; // Size of each grid cell
+        detection_options _options = {};
+
+        cv::Ptr<cv::Feature2D>                    _detector      = {}; // Underlying detector
+        cv::Ptr<cv::Feature2D>                    _describer     = {};
+        cv::Ptr<cv::line_descriptor::LSDDetector> _line_detector = {}; // Line feature detector
+        cv::Size                                  _cell_size     = {}; // Size of each grid cell
     };
 } // namespace zenslam

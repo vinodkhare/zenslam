@@ -23,22 +23,10 @@ gui:
   keyline_thickness:     1
 
 slam:
-  cell_size: [ 128, 128 ]
-  clahe_enabled: true
   integrator_method: "lpm"   # Options: "lpm" (linear preintegrated measurements), "ugpm" (unified gaussian preintegrated measurements)
-  feature:    "FAST"
-  descriptor: "ORB"
   matcher:    "KNN"      # Matcher type: BRUTE (cross-check) or KNN (with ratio test)
   matcher_ratio:  0.8     # Ratio test threshold for KNN matching (0.0-1.0, typically 0.75-0.85)
-  fast_threshold: 1
-  use_parallel_detector: true
-  tracking:
-    klt_window_size: [ 31, 31 ]
-    klt_max_level: 3
-    klt_threshold: 1.0
-    klt_min_tracked_ratio: 0.6
-    landmark_match_distance: 32.0  # Max descriptor distance for 2D->3D landmark association
-    landmark_match_radius: 20.0    # Radius (m) around camera for 2D->3D landmark association
+
   triangulation_reprojection_threshold: 1.0    # (in pixels) min distance between keypoints in left and right image to be considered for triangulation
   triangulation_min_depth: 0.1    # (in m) minimum depth for triangulated points to be considered valid, helps filter out noise and points at infinity
   triangulation_max_depth: 20.0  # (in m) maximum depth for triangulated points to be considered valid, helps filter out outliers
@@ -48,6 +36,25 @@ slam:
   reprojection_threshold_3d2d: 2.0   # (in pixels) reprojection error threshold for 3D-2D landmark matching, outliers with higher error are filtered
   frustum_margin:        50.0   # (in pixels) margin for frustum culling, allows landmarks slightly outside image bounds to be considered
   enable_frustum_culling: true  # Enable frustum culling to skip landmarks outside camera field of view (improves matching performance)
+
+  # detection configuration (nested)
+  detection:
+    feature_detector: "FAST"  # Options: "FAST", "ORB", "SIFT"
+    descriptor: "ORB"         # Options: "ORB", "SIFT"
+    cell_size: [ 64, 64 ]     # Size of grid cells for spatially uniform feature detection, smaller cells lead to more uniform distribution but higher computational cost
+    fast_threshold: 10           # FAST feature detector threshold, lower values lead to more features but potentially more noise
+    keyline_max_length: 128     # Maximum length of keylines in pixels, longer keylines are often less stable and more likely to be outliers
+    clahe_enabled: true         # Enable CLAHE (Contrast Limited Adaptive Histogram Equalization) for better feature detection in low-contrast areas, can improve performance in challenging lighting conditions but adds computational overhead
+    use_parallel_detector: true     # Enable parallel feature detection across image cells, can significantly speed up detection on multi-core CPUs but may increase memory usage
+
+  # Tracking configuration (nested)
+  tracking:
+    klt_window_size: [ 31, 31 ]
+    klt_max_level: 3
+    klt_threshold: 1.0
+    klt_min_tracked_ratio: 0.6
+    landmark_match_distance: 32.0  # Max descriptor distance for 2D->3D landmark association
+    landmark_match_radius: 20.0    # Radius (m) around camera for 2D->3D landmark association
 
   # Keyframe selection configuration (nested)
   keyframe:
@@ -63,7 +70,7 @@ slam:
     iterations: 1000             # Maximum RANSAC iterations for PnP estimation
     threshold: 3.0               # Inlier threshold in pixels for PnP RANSAC
     confidence: 0.99             # RANSAC confidence level (0.0-1.0)
-    use_refinement: false        # Use iterative Levenberg-Marquardt refinement after RANSAC
+    use_refinement: true        # Use iterative Levenberg-Marquardt refinement after RANSAC
     min_refinement_inliers: 4    # Minimum inliers required for Levenberg-Marquardt refinement
   
   # Essential Matrix Configuration (2D-2D pose estimation, nested)

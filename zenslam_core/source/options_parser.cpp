@@ -61,6 +61,22 @@ namespace zenslam
         opts.use_parallel_detector = get_or_default(node, "use_parallel_detector", opts.use_parallel_detector);
         opts.cell_size = get_size(node, "cell_size", opts.cell_size);
         opts.fast_threshold = get_or_default(node, "fast_threshold", opts.fast_threshold);
+        opts.keyline_max_length = get_or_default(node, "keyline_max_length", opts.keyline_max_length);
+
+        // Parse feature detector and descriptor
+        if (node["feature"]) {
+            auto feature_str = node["feature"].as<std::string>();
+            if (auto f = magic_enum::enum_cast<feature_type>(feature_str)) {
+                opts.feature_detector = f.value();
+            }
+        }
+
+        if (node["descriptor"]) {
+            auto desc_str = node["descriptor"].as<std::string>();
+            if (auto d = magic_enum::enum_cast<descriptor_type>(desc_str)) {
+                opts.descriptor = d.value();
+            }
+        }
 
         return opts;
     }
@@ -189,21 +205,7 @@ namespace zenslam
         slam_options opts;
         if (!node || !node.IsMap()) return opts;
 
-        // Parse feature detector/descriptor/matcher
-        if (node["feature"]) {
-            auto feature_str = node["feature"].as<std::string>();
-            if (auto f = magic_enum::enum_cast<feature_type>(feature_str)) {
-                opts.feature_detector = f.value();
-            }
-        }
-
-        if (node["descriptor"]) {
-            auto desc_str = node["descriptor"].as<std::string>();
-            if (auto d = magic_enum::enum_cast<descriptor_type>(desc_str)) {
-                opts.descriptor = d.value();
-            }
-        }
-
+        // Parse matcher and related options
         if (node["matcher"]) {
             auto matcher_str = node["matcher"].as<std::string>();
             if (auto m = magic_enum::enum_cast<matcher_type>(matcher_str)) {

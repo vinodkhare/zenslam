@@ -168,8 +168,8 @@ TEST_CASE("grid_detector::detect_keypoints vs detect_keypoints_par Benchmark", "
     
     // Create grid_detector with typical SLAM settings
     zenslam::slam_options opts;
-    opts.feature_detector = zenslam::feature_type::FAST;
-    opts.descriptor       = zenslam::descriptor_type::ORB;
+    opts.detection.feature_detector = zenslam::feature_type::FAST;
+    opts.detection.descriptor       = zenslam::descriptor_type::ORB;
     opts.detection.fast_threshold = 10;
     opts.detection.cell_size      = cv::Size(64, 64);  // ~30x17 grid cells for 1920x1080
     

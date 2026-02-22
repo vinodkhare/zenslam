@@ -7,10 +7,11 @@
 
 #include <opencv2/imgproc.hpp> // For cv::Rect
 #include <opencv2/xfeatures2d.hpp>
+#include "zenslam/all_options.h"
 
 namespace zenslam
 {
-    auto detector::create(const slam_options& options) -> detector
+    auto detector::create(const detection_options& options) -> detector
     {
         auto feature_detector  = cv::Ptr<cv::Feature2D>();
         auto feature_describer = cv::Ptr<cv::Feature2D>();
@@ -18,10 +19,10 @@ namespace zenslam
         switch (options.feature_detector)
         {
         case feature_type::FAST:
-            feature_detector = cv::FastFeatureDetector::create(options.detection.fast_threshold);
+            feature_detector = cv::FastFeatureDetector::create(options.fast_threshold);
             break;
         case feature_type::ORB:
-            feature_detector = cv::ORB::create(500, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, options.detection.fast_threshold);
+            feature_detector = cv::ORB::create(500, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, options.fast_threshold);
             break;
         case feature_type::SIFT:
             feature_detector = cv::SIFT::create();
@@ -45,7 +46,7 @@ namespace zenslam
 
         detector._detector      = feature_detector;
         detector._describer     = feature_describer;
-        detector._cell_size     = options.detection.cell_size;
+        detector._cell_size     = options.cell_size;
         detector._line_detector = cv::line_descriptor::LSDDetector::createLSDDetector();
 
         return detector;
@@ -379,11 +380,25 @@ namespace zenslam
             }
 
             keylines.emplace_back(keylines_cv[i], keyline::index_next);
+
             if (!descriptors.empty() && i < static_cast<size_t>(descriptors.rows))
+            {
                 keylines.back().descriptor = descriptors.row(gsl::narrow_cast<int>(i)).clone();
+            }
+
             keyline::index_next++;
         }
 
-        return keylines;
+        return keylines | std::views::filter
+        (
+            [this](const auto& keyline)
+            {
+                const auto dx = keyline.endPointX - keyline.startPointX;
+                const auto dy = keyline.endPointY - keyline.startPointY;
+                const auto length = std::sqrt(dx * dx + dy * dy);
+
+                return length <= _options.keyline_max_length;
+            }
+        ) | std::ranges::to<std::vector>();
     }
 } // namespace zenslam

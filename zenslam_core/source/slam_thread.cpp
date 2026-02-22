@@ -59,6 +59,7 @@ void zenslam::slam_thread::loop()
     motion_predictor        motion { };
     inertial_predictor      inertial { cv::Vec3d { 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
     gravity_estimator       gravity_estimator { };
+    bool is_gravity_estimated {};
 
     auto ground_truth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer       = frame::writer(_options.folder.output / "frame_data.csv");
@@ -66,8 +67,8 @@ void zenslam::slam_thread::loop()
     calibration.print();
 
     // Set configuration strings once
-    system.counts.detector_type   = magic_enum::enum_name(_options.slam.feature_detector);
-    system.counts.descriptor_type = magic_enum::enum_name(_options.slam.descriptor);
+    system.counts.detector_type   = magic_enum::enum_name(_options.slam.detection.feature_detector);
+    system.counts.descriptor_type = magic_enum::enum_name(_options.slam.detection.descriptor);
     system.counts.matcher_type    = magic_enum::enum_name(_options.slam.matcher);
 
     while (!_stop_token.stop_requested())
@@ -102,8 +103,10 @@ void zenslam::slam_thread::loop()
 
             // PREDICT POSE
             cv::Affine3d pose_predicted { };
+            cv::Affine3d pose_inertial  { };
             {
                 pose_predicted = motion.predict(system[0], processed);
+                pose_inertial  = inertial.predict(system[0], processed);
             }
 
             // TRACK
@@ -133,12 +136,13 @@ void zenslam::slam_thread::loop()
                     estimate_result = estimator.estimate_pose_new(system[0], tracked);
                 } catch (const std::exception& e) {
                     SPDLOG_ERROR("Pose estimation failed: {}", e.what());
-                    estimate_result.chosen_pose = pose_predicted;
+                    estimate_result.chosen_pose = pose_inertial;
                     estimate_result.chosen_count = 0;
                 }
 
                 SPDLOG_INFO("#pose predicted: {}", pose_predicted);
                 SPDLOG_INFO("#pose estimated: {}", estimate_result.chosen_pose.inv());
+                SPDLOG_INFO("#pose inertial:  {}", pose_inertial);
 
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated { tracked, system[0].pose * estimate_result.chosen_pose.inv() };
@@ -157,6 +161,16 @@ void zenslam::slam_thread::loop()
 
             // UPDATE MOTION MODEL
             {
+                gravity_estimator.add(system[1], calibration.cameras[0].pose_in_imu0);
+
+                if (gravity_estimator.has_estimate() && !is_gravity_estimated)
+                {
+                    cv::Vec3d g_estimated = gravity_estimator.estimate();
+                    inertial.set_gravity_in_world(g_estimated);
+                    SPDLOG_INFO("Estimated gravity vector in world frame: {}", g_estimated);
+                    is_gravity_estimated = true;
+                }
+
                 motion.update(system[0], system[1]);
                 inertial.update(system[0], system[1]);
             }

@@ -21,7 +21,7 @@ namespace zenslam
 {
     tracker::tracker(calibration calib, slam_options opts, frame::system& system) :
         _calibration(std::move(calib)), _tracking(opts.tracking), _detection(opts.detection), _triangulation(opts.triangulation), _epipolar_threshold(opts.epipolar_threshold),
-        _matcher(opts, opts.descriptor == descriptor_type::ORB || opts.descriptor == descriptor_type::FREAK), _triangulator(_calibration, opts), _detector(detector::create(opts)),
+        _matcher(opts, opts.detection.descriptor == descriptor_type::ORB || opts.detection.descriptor == descriptor_type::FREAK), _triangulator(_calibration, opts), _detector(detector::create(opts.detection)),
         _system(system)
     {
     }
