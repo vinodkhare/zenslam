@@ -127,7 +127,14 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { system.durations.estimation };
 
-                const auto& estimate_result = estimator.estimate_pose_new(system[0], tracked);
+                estimate_pose_result estimate_result{};
+                try {
+                    estimate_result = estimator.estimate_pose_new(system[0], tracked);
+                } catch (const std::exception& e) {
+                    SPDLOG_ERROR("Pose estimation failed: {}", e.what());
+                    estimate_result.chosen_pose = pose_predicted;
+                    estimate_result.chosen_count = 0;
+                }
 
                 // Apply pose update (estimate is relative camera pose between frames)
                 system[1] = frame::estimated { tracked, system[0].pose * estimate_result.chosen_pose.inv() };
