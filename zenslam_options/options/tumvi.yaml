@@ -32,9 +32,12 @@ slam:
   matcher_ratio:  0.8     # Ratio test threshold for KNN matching (0.0-1.0, typically 0.75-0.85)
   fast_threshold: 1
   use_parallel_detector: true
-  klt_window_size: [ 31, 31 ]
-  klt_max_level: 3
-  klt_threshold: 1.0
+  tracking:
+    klt_window_size: [ 31, 31 ]
+    klt_max_level: 3
+    klt_threshold: 1.0
+    landmark_match_distance: 32.0  # Max descriptor distance for 2D->3D landmark association
+    landmark_match_radius: 20.0    # Radius (m) around camera for 2D->3D landmark association
   triangulation_reprojection_threshold: 1.0    # (in pixels) min distance between keypoints in left and right image to be considered for triangulation
   triangulation_min_depth: 0.1    # (in m) minimum depth for triangulated points to be considered valid, helps filter out noise and points at infinity
   triangulation_max_depth: 20.0  # (in m) maximum depth for triangulated points to be considered valid, helps filter out outliers

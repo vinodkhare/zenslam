@@ -5,11 +5,11 @@
 #include "zenslam/all_options.h"
 #include "zenslam/calibration/calibration.h"
 #include "zenslam/detection/detector.h"
-#include "zenslam/matching/matcher.h"
-#include "zenslam/mapping/triangulator.h"
 #include "zenslam/frame/processed.h"
-#include "zenslam/frame/tracked.h"
 #include "zenslam/frame/system.h"
+#include "zenslam/frame/tracked.h"
+#include "zenslam/mapping/triangulator.h"
+#include "zenslam/matching/matcher.h"
 #include "zenslam/types/keyline.h"
 
 namespace zenslam
@@ -31,11 +31,14 @@ namespace zenslam
         [[nodiscard]] auto track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> frame::tracked;
 
     private:
-        calibration  _calibration  = { };
-        slam_options _options      = { };
-        matcher      _matcher      = { _options, false };
-        triangulator _triangulator = { _calibration, _options };
-        detector     _detector     = { };
+        calibration          _calibration        = {};
+        tracking_options     _tracking           = {};
+        detection_options    _detection          = {};
+        triangulation_options _triangulation     = {};
+        double               _epipolar_threshold = 1.0;
+        matcher              _matcher            = { slam_options {}, false };
+        triangulator         _triangulator       = { _calibration, slam_options {} };
+        detector             _detector           = {};
 
         const frame::system& _system;
 
@@ -47,13 +50,9 @@ namespace zenslam
          *  @param points_1_predicted (Optional) Predicted locations of the keypoints in the current frame.
          *  @return Tracked keypoints in the current frame.
          */
-        [[nodiscard]] auto track_keypoints
-        (
-            const std::vector<cv::Mat>&     pyramid_0,
-            const std::vector<cv::Mat>&     pyramid_1,
-            const map<keypoint>&            keypoints_map_0,
-            const std::vector<cv::Point2f>& points_1_predicted = { }
-        ) const -> std::vector<keypoint>;
+        [[nodiscard]] auto   track_keypoints(
+              const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const map<keypoint>& keypoints_map_0, const std::vector<cv::Point2f>& points_1_predicted = {}) const
+            -> std::vector<keypoint>;
 
         /** Track keylines from pyramid_0 to pyramid_1 using KLT optical flow on endpoints.
          *
@@ -62,11 +61,21 @@ namespace zenslam
          *  @param keylines_map_0 Keylines in the previous frame to track.
          *  @return Tracked keylines in the current frame.
          */
-        [[nodiscard]] auto track_keylines
-        (
-            const std::vector<cv::Mat>& pyramid_0,
-            const std::vector<cv::Mat>& pyramid_1,
-            const map<keyline>&         keylines_map_0
-        ) const -> std::vector<keyline>;
+        [[nodiscard]] auto track_keylines(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const map<keyline>& keylines_map_0) const -> std::vector<keyline>;
+
+        /**
+         *  @brief Assign landmark indices to keypoints based on proximity and descriptor match.
+         *  @param keypoints Keypoints to assign landmark indices to.
+         *  @param points3d  3D points to match against.
+         *  @param camera_center Camera position in world coordinates.
+         *  @param match_radius Radius around the camera to limit landmark candidates.
+         *  @param max_descriptor_distance Maximum allowed descriptor distance for matching.
+         */
+        auto               assign_landmark_indices(
+            std::vector<keypoint>& keypoints,
+            const point3d_cloud&   points3d,
+            const cv::Point3d&     camera_center,
+            double                 match_radius,
+            double                 max_descriptor_distance) const -> void;
     };
-}
+} // namespace zenslam

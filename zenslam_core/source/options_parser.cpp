@@ -76,6 +76,8 @@ namespace zenslam
         opts.klt_window_size = get_size(node, "klt_window_size", opts.klt_window_size);
         opts.klt_max_level = get_or_default(node, "klt_max_level", opts.klt_max_level);
         opts.klt_threshold = get_or_default(node, "klt_threshold", opts.klt_threshold);
+        opts.landmark_match_distance = get_or_default(node, "landmark_match_distance", opts.landmark_match_distance);
+        opts.landmark_match_radius = get_or_default(node, "landmark_match_radius", opts.landmark_match_radius);
 
         return opts;
     }

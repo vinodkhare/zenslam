@@ -15,7 +15,7 @@ namespace zenslam
 
         point3d_cloud(const point3d_cloud& other);
 
-        auto operator=(const point3d_cloud& other) -> point3d_cloud&;
+        auto                 operator=(const point3d_cloud& other) -> point3d_cloud&;
 
         // Must have these methods for nanoflann
         [[nodiscard]] size_t kdtree_get_point_count() const;
@@ -46,11 +46,6 @@ namespace zenslam
          *        For float descriptors: typically 0.3-0.5 normalized distance
          * @return true if a matching landmark is found, false otherwise
          */
-        [[nodiscard]] auto match
-        (
-            const keypoint& keypoint,
-            double          max_descriptor_distance = 32.0
-        ) const
-            -> std::optional<point3d>;
+        [[nodiscard]] auto match(const keypoint& keypoint, double max_descriptor_distance = 32.0) const -> std::optional<point3d>;
     };
-}
+} // namespace zenslam
