@@ -19,3 +19,4 @@
 - When looking at build output, don't use `tail`, instead always look at all output
 - Monitor build times and optimize CMake configuration to minimize unnecessary rebuilds, e.g., by using `ccache` or adjusting CMake settings to reduce rebuild scope.
 - Use the RAII (Resource Acquisition Is Initialization) pattern for managing resources in C++ to ensure proper cleanup and avoid memory leaks.
+- Optimize for simplicity and ease of use, both for the user and the developer. Thinking about long term maintenance and extensibility. 
