@@ -42,10 +42,11 @@ slam:
     feature_detector: "FAST"  # Options: "FAST", "ORB", "SIFT"
     descriptor: "ORB"         # Options: "ORB", "SIFT"
     cell_size: [ 64, 64 ]     # Size of grid cells for spatially uniform feature detection, smaller cells lead to more uniform distribution but higher computational cost
-    fast_threshold: 10           # FAST feature detector threshold, lower values lead to more features but potentially more noise
-    keyline_max_length: 128     # Maximum length of keylines in pixels, longer keylines are often less stable and more likely to be outliers
-    clahe_enabled: true         # Enable CLAHE (Contrast Limited Adaptive Histogram Equalization) for better feature detection in low-contrast areas, can improve performance in challenging lighting conditions but adds computational overhead
-    use_parallel_detector: true     # Enable parallel feature detection across image cells, can significantly speed up detection on multi-core CPUs but may increase memory usage
+    fast_threshold: 10        # FAST feature detector threshold, lower values lead to more features but potentially more noise
+    keyline_max_length: 128   # Maximum length of keylines in pixels, longer keylines are often less stable and more likely to be outliers
+    clahe_enabled: true       # Enable CLAHE (Contrast Limited Adaptive Histogram Equalization) for better feature detection in low-contrast areas, can improve performance in challenging lighting conditions but adds computational overhead
+    use_parallel_detector: true # Enable parallel feature detection across image cells, can significantly speed up detection on multi-core CPUs but may increase memory usage
+    algorithm: "GRID"           # Feature detection algorithm, options: "SIMPLE", "GRID", "PARALLEL_GRID"
 
   # Tracking configuration (nested)
   tracking:

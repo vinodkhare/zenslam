@@ -97,7 +97,7 @@ namespace zenslam
 
     auto keyframe_database::update_pose(const size_t id, const cv::Affine3d& pose) -> bool
     {
-        if (auto it = _keyframes.find(id); it != _keyframes.end())
+        if (const auto it = _keyframes.find(id); it != _keyframes.end())
         {
             it->second.pose = pose;
             return true;

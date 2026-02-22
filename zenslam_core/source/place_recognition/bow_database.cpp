@@ -37,7 +37,7 @@ namespace zenslam
         // Update inverted index
         for (auto word_id = 0; word_id < histogram.cols; ++word_id)
         {
-            auto weight = histogram.at<float>(0, word_id);
+            const auto weight = histogram.at<float>(0, word_id);
             if (weight > 0.0f)
             {
                 _inverted_index[word_id].push_back(frame_id);
@@ -81,8 +81,8 @@ namespace zenslam
                 auto frame_pos = std::find(_frame_order.begin(), _frame_order.end(), frame_id);
                 if (frame_pos != _frame_order.end())
                 {
-                    int frame_index = std::distance(_frame_order.begin(), frame_pos);
-                    int current_index = _frame_order.size() - 1;
+                    const int frame_index = std::distance(_frame_order.begin(), frame_pos);
+                    const int current_index = _frame_order.size() - 1;
 
                     if (std::abs(current_index - frame_index) < gsl::narrow_cast<int>(min_temporal_distance))
                     {
@@ -208,13 +208,13 @@ namespace zenslam
     cv::Mat bow_database::compute_tfidf_histogram(
         const std::vector<cv::Mat>& descriptors) const
     {
-        auto vocab_sz = _vocabulary.get().vocab_size();
+        const auto vocab_sz = _vocabulary.get().vocab_size();
         cv::Mat histogram = cv::Mat::zeros(1, vocab_sz, CV_32F);
 
         // Count word occurrences (TF)
         for (const auto& desc : descriptors)
         {
-            auto word_id = _vocabulary.get().descriptor_to_word(desc);
+            const auto word_id = _vocabulary.get().descriptor_to_word(desc);
             if (word_id >= 0 && word_id < vocab_sz)
             {
                 histogram.at<float>(0, word_id) += 1.0f;
@@ -224,15 +224,15 @@ namespace zenslam
         // Apply IDF weighting
         if (!_frame_histograms.empty())
         {
-            auto num_frames = gsl::narrow_cast<int>(_frame_histograms.size());
+            const auto num_frames = gsl::narrow_cast<int>(_frame_histograms.size());
             for (auto word_id = 0; word_id < vocab_sz; ++word_id)
             {
                 if (histogram.at<float>(0, word_id) > 0.0f)
                 {
-                    auto num_frames_with_word = gsl::narrow_cast<int>(frames_with_word(word_id).size());
+                    const auto num_frames_with_word = gsl::narrow_cast<int>(frames_with_word(word_id).size());
                     if (num_frames_with_word > 0)
                     {
-                        auto idf = std::log(static_cast<float>(num_frames) / num_frames_with_word);
+                        const auto idf = std::log(static_cast<float>(num_frames) / num_frames_with_word);
                         histogram.at<float>(0, word_id) *= idf;
                     }
                 }

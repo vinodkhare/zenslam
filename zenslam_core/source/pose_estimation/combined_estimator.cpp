@@ -511,7 +511,7 @@ namespace zenslam::pose_estimation
     {
         feature_split result;
 
-        for (auto idx : correspondence_inliers)
+        for (const auto idx : correspondence_inliers)
         {
             if (idx < static_cast<int>(num_points))
             {

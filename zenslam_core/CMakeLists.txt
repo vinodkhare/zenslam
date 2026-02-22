@@ -71,6 +71,7 @@ add_library(${PROJECT_NAME}
         source/detection/correspondence_utils.cpp
         source/detection/keypoint_detector.cpp
         source/detection/keypoint_detector_parallel.cpp
+        source/detection/keypoint_detector_simple.cpp
         
         # Tracking
         source/tracking/tracker.cpp

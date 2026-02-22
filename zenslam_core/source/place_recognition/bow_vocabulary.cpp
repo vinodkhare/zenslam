@@ -208,18 +208,18 @@ namespace zenslam
             }
 
             // Find nearest cluster center at this level
-            auto num_children = _branching_factor;
+            const auto num_children = _branching_factor;
             auto min_dist = std::numeric_limits<double>::max();
             auto nearest_child = 0;
 
             for (auto child_idx = 0; child_idx < num_children; ++child_idx)
             {
-                auto child_node_idx = node_idx * _branching_factor + child_idx;
+                const auto child_node_idx = node_idx * _branching_factor + child_idx;
 
                 if (child_node_idx < static_cast<int>(next_level_clusters.size()) &&
                     !next_level_clusters[child_node_idx].empty())
                 {
-                    auto dist = cv::norm(query, next_level_clusters[child_node_idx], cv::NORM_L2);
+                    const auto dist = cv::norm(query, next_level_clusters[child_node_idx], cv::NORM_L2);
                     if (dist < min_dist)
                     {
                         min_dist = dist;
@@ -243,13 +243,13 @@ namespace zenslam
             return cv::Mat();
         }
 
-        auto vocab_sz = vocab_size();
+        const auto vocab_sz = vocab_size();
         cv::Mat histogram = cv::Mat::zeros(1, vocab_sz, CV_32F);
 
         // Count word occurrences
         for (const auto& desc : descriptors)
         {
-            auto word_id = descriptor_to_word(desc);
+            const auto word_id = descriptor_to_word(desc);
             if (word_id >= 0 && word_id < vocab_sz)
             {
                 histogram.at<float>(0, word_id) += 1.0f;

@@ -337,12 +337,12 @@ namespace zenslam
             throw std::invalid_argument("cv::solvePnPRansac: needs at least 4 correspondences, but got " + std::to_string(correspondences.size()));
         }
 
-        auto object_points
+        const auto object_points
             = correspondences
             | std::views::transform([](const auto& pair) { return cv::Point3f(pair.first.x, pair.first.y, pair.first.z); })
             | std::ranges::to<std::vector>();
 
-        auto image_points
+        const auto image_points
             = correspondences
             | std::views::transform([](const auto& pair) { return pair.second.pt; })
             | std::ranges::to<std::vector>();
