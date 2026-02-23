@@ -29,16 +29,11 @@ namespace zenslam
          * @param sensor The input sensor frame containing raw data to be processed.
          * @return frame::processed The processed frame result after applying processing operations.
          */
-        auto process
-        (
-            const frame::sensor& sensor
-        )
-            -> frame::processed;
+        auto process(const frame::sensor& sensor) -> frame::processed;
 
     private:
         const slam_options& _options;
         const calibration&  _calibration;
-
 
         cv::Ptr<cv::CLAHE> _clahe      = cv::createCLAHE(4.0); // TODO: make configurable
         integrator         _integrator = integrator { _calibration.imu, _options.integrator_method };

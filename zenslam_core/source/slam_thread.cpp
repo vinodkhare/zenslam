@@ -44,6 +44,11 @@ void zenslam::slam_thread::enqueue(const frame::sensor& frame)
     _cv.notify_one();
 }
 
+void zenslam::slam_thread::request_stop()
+{
+    _stop_source.request_stop();
+    _cv.notify_all();
+}
 
 void zenslam::slam_thread::loop()
 {
@@ -75,7 +80,7 @@ void zenslam::slam_thread::loop()
     system.counts.descriptor_type = magic_enum::enum_name(_options.slam.detection.descriptor);
     system.counts.matcher_type    = magic_enum::enum_name(_options.slam.matcher);
 
-    while (!_stop_token.stop_requested())
+    while (true)
     {
         {
             time_this t { system.durations.total };

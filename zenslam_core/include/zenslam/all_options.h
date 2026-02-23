@@ -25,7 +25,6 @@ namespace zenslam
     // ========================================================================
 
 
-
     // ========================================================================
     // Tracking and Optical Flow
     // ========================================================================
@@ -38,7 +37,7 @@ namespace zenslam
         double   klt_min_tracked_ratio   = 0.6;
         double   landmark_match_distance = 32.0; // Descriptor distance threshold for matching keypoints to landmarks
         double   landmark_match_radius   = 50.0; // Radius in meters for landmark matching around the camera
-        bool     use_keylines            = true;  // Enable keyline tracking and triangulation
+        bool     use_keylines            = true; // Enable keyline tracking and triangulation
     };
 
     // ========================================================================
@@ -177,6 +176,7 @@ namespace zenslam
         std::filesystem::path imu_calibration_file = "imu_config.yaml";
         std::filesystem::path imu_file             = "";
         double                timescale            = 1.0;
+        size_t                max_frames           = 0; // 0 for unlimited
     };
 
     // ========================================================================

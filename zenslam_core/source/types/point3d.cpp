@@ -17,19 +17,16 @@ auto zenslam::point3d::create
         (
             [](const auto& tuple)
             {
-                return point3d {std::get<0>(tuple), std::get<1>(tuple), std::get<2>(tuple), cv::Vec3b(255, 255, 255)};
+                return point3d { std::get<0>(tuple), std::get<1>(tuple), std::get<2>(tuple), cv::Vec3b(255, 255, 255) };
             }
         ) | std::ranges::to<std::vector>();
     }
-    else
-    {
-        // Colors provided
-        return std::views::zip(points, indices, descriptors, colors) | std::views::transform
-        (
-            [](const auto& tuple)
-            {
-                return point3d {std::get<0>(tuple), std::get<1>(tuple), std::get<2>(tuple), std::get<3>(tuple)};
-            }
-        ) | std::ranges::to<std::vector>();
-    }
+    // Colors provided
+    return std::views::zip(points, indices, descriptors, colors) | std::views::transform
+    (
+        [](const auto& tuple)
+        {
+            return point3d { std::get<0>(tuple), std::get<1>(tuple), std::get<2>(tuple), std::get<3>(tuple) };
+        }
+    ) | std::ranges::to<std::vector>();
 }

@@ -37,7 +37,8 @@ zenslam::application::application(all_options options) :
         imgui_window->update_history(_system);
     };
 
-    _reader_thread.on_frame += [this](const frame::sensor& frame) { _slam_thread.enqueue(frame); };
+    _reader_thread.on_frame    += [this](const frame::sensor& frame) { _slam_thread.enqueue(frame); };
+    _reader_thread.on_finished += [this]() { _slam_thread.request_stop(); };
 }
 
 zenslam::application::~application() = default;
@@ -54,7 +55,7 @@ void zenslam::application::render()
         return;
 
     // Render all windows
-    for (auto& window : _windows)
+    for (const auto& window : _windows)
     {
         if (window->is_visible())
         {

@@ -35,8 +35,8 @@ int main(const int argc, char** argv)
     {
         // Parse command line arguments to get options file path
         std::filesystem::path options_file = "options.yaml";
-        bool show_help = false;
-        bool show_version = false;
+        bool                  show_help    = false;
+        bool                  show_version = false;
 
         for (int i = 1; i < argc; ++i)
         {
@@ -59,11 +59,11 @@ int main(const int argc, char** argv)
         if (show_help)
         {
             std::cout << "ZenSLAM - Stereo Visual-Inertial SLAM\n"
-                      << "Usage: zenslam_app [OPTIONS]\n"
-                      << "Options:\n"
-                      << "  --options-file PATH  Path to YAML configuration file (default: options.yaml)\n"
-                      << "  --help, -h           Show this help message\n"
-                      << "  --version, -v        Show version information\n";
+                << "Usage: zenslam_app [OPTIONS]\n"
+                << "Options:\n"
+                << "  --options-file PATH  Path to YAML configuration file (default: options.yaml)\n"
+                << "  --help, -h           Show this help message\n"
+                << "  --version, -v        Show version information\n";
             return 0;
         }
 
@@ -74,7 +74,8 @@ int main(const int argc, char** argv)
         }
 
         // Load options from YAML file
-        auto options = zenslam::options_parser::load(options_file);
+        zenslam::options_parser parser;
+        const auto              options = parser.load(options_file);
 
         spdlog::set_level(options.log_level);
         spdlog::set_pattern(options.log_pattern);

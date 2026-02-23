@@ -4,15 +4,16 @@ application:
   log_pattern: "[%H:%M:%S.%e] [%^%L%$] [%!:%s:%#] %v"
 
 folder:
-  root: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0
+  root: /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/mav0
   left: cam0/data
   right: cam1/data
   timescale: 1.0E-9
-  calibration_file:     /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/camchain.yaml
-  groundtruth_file:     /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/gt_imu.csv
-  imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
-  imu_file:             /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0/imu0/data.csv
-  output:               /Volumes/DATA01/results/tumvi/dataset-corridor1_1024_16
+  calibration_file:     /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/dso/camchain.yaml
+  groundtruth_file:     /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/dso/gt_imu.csv
+  imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/dso/imu_config.yaml
+  imu_file:             /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/mav0/imu0/data.csv
+  output:               /Volumes/DATA01/results/tumvi/dataset-corridor4_1024_16
+  max_frames: 1000  # maximum number of frames to process, set to 0 for no limit
 
 # GUI and Visualization Configuration
 gui:
@@ -46,6 +47,7 @@ slam:
     keyline_max_length: 128   # Maximum length of keylines in pixels, longer keylines are often less stable and more likely to be outliers
     clahe_enabled: true       # Enable CLAHE (Contrast Limited Adaptive Histogram Equalization) for better feature detection in low-contrast areas, can improve performance in challenging lighting conditions but adds computational overhead
     algorithm: "PARALLEL_GRID"  # Feature detection algorithm, options: "SIMPLE", "GRID", "PARALLEL_GRID"
+    stereo_rectify: true        # if true, stereo images will be rectified before feature detection, else only simple undistortion is applied
 
   # Tracking configuration (nested)
   tracking:
@@ -88,4 +90,4 @@ slam:
   
   keyline_mask_margin: 10        # Keyline mask margin in pixels for detector
   
-  stereo_rectify: false   # if true, stereo images will be rectified before processing, else only simple undistortion is applied
+  stereo_rectify: true   # if true, stereo images will be rectified before processing, else only simple undistortion is applied

@@ -22,10 +22,12 @@ namespace zenslam
 
         void enqueue(const frame::sensor& frame);
 
+        void request_stop();
+
     private:
         using concurrent_queue = moodycamel::ConcurrentQueue<frame::sensor>;
 
-        all_options           _options = { };
+        all_options               _options = { };
         std::mutex                _mutex   = { };
         std::condition_variable   _cv      = { };
         std::queue<frame::sensor> _queue   = { };

@@ -15,32 +15,36 @@ namespace zenslam
     class reader_thread
     {
     public:
-        event<frame::sensor> on_frame = {};
+        event<frame::sensor> on_frame    = { };
+        event<>              on_finished = { };
 
         explicit reader_thread(class folder_options options, const size_t batch_size = 8, const size_t num_threads = 4) :
-            _options{ std::move(options) }, _batch_size{ batch_size }, _num_threads{ num_threads }
+            _options { std::move(options) },
+            _batch_size { batch_size },
+            _num_threads { num_threads }
         {
         }
 
         ~reader_thread() { _stop_source.request_stop(); }
 
     private:
-        class folder_options _options     = {};
-        size_t                _batch_size  = 4;
-        size_t                _num_threads = 4;
+        folder_options _options     = { };
+        size_t         _batch_size  = 4;
+        size_t         _num_threads = 4;
 
-        std::stop_source _stop_source = {};
+        std::stop_source _stop_source = { };
         std::stop_token  _stop_token  = { _stop_source.get_token() };
-        std::jthread     _thread      = std::jthread{ &reader_thread::loop, this };
+        std::jthread     _thread      = std::jthread { &reader_thread::loop, this };
 
         void loop()
         {
-
             auto       reader = folder_reader(_options);
             const auto total  = reader.size();
 
+            const auto frame_count = _options.max_frames ? std::min(_options.max_frames, total) : total;
+
             // Read frames sequentially for this batch
-            for (size_t i = 0; i < total; ++i)
+            for (size_t i = 0; i < frame_count; ++i)
             {
                 if (_stop_token.stop_requested())
                 {
@@ -56,6 +60,8 @@ namespace zenslam
 
                 on_frame(std::move(frame));
             }
+
+            on_finished();
         }
     };
 } // namespace zenslam

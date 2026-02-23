@@ -19,3 +19,5 @@
 - Optimize for simplicity and ease of use, both for the user and the developer
 - Optimize for long term maintenance and extensibility. 
 - Follow the rule of "one class or struct per file" to the extent possible.
+- C++ compilers struggle with large compilation units. It is best to keep .cpp files as small as possible. 
+  - The best pattern in C++ to do this is to have very small classes or structs with one or two member functions only.

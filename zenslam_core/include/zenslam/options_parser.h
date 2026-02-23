@@ -18,27 +18,27 @@ namespace zenslam
     class options_parser {
     public:
         /// Load all options from a YAML file
-        static all_options load(const std::filesystem::path& yaml_file);
+        all_options load(const std::filesystem::path& yaml_file);
 
         /// Load all options from a YAML node
-        static all_options load_from_node(const YAML::Node& root);
+        all_options load_from_node(const YAML::Node& root);
 
     private:
         // ====================================================================
         // Individual struct parsers
         // ====================================================================
 
-        static detection_options parse_detection(const YAML::Node& node);
-        static tracking_options parse_tracking(const YAML::Node& node);
-        static triangulation_options parse_triangulation(const YAML::Node& node);
-        static keyframe_options parse_keyframe(const YAML::Node& node);
-        static lba_options parse_lba(const YAML::Node& node);
-        static pnp_options parse_pnp(const YAML::Node& node);
-        static essential_options parse_essential(const YAML::Node& node);
-        static rigid_options parse_rigid(const YAML::Node& node);
-        static slam_options parse_slam(const YAML::Node& node);
-        static gui_options parse_gui(const YAML::Node& node);
-        static folder_options parse_folder(const YAML::Node& node);
+        detection_options parse_detection(const YAML::Node& node);
+        tracking_options parse_tracking(const YAML::Node& node);
+        triangulation_options parse_triangulation(const YAML::Node& node);
+        keyframe_options parse_keyframe(const YAML::Node& node);
+        lba_options parse_lba(const YAML::Node& node);
+        pnp_options parse_pnp(const YAML::Node& node);
+        essential_options parse_essential(const YAML::Node& node);
+        rigid_options parse_rigid(const YAML::Node& node);
+        slam_options parse_slam(const YAML::Node& node);
+        gui_options parse_gui(const YAML::Node& node);
+        folder_options parse_folder(const YAML::Node& node);
 
         // ====================================================================
         // Helper methods for type-safe YAML extraction
@@ -46,7 +46,7 @@ namespace zenslam
 
         /// Get a value from YAML node, return default if missing or invalid
         template <typename T>
-        static T get_or_default(const YAML::Node& node, const std::string& key, const T& default_val) {
+        T get_or_default(const YAML::Node& node, const std::string& key, const T& default_val) {
             if (!node || !node[key]) return default_val;
             try {
                 return node[key].as<T>();
@@ -55,9 +55,8 @@ namespace zenslam
             }
         }
 
-        /// Specialization for std::filesystem::path
-        template <>
-        static std::filesystem::path get_or_default<std::filesystem::path>(
+        /// Overload for std::filesystem::path
+        std::filesystem::path get_or_default(
             const YAML::Node& node, const std::string& key, const std::filesystem::path& default_val) {
             if (!node || !node[key]) return default_val;
             try {
@@ -68,14 +67,14 @@ namespace zenslam
         }
 
         /// Parse cv::Size from YAML array [width, height]
-        static cv::Size get_size(const YAML::Node& node, const std::string& key, const cv::Size& default_val);
+        cv::Size get_size(const YAML::Node& node, const std::string& key, const cv::Size& default_val);
 
         /// Parse cv::Scalar from YAML array [v0, v1, v2, v3]
-        static cv::Scalar get_scalar(const YAML::Node& node, const std::string& key, const cv::Scalar& default_val);
+        cv::Scalar get_scalar(const YAML::Node& node, const std::string& key, const cv::Scalar& default_val);
 
         /// Parse enum from string using magic_enum
         template <typename E>
-        static E get_enum(const YAML::Node& node, const std::string& key, const E& default_val) {
+        E get_enum(const YAML::Node& node, const std::string& key, const E& default_val) {
             if (!node || !node[key]) return default_val;
             try {
                 std::string str = node[key].as<std::string>();
