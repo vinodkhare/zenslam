@@ -66,6 +66,7 @@ inline auto operator*(const cv::Affine3d& pose, const zenslam::point3d_cloud& cl
         cloud_trans[point3d.index]            = pose * point3d;
         cloud_trans[point3d.index].index      = point3d.index;
         cloud_trans[point3d.index].descriptor = point3d.descriptor;
+        cloud_trans[point3d.index].color      = point3d.color;
     }
     return cloud_trans;
 }
