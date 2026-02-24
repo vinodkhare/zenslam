@@ -38,8 +38,27 @@ namespace zenslam
 
     auto triangulator::triangulate_keypoints(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1, const cv::Mat& color_image) const -> point3d_cloud
     {
-        const auto& points2f_0 = utils::to_points(keypoints_0.values_matched(keypoints_1) | std::ranges::to<std::vector>());
-        const auto& points2f_1 = utils::to_points(keypoints_1.values_matched(keypoints_0) | std::ranges::to<std::vector>());
+        std::vector<keypoint> keypoints_0_filtered { };
+        std::vector<keypoint> keypoints_1_filtered { };
+
+        if (_options.triangulation.filter_epipolar)
+        {
+            const auto& filtered_matches = filter_epipolar(keypoints_0, keypoints_1);
+
+            for (const auto& [kp0, kp1] : filtered_matches)
+            {
+                keypoints_0_filtered.emplace_back(kp0);
+                keypoints_1_filtered.emplace_back(kp1);
+            }
+        }
+        else
+        {
+            keypoints_0_filtered = keypoints_0.values_matched(keypoints_1) | std::ranges::to<std::vector>();
+            keypoints_1_filtered = keypoints_1.values_matched(keypoints_0) | std::ranges::to<std::vector>();
+        }
+
+        const auto& points2f_0 = utils::to_points(keypoints_0_filtered);
+        const auto& points2f_1 = utils::to_points(keypoints_1_filtered);
 
         const auto& points3d_cv = utils::triangulate_points
         (
@@ -49,20 +68,16 @@ namespace zenslam
             _calibration.projection_matrix[1]
         );
 
-        const auto& indices     = keypoints_0.keys_matched(keypoints_1) | std::ranges::to<std::vector>();
-        const auto& descriptors = keypoints_0.values_matched(keypoints_1)
-            | std::views::transform([](const keypoint& kp) { return kp.descriptor; })
-            | std::ranges::to<std::vector>();
+        const auto& indices     = keypoints_0_filtered | std::views::transform([](const keypoint& kp) { return kp.index; }) | std::ranges::to<std::vector>();
+        const auto& descriptors = keypoints_0_filtered | std::views::transform([](const keypoint& kp) { return kp.descriptor; }) | std::ranges::to<std::vector>();
 
         // Extract colors from the color image if provided
         std::vector<cv::Vec3b> colors;
         if (!color_image.empty())
         {
-            const auto& keypoints_matched = keypoints_0.values_matched(keypoints_1) | std::ranges::to<std::vector>();
+            colors.reserve(keypoints_0_filtered.size());
 
-            colors.reserve(keypoints_matched.size());
-
-            for (const auto& kp : keypoints_matched)
+            for (const auto& kp : keypoints_0_filtered)
             {
                 auto x = static_cast<int>(std::round(kp.pt.x));
                 auto y = static_cast<int>(std::round(kp.pt.y));
@@ -128,9 +143,47 @@ namespace zenslam
             _calibration.cameras[1].pose_in_cam0.translation()
         );
 
-        line3d_cloud lines3d{};
+        line3d_cloud lines3d { };
         lines3d.add(vec);
 
         return lines3d;
+    }
+
+    auto triangulator::filter_epipolar(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1) const -> std::vector<std::pair<keypoint, keypoint>>
+    {
+        const auto& keypoints_0_matched = keypoints_0.values_matched(keypoints_1) | std::ranges::to<std::vector>();
+        const auto& keypoints_1_matched = keypoints_1.values_matched(keypoints_0) | std::ranges::to<std::vector>();
+
+        const auto& error = std::views::zip(keypoints_0_matched, keypoints_1_matched) | std::views::transform
+        (
+            [&](const auto& pair)
+            {
+                const auto& [kp0, kp1] = pair;
+
+                const auto pt0 = cv::Vec3d(kp0.pt.x, kp0.pt.y, 1);
+                const auto pt1 = cv::Vec3d(kp1.pt.x, kp1.pt.y, 1);
+
+                return (pt1.t() * _calibration.fundamental_matrix[0] * pt0)[0];
+            }
+        ) | std::ranges::to<std::vector>();
+
+        return std::views::zip(keypoints_0_matched, keypoints_1_matched, error)
+            | std::views::filter
+            (
+                [&](const auto& tuple)
+                {
+                    const auto& [kp0, kp1, err] = tuple;
+                    return std::abs(err) < _options.triangulation.epipolar_threshold; // Epipolar error threshold (tunable)
+                }
+            )
+            | std::views::transform
+            (
+                [](const auto& tuple)
+                {
+                    const auto& [kp0, kp1, err] = tuple;
+                    return std::make_pair(kp0, kp1);
+                }
+            )
+            | std::ranges::to<std::vector>();
     }
 }

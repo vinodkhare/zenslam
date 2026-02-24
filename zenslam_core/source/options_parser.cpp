@@ -66,11 +66,13 @@ namespace zenslam
         detection_options opts;
         if (!node || !node.IsMap()) return opts;
 
-        opts.clahe_enabled         = get_or_default(node, "clahe_enabled", opts.clahe_enabled);
-        opts.stereo_rectify        = get_or_default(node, "stereo_rectify", opts.stereo_rectify);
-        opts.cell_size             = get_size(node, "cell_size", opts.cell_size);
-        opts.fast_threshold        = get_or_default(node, "fast_threshold", opts.fast_threshold);
-        opts.keyline_max_length    = get_or_default(node, "keyline_max_length", opts.keyline_max_length);
+        opts.clahe_enabled      = get_or_default(node, "clahe_enabled", opts.clahe_enabled);
+        opts.stereo_rectify     = get_or_default(node, "stereo_rectify", opts.stereo_rectify);
+        opts.cell_size          = get_size(node, "cell_size", opts.cell_size);
+        opts.fast_threshold     = get_or_default(node, "fast_threshold", opts.fast_threshold);
+        opts.keyline_max_length = get_or_default(node, "keyline_max_length", opts.keyline_max_length);
+        opts.rectify_alpha      = get_or_default(node, "rectify_alpha", opts.rectify_alpha);
+        opts.rectify_balance    = get_or_default(node, "rectify_balance", opts.rectify_balance);
 
         // Parse feature detector and descriptor
         if (node["feature"])
@@ -116,6 +118,8 @@ namespace zenslam
         opts.landmark_match_distance = get_or_default(node, "landmark_match_distance", opts.landmark_match_distance);
         opts.landmark_match_radius   = get_or_default(node, "landmark_match_radius", opts.landmark_match_radius);
         opts.use_keylines            = get_or_default(node, "use_keylines", opts.use_keylines);
+        opts.filter_epipolar         = get_or_default(node, "filter_epipolar", opts.filter_epipolar);
+        opts.epipolar_threshold      = get_or_default(node, "epipolar_threshold", opts.epipolar_threshold);
 
         return opts;
     }
@@ -135,6 +139,8 @@ namespace zenslam
         opts.reprojection_threshold = get_or_default(node, "reprojection_threshold", opts.reprojection_threshold);
         opts.min_depth              = get_or_default(node, "min_depth", opts.min_depth);
         opts.max_depth              = get_or_default(node, "max_depth", opts.max_depth);
+        opts.filter_epipolar        = get_or_default(node, "filter_epipolar", opts.filter_epipolar);
+        opts.epipolar_threshold     = get_or_default(node, "epipolar_threshold", opts.epipolar_threshold);
 
         return opts;
     }

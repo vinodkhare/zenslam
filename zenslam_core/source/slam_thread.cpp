@@ -56,7 +56,9 @@ void zenslam::slam_thread::loop()
     (
         _options.folder.calibration_file,
         _options.folder.imu_calibration_file,
-        _options.slam.detection.stereo_rectify
+        _options.slam.detection.stereo_rectify,
+        _options.slam.detection.rectify_alpha,
+        _options.slam.detection.rectify_balance
     );
 
     frame::system system { };

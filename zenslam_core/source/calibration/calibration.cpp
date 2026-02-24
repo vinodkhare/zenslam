@@ -10,7 +10,9 @@ auto zenslam::calibration::parse
 (
     const std::filesystem::path& camera_calib_path,
     const std::filesystem::path& imu_calib_path,
-    const bool                   stereo_rectify
+    const bool                   stereo_rectify,
+    const double                 rectify_alpha,
+    const double                 rectify_balance
 ) -> calibration
 {
     calibration calib { };
@@ -51,7 +53,7 @@ auto zenslam::calibration::parse
                 calib.projection_matrix[1],
                 Q_mat,
                 cv::CALIB_ZERO_DISPARITY,
-                -1,
+                rectify_alpha,
                 calib.cameras[0].resolution
             );
 
@@ -97,7 +99,7 @@ auto zenslam::calibration::parse
                 Q_mat,
                 cv::CALIB_ZERO_DISPARITY,
                 calib.cameras[0].resolution,
-                0.0
+                rectify_balance
             );
 
             cv::fisheye::initUndistortRectifyMap
@@ -128,14 +130,14 @@ auto zenslam::calibration::parse
         const auto result_0 = utils::projection_decompose(calib.projection_matrix[0]);
         const auto result_1 = utils::projection_decompose(calib.projection_matrix[1]);
 
-        calib.camera_matrix[0]           = std::get < 0 > (result_0);
-        calib.camera_matrix[1]           = std::get < 0 > (result_1);
+        calib.camera_matrix[0]           = std::get<0>(result_0);
+        calib.camera_matrix[1]           = std::get<0>(result_1);
         calib.cameras[0].focal_length    = { calib.camera_matrix[0](0, 0), calib.camera_matrix[0](1, 1) };
         calib.cameras[0].principal_point = { calib.camera_matrix[0](0, 2), calib.camera_matrix[0](1, 2) };
         calib.cameras[1].focal_length    = { calib.camera_matrix[1](0, 0), calib.camera_matrix[1](1, 1) };
         calib.cameras[1].principal_point = { calib.camera_matrix[1](0, 2), calib.camera_matrix[1](1, 2) };
-        calib.cameras[0].pose_in_cam0    = cv::Affine3d(std::get < 1 > (result_0), std::get < 2 > (result_0)).inv();
-        calib.cameras[1].pose_in_cam0    = cv::Affine3d(std::get < 1 > (result_1), std::get < 2 > (result_1)).inv();
+        calib.cameras[0].pose_in_cam0    = cv::Affine3d(std::get<1>(result_0), std::get<2>(result_0)).inv();
+        calib.cameras[1].pose_in_cam0    = cv::Affine3d(std::get<1>(result_1), std::get<2>(result_1)).inv();
         calib.fundamental_matrix[0]      = calib.cameras[0].fundamental(calib.cameras[1]);
         calib.fundamental_matrix[1]      = calib.cameras[1].fundamental(calib.cameras[0]);
     }
@@ -235,11 +237,6 @@ auto zenslam::calibration::parse
             calib.fundamental_matrix[0] = calib.cameras[0].fundamental(calib.cameras[1]);
             calib.fundamental_matrix[1] = calib.cameras[1].fundamental(calib.cameras[0]);
         }
-    }
-
-
-    if (stereo_rectify)
-    {
     }
 
     return calib;

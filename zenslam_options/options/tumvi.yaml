@@ -4,16 +4,16 @@ application:
   log_pattern: "[%H:%M:%S.%e] [%^%L%$] [%!:%s:%#] %v"
 
 folder:
-  root: /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/mav0
+  root: /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/mav0
   left: cam0/data
   right: cam1/data
   timescale: 1.0E-9
-  calibration_file:     /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/dso/camchain.yaml
-  groundtruth_file:     /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/dso/gt_imu.csv
-  imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/dso/imu_config.yaml
-  imu_file:             /Volumes/DATA01/data/tumvi/dataset-corridor4_1024_16/mav0/imu0/data.csv
+  calibration_file:     /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/dso/camchain.yaml
+  groundtruth_file:     /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/dso/gt_imu.csv
+  imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/dso/imu_config.yaml
+  imu_file:             /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/mav0/imu0/data.csv
   output:               /Volumes/DATA01/results/tumvi/dataset-corridor4_1024_16
-  max_frames: 1000  # maximum number of frames to process, set to 0 for no limit
+  max_frames: 0  # maximum number of frames to process, set to 0 for no limit
 
 # GUI and Visualization Configuration
 gui:
@@ -43,21 +43,35 @@ slam:
     feature_detector: "FAST"  # Options: "FAST", "ORB", "SIFT"
     descriptor: "ORB"         # Options: "ORB", "SIFT"
     cell_size: [ 64, 64 ]     # Size of grid cells for spatially uniform feature detection, smaller cells lead to more uniform distribution but higher computational cost
-    fast_threshold: 1         # FAST feature detector threshold, lower values lead to more features but potentially more noise
+    fast_threshold: 1        # FAST feature detector threshold, lower values lead to more features but potentially more noise
     keyline_max_length: 128   # Maximum length of keylines in pixels, longer keylines are often less stable and more likely to be outliers
-    clahe_enabled: true       # Enable CLAHE (Contrast Limited Adaptive Histogram Equalization) for better feature detection in low-contrast areas, can improve performance in challenging lighting conditions but adds computational overhead
+    clahe_enabled: false       # Enable CLAHE (Contrast Limited Adaptive Histogram Equalization) for better feature detection in low-contrast areas, can improve performance in challenging lighting conditions but adds computational overhead
     algorithm: "PARALLEL_GRID"  # Feature detection algorithm, options: "SIMPLE", "GRID", "PARALLEL_GRID"
-    stereo_rectify: true        # if true, stereo images will be rectified before feature detection, else only simple undistortion is applied
+    stereo_rectify: false       # if true, stereo images will be rectified before feature detection, else only simple undistortion is applied
+    rectify_alpha: 1.0          # Rectification alpha parameter (0.0-1.0), controls the amount of cropping after rectification, 0.0 means no cropping (full view), 1.0 means maximum cropping (only valid pixels)
+    rectify_balance: 0.0        # Rectification balance parameter (0.0-1.0), controls the balance between preserving the original field of view and minimizing distortion, 0.0 means preserve original FOV, 1.0 means minimize distortion
 
   # Tracking configuration (nested)
   tracking:
-    klt_window_size: [ 31, 31 ]
+    klt_window_size: [ 63, 63 ]
     klt_max_level: 3
-    klt_threshold: 1.0
+    klt_threshold: 2.0
     klt_min_tracked_ratio: 0.6
     landmark_match_distance: 32.0   # Max descriptor distance for 2D->3D landmark association
     landmark_match_radius: 20.0     # Radius (m) around camera for 2D->3D landmark association
     use_keylines: false             # Use keylines for tracking, can improve robustness in low-texture environments but may increase computational cost
+    filter_epipolar: true
+    epipolar_threshold: 2.0
+
+  # Triangulation configuration (nested)
+  triangulation:
+    min_disparity: 1.0             # Minimum disparity (in pixels) for triangulation, helps filter out points that are too far away and likely to be noisy
+    max_disparity: 100.0           # Maximum disparity (in pixels) for triangulation, helps filter out points that are too close and likely to be outliers
+    min_depth: 0.1                 # Minimum depth (in meters) for triangulated points to be considered valid, helps filter out noise and points at infinity
+    max_depth: 20.0                # Maximum depth (in meters) for triangulated points to be considered valid, helps filter out outliers
+    reprojection_threshold: 2.0    # Reprojection error threshold (in pixels) for triangulated points, helps filter out points that do not reproject well into the images
+    epipolar_threshold: 0.05       # Epipolar constraint threshold (in pixels) for stereo matching, helps filter out matches that do not satisfy the epipolar geometry
+    filter_epipolar: true          # Enable epipolar filtering to improve the quality of triangulated points, can significantly reduce outliers but may also remove some valid points in challenging scenarios
 
   # Keyframe selection configuration (nested)
   keyframe:
@@ -89,5 +103,3 @@ slam:
     min_correspondences: 3       # Minimum required 3D-3D correspondences
   
   keyline_mask_margin: 10        # Keyline mask margin in pixels for detector
-  
-  stereo_rectify: true   # if true, stereo images will be rectified before processing, else only simple undistortion is applied

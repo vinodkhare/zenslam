@@ -38,6 +38,8 @@ namespace zenslam
         double   landmark_match_distance = 32.0; // Descriptor distance threshold for matching keypoints to landmarks
         double   landmark_match_radius   = 50.0; // Radius in meters for landmark matching around the camera
         bool     use_keylines            = true; // Enable keyline tracking and triangulation
+        bool     filter_epipolar         = true;
+        double   epipolar_threshold      = 1.0; // Threshold in pixels for epipolar filtering of keypoint matches
     };
 
     // ========================================================================
@@ -52,6 +54,8 @@ namespace zenslam
         double reprojection_threshold = 1.0;
         double min_depth              = 1.0;
         double max_depth              = 50.0;
+        bool   filter_epipolar        = true;
+        double epipolar_threshold     = 0.01;
     };
 
     // ========================================================================

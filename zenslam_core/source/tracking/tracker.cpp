@@ -1,21 +1,9 @@
 #include "zenslam/tracking/tracker.h"
 
 #include <iostream>
-#include <thread>
 #include <utility>
 
 #include "zenslam/time_this.h"
-#include "zenslam/calibration/calibration.h"
-#include "zenslam/frame/processed.h"
-#include "zenslam/frame/system.h"
-#include "zenslam/frame/tracked.h"
-#include "zenslam/mapping/triangulation_utils.h"
-#include "zenslam/matching/matching_utils.h"
-#include "zenslam/tracking/keyline_tracker.h"
-#include "zenslam/tracking/keypoint_tracker.h"
-#include "zenslam/types/keyline.h"
-#include "zenslam/types/keypoint.h"
-#include "zenslam/types/map.h"
 
 namespace zenslam
 {

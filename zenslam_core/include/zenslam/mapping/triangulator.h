@@ -8,7 +8,6 @@
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/line3d_cloud.h"
 #include "zenslam/types/map.h"
-#include "zenslam/types/point3d.h"
 #include "zenslam/types/point3d_cloud.h"
 
 namespace zenslam
@@ -47,5 +46,7 @@ namespace zenslam
     private:
         calibration  _calibration { };
         slam_options _options { };
+
+        [[nodiscard]] auto filter_epipolar(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1) const -> std::vector<std::pair<keypoint, keypoint>>;
     };
 }

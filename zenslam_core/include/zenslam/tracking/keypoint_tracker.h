@@ -27,6 +27,8 @@ namespace zenslam
     public:
         keypoint_tracker(calibration calib, slam_options opts, frame::system& system);
 
+
+
         /**
          * @brief Returns the tracked keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.
          * @param frame_0 Frame containing keypoints to track from (previous frame).
@@ -70,6 +72,10 @@ namespace zenslam
             double                 match_radius,
             double                 max_descriptor_distance
         ) -> void;
+
+        [[nodiscard]] auto filter_epipolar(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1) const -> std::vector<std::pair<keypoint, keypoint>>;
+
+        [[nodiscard]] auto track_keypoints(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const std::vector<keypoint>& keypoints_0) const -> std::vector<keypoint>;
 
         /**
          * @brief Returns the keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.

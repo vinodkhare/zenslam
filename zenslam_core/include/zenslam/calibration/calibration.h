@@ -19,7 +19,9 @@ namespace zenslam
         (
             const std::filesystem::path& camera_calib_path,
             const std::filesystem::path& imu_calib_path,
-            bool                         stereo_rectify
+            bool                         stereo_rectify,
+            double                       rectify_alpha,
+            double                       rectify_balance
         ) -> calibration;
 
         void print() const;
