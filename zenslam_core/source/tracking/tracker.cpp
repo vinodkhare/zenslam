@@ -19,7 +19,7 @@ namespace zenslam
 
     tracker::~tracker() = default;
 
-    auto tracker::track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> frame::tracked
+    auto tracker::track(const frame::estimated& frame_0, const frame::processed& frame_1) const -> frame::tracked
     {
         // Timing variables
         std::chrono::system_clock::duration time_keypoint_tracking { 0 };

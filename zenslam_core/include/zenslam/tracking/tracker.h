@@ -26,7 +26,7 @@ namespace zenslam
          *  @param frame_1 Current processed frame.
          *  @return New tracked frame with tracked/detected keypoints and keylines, and triangulated 3D points and lines.
          */
-        [[nodiscard]] auto track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> frame::tracked;
+        [[nodiscard]] auto track(const frame::estimated& frame_0, const frame::processed& frame_1) const -> frame::tracked;
 
     private:
         tracking_options _options = { };

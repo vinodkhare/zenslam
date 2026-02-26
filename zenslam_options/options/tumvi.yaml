@@ -45,7 +45,7 @@ slam:
     cell_size: [ 64, 64 ]     # Size of grid cells for spatially uniform feature detection, smaller cells lead to more uniform distribution but higher computational cost
     fast_threshold: 1        # FAST feature detector threshold, lower values lead to more features but potentially more noise
     keyline_max_length: 128   # Maximum length of keylines in pixels, longer keylines are often less stable and more likely to be outliers
-    clahe_enabled: false       # Enable CLAHE (Contrast Limited Adaptive Histogram Equalization) for better feature detection in low-contrast areas, can improve performance in challenging lighting conditions but adds computational overhead
+    clahe_enabled: true       # Enable CLAHE (Contrast Limited Adaptive Histogram Equalization) for better feature detection in low-contrast areas, can improve performance in challenging lighting conditions but adds computational overhead
     algorithm: "PARALLEL_GRID"  # Feature detection algorithm, options: "SIMPLE", "GRID", "PARALLEL_GRID"
     stereo_rectify: false       # if true, stereo images will be rectified before feature detection, else only simple undistortion is applied
     rectify_alpha: 1.0          # Rectification alpha parameter (0.0-1.0), controls the amount of cropping after rectification, 0.0 means no cropping (full view), 1.0 means maximum cropping (only valid pixels)
@@ -57,7 +57,7 @@ slam:
     klt_max_level: 3
     klt_threshold: 2.0
     klt_min_tracked_ratio: 0.6
-    landmark_match_distance: 32.0   # Max descriptor distance for 2D->3D landmark association
+    landmark_match_distance: 64.0   # Max descriptor distance for 2D->3D landmark association
     landmark_match_radius: 20.0     # Radius (m) around camera for 2D->3D landmark association
     use_keylines: false             # Use keylines for tracking, can improve robustness in low-texture environments but may increase computational cost
     filter_epipolar: true

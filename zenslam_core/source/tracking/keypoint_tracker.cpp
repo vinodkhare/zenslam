@@ -9,6 +9,8 @@
 #include <opencv2/features2d.hpp>
 #include <opencv2/video/tracking.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include "zenslam/detection/keypoint_detector_simple.h"
 #include "zenslam/matching/matcher.h"
 
@@ -37,7 +39,7 @@ namespace zenslam
         }
     }
 
-    auto keypoint_tracker::track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> std::array<map<keypoint>, 2>
+    auto keypoint_tracker::track(const frame::estimated& frame_0, const frame::processed& frame_1) const -> std::array<map<keypoint>, 2>
     {
         map<keypoint> keypoints_0 = { };
         map<keypoint> keypoints_1 = { };
@@ -49,7 +51,10 @@ namespace zenslam
         const auto& keypoints_1_tracked = track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1]);
         keypoints_1.add(keypoints_1_tracked);
 
-        const auto& keypoints_0_detected = _detector->detect_keypoints(frame_1.undistorted[0], keypoints_0);
+        auto keypoints_0_detected = _detector->detect_keypoints(frame_1.undistorted[0], keypoints_0);
+
+        assign_landmark_indices(keypoints_0_detected, _system.points3d, frame_0.pose.translation(), _tracking.landmark_match_radius, _tracking.landmark_match_distance);
+
         keypoints_0.add(keypoints_0_detected);
 
         const auto& keypoints_0_untracked
@@ -61,7 +66,10 @@ namespace zenslam
         const auto& keypoints_1_tracked_stereo = track_keypoints(frame_1.pyramids[0], frame_1.pyramids[1], keypoints_0_untracked);
         keypoints_1.add(keypoints_1_tracked_stereo);
 
-        const auto& keypoints_1_detected = _detector->detect_keypoints(frame_1.undistorted[1], keypoints_1);
+        auto keypoints_1_detected = _detector->detect_keypoints(frame_1.undistorted[1], keypoints_1);
+
+        assign_landmark_indices(keypoints_1_detected, _system.points3d, frame_0.pose.translation(), _tracking.landmark_match_radius, _tracking.landmark_match_distance);
+
         keypoints_1.add(keypoints_1_detected);
 
         const auto& keypoints_1_untracked
@@ -129,7 +137,11 @@ namespace zenslam
         if (match_radius > 0.0)
         {
             nearby_points = points3d.radius_search(static_cast<point3d>(camera_center), match_radius);
-            if (nearby_points.empty()) { return; }
+            if (nearby_points.empty())
+            {
+                SPDLOG_INFO("No nearby 3D points found within radius {}. Skipping landmark assignment.", match_radius);
+                return;
+            }
         }
 
         std::vector<size_t>  landmark_indices;
@@ -188,7 +200,7 @@ namespace zenslam
             if (descriptors3d.depth() != CV_32F) { descriptors3d.convertTo(descriptors3d, CV_32F); }
         }
 
-        cv::BFMatcher           matcher(is_binary ? cv::NORM_HAMMING : cv::NORM_L2, false);
+        cv::BFMatcher           matcher(is_binary ? cv::NORM_HAMMING : cv::NORM_L2, true);
         std::vector<cv::DMatch> matches;
         matcher.match(descriptors2d, descriptors3d, matches);
 
@@ -200,6 +212,8 @@ namespace zenslam
                 keypoint.index = landmark_indices[match.trainIdx];
             }
         }
+
+        SPDLOG_INFO("#landmark matches: {}/{}", matches.size(), keypoints.size());
     }
 
     auto keypoint_tracker::filter_epipolar(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1) const -> std::vector<std::pair<keypoint, keypoint>>

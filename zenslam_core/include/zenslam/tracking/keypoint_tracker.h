@@ -35,7 +35,7 @@ namespace zenslam
          * @param frame_1 Frame to track keypoints to (current frame).
          * @return Tracked keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.
          */
-        [[nodiscard]] auto track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> std::array<map<keypoint>, 2>;
+        [[nodiscard]] auto track(const frame::estimated& frame_0, const frame::processed& frame_1) const -> std::array<map<keypoint>, 2>;
 
         /**
          * @brief Triangulates 3D points from the tracked keypoints in the current frame.

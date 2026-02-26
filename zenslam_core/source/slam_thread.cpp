@@ -164,6 +164,8 @@ void zenslam::slam_thread::loop()
                 system.points3d += system[1].pose * system[1].points3d;
                 system.lines3d  += system[1].pose * system[1].lines3d;
 
+                system.points3d.buildIndex();
+
                 system.counts.map_points = system.points3d.size();
                 system.counts.map_lines  = system.lines3d.size();
 
