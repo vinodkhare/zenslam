@@ -4,15 +4,15 @@ application:
   log_pattern: "[%H:%M:%S.%e] [%^%L%$] [%!:%s:%#] %v"
 
 folder:
-  root: /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/mav0
+  root: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0
   left: cam0/data
   right: cam1/data
   timescale: 1.0E-9
-  calibration_file:     /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/dso/camchain.yaml
-  groundtruth_file:     /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/dso/gt_imu.csv
-  imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/dso/imu_config.yaml
-  imu_file:             /Volumes/DATA01/data/tumvi/dataset-corridor2_1024_16/mav0/imu0/data.csv
-  output:               /Volumes/DATA01/results/tumvi/dataset-corridor4_1024_16
+  calibration_file:     /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/camchain.yaml
+  groundtruth_file:     /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/gt_imu.csv
+  imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
+  imu_file:             /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0/imu0/data.csv
+  output:               /Volumes/DATA01/results/tumvi/dataset-corridor1_1024_16
   max_frames: 0  # maximum number of frames to process, set to 0 for no limit
 
 # GUI and Visualization Configuration
@@ -24,7 +24,7 @@ gui:
   keyline_thickness:     1
 
 slam:
-  integrator_method: "lpm"   # Options: "lpm" (linear preintegrated measurements), "ugpm" (unified gaussian preintegrated measurements)
+  integrator_method: "basalt"   # Options: "lpm" (linear preintegrated measurements), "ugpm" (unified gaussian preintegrated measurements)
   matcher:    "KNN"      # Matcher type: BRUTE (cross-check) or KNN (with ratio test)
   matcher_ratio:  0.8     # Ratio test threshold for KNN matching (0.0-1.0, typically 0.75-0.85)
 

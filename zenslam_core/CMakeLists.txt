@@ -22,7 +22,7 @@ message(STATUS "Found yaml-cpp: " ${yaml-cpp_VERSION})
 find_package(Boost CONFIG REQUIRED COMPONENTS program_options filesystem)
 message(STATUS "Found Boost: " ${Boost_VERSION})
 
-# Ceres is required by ugpm headers (even if using LPM)
+# Ceres is required by ugpm headers (even if using LPM) and for optimization
 find_package(Ceres REQUIRED)
 message(STATUS "Found Ceres: ${Ceres_VERSION}")
 
@@ -144,7 +144,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         Microsoft.GSL::GSL
         ${VTK_LIBRARIES}
         ugpm
+        basalt_imu
 )
 
-# Add ugpm headers (preint) to include path
+# UGPM and Basalt IMU preintegration headers
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)

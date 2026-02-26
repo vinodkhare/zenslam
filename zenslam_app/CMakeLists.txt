@@ -62,6 +62,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         opencv_imgproc
         spdlog::spdlog
         ugpm
+        basalt_imu
         yaml-cpp::yaml-cpp
         zenslam_core
         Boost::program_options

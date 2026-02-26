@@ -12,6 +12,7 @@
 - Running the app with no CLI args may show help instead of starting the SLAM pipeline; pass an explicit options file when validating runtime behavior.
 - For long-running app runs, use bounded timeouts and inspect captured output files to avoid terminal interleaving/noise.
 - To debug the application consider adding logging statements and examining the output to understand the issue
+- To debug individual components, consider writing unit tests for those components and running the tests to identify issues
 - When looking at build output, don't use `tail`, instead always look at all output
 
 ## Tips for Code Generation
