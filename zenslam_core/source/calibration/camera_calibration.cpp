@@ -1,6 +1,6 @@
 #include "zenslam/calibration/camera_calibration.h"
 
-
+#include <stdexcept>
 #include <magic_enum/magic_enum.hpp>
 
 #include <spdlog/spdlog.h>

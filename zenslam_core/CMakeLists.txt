@@ -93,6 +93,7 @@ add_library(${PROJECT_NAME}
         source/motion/motion_predictor.cpp
         source/motion/gravity_estimator.cpp
         source/motion/integrator.cpp
+        source/motion/integrator_ugpm.cpp
         
         # Optimization
         source/optimization/local_bundle_adjustment.cpp
@@ -150,8 +151,30 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 # UGPM and Basalt IMU preintegration headers
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
+# Enable precompiled headers for faster builds
+target_precompile_headers(${PROJECT_NAME} PUBLIC include/zenslam/pch.h)
+
 if (MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
+    
+    # Reduce optimization for expensive compilation units with heavy template instantiation
+    # Also disable PCH for these files as PCH conflicts with per-file optimization flags
+    set_source_files_properties(
+        source/motion/integrator.cpp
+        source/motion/integrator_ugpm.cpp
+        PROPERTIES 
+            COMPILE_FLAGS "/O1"  # Optimize for size instead of speed during compilation
+            SKIP_PRECOMPILE_HEADERS ON
+    )
 else()
     # target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic) - example
+    
+    # Reduce optimization for expensive compilation units with heavy template instantiation
+    set_source_files_properties(
+        source/motion/integrator.cpp
+        source/motion/integrator_ugpm.cpp
+        PROPERTIES 
+            COMPILE_FLAGS "-O1"  # Reduce optimization level
+            SKIP_PRECOMPILE_HEADERS ON
+    )
 endif()

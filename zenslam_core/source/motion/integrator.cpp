@@ -1,9 +1,22 @@
 #include "zenslam/motion/integrator.h"
 
 #include <utility>
-#include <preint/preint.h>
+#include <preint/types.h>  // Lightweight ugpm types (enum and struct definitions)
 #include <basalt/imu/preintegration.h>
 #include <spdlog/spdlog.h>
+
+// Forward declare the detail implementation to avoid including heavy preint.h template here
+namespace zenslam::detail
+{
+    integral integrate_ugpm_impl(
+        const std::vector<frame::imu>& measurements,
+        double start,
+        double end,
+        int overlap_factor,
+        ugpm::PreintType preint_type,
+        const ugpm::PreintPrior& prior_in,
+        ugpm::PreintPrior& prior_out);
+}
 
 namespace zenslam
 {
@@ -183,27 +196,22 @@ namespace zenslam
 
         erase_if(_measurements, [&](auto& m) { return m.timestamp < start - overlap_period; });
 
-        ugpm::ImuData imu_data = { };
-        imu_data.acc.reserve(to_integrate.size());
-        imu_data.gyr.reserve(to_integrate.size());
+        // Use the detail implementation to isolate expensive template instantiations
+        const auto preint_type = _method == method::ugpm ? ugpm::UGPM : ugpm::LPM;
+        ugpm::PreintPrior prior_out;
+        
+        auto result = detail::integrate_ugpm_impl(
+            to_integrate,
+            start,
+            end,
+            overlap_factor,
+            preint_type,
+            to_ugpm_prior(_prior),
+            prior_out
+        );
 
-        for (const auto& [timestamp, acc, gyr] : to_integrate)
-        {
-            imu_data.acc.emplace_back(ugpm::ImuSample { timestamp, acc[0], acc[1], acc[2] });
-            imu_data.gyr.emplace_back(ugpm::ImuSample { timestamp, gyr[0], gyr[1], gyr[2] });
-        }
+        _prior = from_ugpm_prior(prior_out);
 
-        // Setup preintegration options
-        ugpm::PreintOption options = { };
-        options.type               = _method == method::ugpm ? ugpm::UGPM : ugpm::LPM;
-        options.state_freq         = 200;
-        options.correlate          = true;
-        options.quantum            = -1; // Disable per-chunk mode
-
-        ugpm::ImuPreintegration integration = { imu_data, start, end, options, to_ugpm_prior(_prior), false, overlap_factor };
-
-        _prior = from_ugpm_prior(integration.getPrior());
-
-        return from_ugpm_meas(integration.get());
+        return result;
     }
 } // namespace zenslam

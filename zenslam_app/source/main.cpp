@@ -14,20 +14,45 @@
 
 #include "application.h"
 
-std::atomic is_running { true };
-
-void signal_handler(const int signal)
+namespace
 {
-    if (signal == SIGINT)
+    std::atomic is_running{ true };
+
+    void signal_handler(const int signal)
     {
-        SPDLOG_INFO("CTRL+C detected, shutting down...");
-        is_running = false;
+        if (signal == SIGINT)
+        {
+            SPDLOG_INFO("CTRL+C detected, shutting down...");
+            is_running = false;
+        }
     }
 }
 
 int main(const int argc, char** argv)
 {
-    std::signal(SIGINT, signal_handler);
+    const auto& signal = std::signal(SIGINT, signal_handler);
+
+    if (signal == SIG_ERR)
+    {
+        std::cerr << "Error setting up signal handler\n";
+        return 1;
+    }
+    
+    if (signal == SIG_DFL)
+    {
+        std::cerr << "Default signal handler in place, exiting on CTRL+C\n";
+        return 1;
+    }
+
+    if (signal == SIG_IGN)
+    {
+        std::cerr << "Ignoring SIGINT, CTRL+C will not stop the application\n";
+    }
+
+    if (signal == signal_handler)
+    {
+        SPDLOG_INFO("Custom signal handler installed successfully");
+    }
 
     spdlog::set_level(spdlog::level::trace);
 
@@ -86,7 +111,12 @@ int main(const int argc, char** argv)
         HelloImGui::RunnerParams params { };
 
         // Force Metal backend
-        params.rendererBackendType = HelloImGui::RendererBackendType::Metal;
+        #ifdef __APPLE__
+            params.rendererBackendType = HelloImGui::RendererBackendType::Metal;
+        #elif defined(_WIN32) || defined(_WIN64)
+            params.rendererBackendType = HelloImGui::RendererBackendType::OpenGL3;
+        #endif
+
         params.callbacks.ShowGui   = [&application]
         {
             application.render();

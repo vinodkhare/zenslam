@@ -82,4 +82,7 @@ vtk_module_autoinit(
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
+# Enable precompiled headers for faster builds
+target_precompile_headers(${PROJECT_NAME} PRIVATE include/pch.h)
+
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

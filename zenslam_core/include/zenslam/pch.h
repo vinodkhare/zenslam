@@ -3,9 +3,12 @@
 // Standard library (commonly used)
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
+#include <format>
 #include <functional>
 #include <limits>
 #include <map>
@@ -23,6 +26,7 @@
 
 // OpenCV (frequently included modules)
 #include <opencv2/core.hpp>
+#include <opencv2/core/base.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/calib3d.hpp>
@@ -32,4 +36,6 @@
 // Third-party utilities
 #include <spdlog/spdlog.h>
 #include <magic_enum/magic_enum.hpp>
-#include <preint/preint.h>
+
+// NOTE: Heavy inline templates like preint/preint.h should NOT be in PCH
+// as they cause massive code bloat. Include them only in the .cpp files that need them.
