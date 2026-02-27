@@ -11,6 +11,8 @@ namespace ugpm
     const double kExpNormTolerance = 1e-14;
     const double kLogTraceTolerance = 3.0 - kExpNormTolerance;
 
+    constexpr double M_PI   = 3.14159265358979323846;
+    constexpr double M_PI_2 = M_PI / 2.0;
 
     const double kNumDtJacobianDelta = 0.01;
     const double kNumAccBiasJacobianDelta = 0.0001;

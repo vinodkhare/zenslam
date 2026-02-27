@@ -149,3 +149,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 # UGPM and Basalt IMU preintegration headers
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+
+if (MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
+else()
+    # target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic) - example
+endif()

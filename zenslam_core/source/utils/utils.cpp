@@ -92,6 +92,9 @@ auto zenslam::utils::to_points(const std::vector<point3d>& points3d) -> std::vec
     return points;
 }
 
+constexpr double M_PI   = 3.14159265358979323846;
+constexpr double M_PI_2 = M_PI / 2.0;
+
 auto zenslam::utils::matrix_to_euler(const cv::Matx33d& R) -> cv::Vec3d
 {
     // Handle singularity when cos(pitch) = 0 (gimbal lock case)

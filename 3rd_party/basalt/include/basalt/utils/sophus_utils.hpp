@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Sophus {
 
+    constexpr double M_PI   = 3.14159265358979323846;
+    constexpr double M_PI_2 = M_PI / 2.0;
+
 /// @brief Decoupled version of logmap for SE(3)
 ///
 /// For SE(3) element vector

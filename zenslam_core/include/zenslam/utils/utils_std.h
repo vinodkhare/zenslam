@@ -7,6 +7,7 @@
 #include <vector>
 #include <ranges>
 #include <algorithm>
+#include <string>
 
 // This namespace contains utility functions that depend only on the std:: namespace
 namespace zenslam::utils

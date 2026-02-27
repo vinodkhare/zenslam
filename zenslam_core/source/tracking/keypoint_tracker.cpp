@@ -2,13 +2,10 @@
 
 #include <algorithm>
 #include <ranges>
-
-#include <__thread/jthread.h>
-
+#include <thread>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/video/tracking.hpp>
-
 #include <spdlog/spdlog.h>
 
 #include "zenslam/detection/keypoint_detector_simple.h"
