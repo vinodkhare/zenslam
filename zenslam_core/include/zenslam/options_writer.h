@@ -12,8 +12,6 @@ namespace zenslam
         static void write(const all_options& opts);
 
     private:
-        static auto write_folder(YAML::Emitter& emitter, const folder_options& folder_options) -> void;
-        static auto write_gui(YAML::Emitter& emitter, const gui_options& gui_options) -> void;
         static auto write_detection(YAML::Emitter& emitter, const detection_options& detection_options) -> void;
         static auto write_tracking(YAML::Emitter& emitter, const tracking_options& tracking_options) -> void;
         static auto write_triangulation(YAML::Emitter& emitter, const triangulation_options& triangulation_options) -> void;

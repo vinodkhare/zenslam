@@ -10,34 +10,6 @@
 
 #include "zenslam/yaml_emitters.h"
 
-auto zenslam::options_writer::write_folder(YAML::Emitter& emitter, const folder_options& folder_options) -> void
-{
-    emitter << YAML::BeginMap;
-    emitter << YAML::Key << "root" << YAML::Value << folder_options.root.string();
-    emitter << YAML::Key << "left" << YAML::Value << folder_options.left.string();
-    emitter << YAML::Key << "right" << YAML::Value << folder_options.right.string();
-    emitter << YAML::Key << "output" << YAML::Value << folder_options.output.string();
-    emitter << YAML::Key << "calibration_file" << YAML::Value << folder_options.calibration_file.string();
-    emitter << YAML::Key << "groundtruth_file" << YAML::Value << folder_options.groundtruth_file.string();
-    emitter << YAML::Key << "imu_calibration_file" << YAML::Value << folder_options.imu_calibration_file.string();
-    emitter << YAML::Key << "imu_file" << YAML::Value << folder_options.imu_file.string();
-    emitter << YAML::Key << "timescale" << YAML::Value << folder_options.timescale;
-    emitter << YAML::Key << "skip_frames" << YAML::Value << folder_options.skip_frames;
-    emitter << YAML::Key << "take_frames" << YAML::Value << folder_options.take_frames;
-    emitter << YAML::EndMap;
-}
-
-auto zenslam::options_writer::write_gui(YAML::Emitter& emitter, const gui_options& gui_options) -> void
-{
-    emitter << YAML::BeginMap;
-    emitter << YAML::Key << "show_keypoints" << YAML::Value << gui_options.show_keypoints;
-    emitter << YAML::Key << "show_keylines" << YAML::Value << gui_options.show_keylines;
-    emitter << YAML::Key << "keyline_thickness" << YAML::Value << gui_options.keyline_thickness;
-    emitter << YAML::Key << "point_cloud_opacity" << YAML::Value << gui_options.point_cloud_opacity;
-    emitter << YAML::Key << "point_size" << YAML::Value << gui_options.point_size;
-    emitter << YAML::EndMap;
-}
-
 auto zenslam::options_writer::write_detection(YAML::Emitter& emitter, const detection_options& detection_options) -> void
 {
     emitter << YAML::BeginMap;
@@ -179,11 +151,9 @@ void zenslam::options_writer::write(const all_options& opts)
     emitter << YAML::Key << "log_pattern" << YAML::Value << opts.log_pattern;
     emitter << YAML::Key << "verb" << YAML::Value << std::string { magic_enum::enum_name(opts.verb_) };
 
-    // Nested sections
-    emitter << YAML::Key << "folder" << YAML::Value << opts.folder; // Uses operator<< defined in folder_options
-
-    emitter << YAML::Key << "gui" << YAML::Value;
-    write_gui(emitter, opts.gui);
+    // Nested sections - use yaml_emitters overloads
+    emitter << YAML::Key << "folder" << YAML::Value << opts.folder;
+    emitter << YAML::Key << "gui" << YAML::Value << opts.gui;
 
     emitter << YAML::Key << "slam" << YAML::Value;
     write_slam(emitter, opts.slam);
