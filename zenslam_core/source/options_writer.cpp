@@ -8,6 +8,8 @@
 
 #include <yaml-cpp/emitter.h>
 
+#include "zenslam/yaml_emitters.h"
+
 auto zenslam::options_writer::write_folder(YAML::Emitter& emitter, const folder_options& folder_options) -> void
 {
     emitter << YAML::BeginMap;

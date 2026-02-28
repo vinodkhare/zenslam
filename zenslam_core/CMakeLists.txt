@@ -46,6 +46,7 @@ add_library(${PROJECT_NAME}
         source/options_writer.cpp
         source/processor.cpp
         source/time_this.cpp
+        source/yaml_emitters.cpp
         
         # Frame & Types
         source/frame/counts.cpp
