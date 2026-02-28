@@ -13,7 +13,8 @@ folder:
   imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
   imu_file:             /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0/imu0/data.csv
   output:               /Volumes/DATA01/results/tumvi/dataset-corridor1_1024_16
-  max_frames: 0  # maximum number of frames to process, set to 0 for no limit
+  skip_frames: 1000 # Number of initial frames to skip, useful for skipping static frames at the beginning of the dataset
+  take_frames: 0    # Number of frames to process, set to 0 to process all remaining frames after skipping
 
 # GUI and Visualization Configuration
 gui:

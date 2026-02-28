@@ -4,7 +4,10 @@
 #include <string>
 
 #include <opencv2/core/types.hpp>
+
 #include <spdlog/common.h>
+
+#include "folder_options.h"
 
 #include "detection/detection_options.h"
 
@@ -163,24 +166,6 @@ namespace zenslam
         int        keyline_thickness    = 1;
         double     point_cloud_opacity  = 1.0;
         float      point_size           = 4.0f;
-    };
-
-    // ========================================================================
-    // Folder and File Paths
-    // ========================================================================
-
-    struct folder_options
-    {
-        std::filesystem::path root                 = ".";
-        std::filesystem::path left                 = "cam0";
-        std::filesystem::path right                = "cam1";
-        std::filesystem::path output               = "output";
-        std::filesystem::path calibration_file     = "camchain.yaml";
-        std::filesystem::path groundtruth_file     = "groundtruth.csv";
-        std::filesystem::path imu_calibration_file = "imu_config.yaml";
-        std::filesystem::path imu_file             = "";
-        double                timescale            = 1.0;
-        size_t                max_frames           = 0; // 0 for unlimited
     };
 
     // ========================================================================

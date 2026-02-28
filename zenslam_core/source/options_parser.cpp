@@ -318,7 +318,8 @@ namespace zenslam
         opts.imu_calibration_file = get_or_default(node, "imu_calibration_file", opts.imu_calibration_file);
         opts.imu_file             = get_or_default(node, "imu_file", opts.imu_file);
         opts.timescale            = get_or_default(node, "timescale", opts.timescale);
-        opts.max_frames           = get_or_default(node, "max_frames", opts.max_frames);
+        opts.skip_frames          = get_or_default(node, "skip_frames", opts.skip_frames);
+        opts.take_frames          = get_or_default(node, "take_frames", opts.take_frames);
 
         return opts;
     }
