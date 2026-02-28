@@ -24,9 +24,10 @@ namespace zenslam
          *
          *  @param frame_0 Previous tracked frame.
          *  @param frame_1 Current processed frame.
+         *  @param predicted_pose Predicted pose from motion/inertial model for better KLT initialization.
          *  @return New tracked frame with tracked/detected keypoints and keylines, and triangulated 3D points and lines.
          */
-        [[nodiscard]] auto track(const frame::estimated& frame_0, const frame::processed& frame_1) const -> frame::tracked;
+        [[nodiscard]] auto track(const frame::estimated& frame_0, const frame::processed& frame_1, const cv::Affine3d& predicted_pose) const -> frame::tracked;
 
     private:
         tracking_options _options = { };

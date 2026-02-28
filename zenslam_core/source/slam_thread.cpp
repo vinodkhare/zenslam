@@ -125,7 +125,7 @@ void zenslam::slam_thread::loop()
             {
                 time_this time_this { system.durations.tracking };
 
-                tracked = tracker.track(system[0], processed);
+                tracked = tracker.track(system[0], processed, pose_inertial);
 
                 const auto& matched_count_0 = tracked.keypoints[0].keys_matched(system[0].keypoints[0]).size();
                 const auto& matched_count_1 = tracked.keypoints[1].keys_matched(system[0].keypoints[1]).size();

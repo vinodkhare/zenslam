@@ -33,9 +33,10 @@ namespace zenslam
          * @brief Returns the tracked keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.
          * @param frame_0 Frame containing keypoints to track from (previous frame).
          * @param frame_1 Frame to track keypoints to (current frame).
+         * @param predicted_pose Predicted pose from motion/inertial model for better KLT initialization.
          * @return Tracked keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.
          */
-        [[nodiscard]] auto track(const frame::estimated& frame_0, const frame::processed& frame_1) const -> std::array<map<keypoint>, 2>;
+        [[nodiscard]] auto track(const frame::estimated& frame_0, const frame::processed& frame_1, const cv::Affine3d& predicted_pose) const -> std::array<map<keypoint>, 2>;
 
         /**
          * @brief Triangulates 3D points from the tracked keypoints in the current frame.
@@ -75,15 +76,58 @@ namespace zenslam
 
         [[nodiscard]] auto filter_epipolar(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1) const -> std::vector<std::pair<keypoint, keypoint>>;
 
-        [[nodiscard]] auto track_keypoints(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const std::vector<keypoint>& keypoints_0) const -> std::vector<keypoint>;
+        /**
+         * @brief Track keypoints between stereo cameras without pose prediction (for simultaneous stereo pairs).
+         * @param pyramid_0 Image pyramid of the source camera.
+         * @param pyramid_1 Image pyramid of the target camera.
+         * @param keypoints_0 Keypoints from the source camera to track.
+         * @return Tracked keypoints in the target camera.
+         */
+        [[nodiscard]] auto track_keypoints
+        (
+            const std::vector<cv::Mat>&  pyramid_0,
+            const std::vector<cv::Mat>&  pyramid_1,
+            const std::vector<keypoint>& keypoints_0
+        ) const -> std::vector<keypoint>;
+
+        /**
+         * @brief Track keypoints with pose prediction (temporal tracking between frames).
+         * @param pyramid_0 Image pyramid of the source camera.
+         * @param pyramid_1 Image pyramid of the target camera.
+         * @param keypoints_0 Keypoints from the source camera to track.
+         * @param camera_index Index of the camera (0 or 1).
+         * @param predicted_pose Predicted pose of camera 0 in world coordinates.
+         * @param points3d 3D point cloud for landmark projection.
+         * @return Tracked keypoints in the target camera.
+         */
+        [[nodiscard]] auto track_keypoints
+        (
+            const std::vector<cv::Mat>&  pyramid_0,
+            const std::vector<cv::Mat>&  pyramid_1,
+            const std::vector<keypoint>& keypoints_0,
+            size_t                       camera_index,
+            const cv::Affine3d&          predicted_pose,
+            const point3d_cloud&         points3d
+        ) const -> std::vector<keypoint>;
 
         /**
          * @brief Returns the keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.
          * @param pyramid_0 Image pyramid of the previous frame.
          * @param pyramid_1 Image pyramid of the current frame.
          * @param keypoints_map_0 Keypoints from the previous frame to track.
+         * @param camera_index Index of the camera (0 or 1).
+         * @param predicted_pose Predicted pose of camera 0 in world coordinates.
+         * @param points3d 3D point cloud for landmark projection.
          * @return Keypoints in the current frame corresponding to the input keypoints, with updated positions and tracking status.
          */
-        [[nodiscard]] auto track_keypoints(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const map<keypoint>& keypoints_map_0) const -> std::vector<keypoint>;
+        [[nodiscard]] auto track_keypoints
+        (
+            const std::vector<cv::Mat>& pyramid_0,
+            const std::vector<cv::Mat>& pyramid_1,
+            const map<keypoint>&        keypoints_map_0,
+            size_t                      camera_index,
+            const cv::Affine3d&         predicted_pose,
+            const point3d_cloud&        points3d
+        ) const -> std::vector<keypoint>;
     };
 } // namespace zenslam
