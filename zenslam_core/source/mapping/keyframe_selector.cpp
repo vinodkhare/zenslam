@@ -11,7 +11,7 @@ namespace zenslam
     {
     }
 
-    auto keyframe_selector::decide(const frame::estimated& frame, const frame::counts& counts) -> keyframe_decision
+    auto keyframe_selector::decide(const frame::estimated& frame) -> keyframe_decision
     {
         keyframe_decision decision { };
 
@@ -36,8 +36,8 @@ namespace zenslam
 
         decision.translation   = cv::norm(relative.translation());
         decision.rotation_deg  = compute_rotation_deg(relative);
-        decision.tracked_ratio = compute_tracked_ratio(counts);
-        decision.inliers       = compute_inliers(counts);
+        decision.tracked_ratio = compute_tracked_ratio(frame);
+        decision.inliers       = compute_inliers(frame);
 
         decision.forced            = decision.frames_since_last >= static_cast<size_t>(_options.max_frames);
         decision.motion_triggered  = decision.translation >= _options.min_translation || decision.rotation_deg >= _options.min_rotation_deg;
@@ -69,25 +69,26 @@ namespace zenslam
         return angle_rad * (180.0 / CV_PI);
     }
 
-    auto keyframe_selector::compute_tracked_ratio(const frame::counts& counts) -> double
+    auto keyframe_selector::compute_tracked_ratio(const frame::estimated& frame) -> double
     {
-        if (!std::isfinite(counts.klt_success_rate))
+        const auto total_features =
+            frame.keypoints[0].size() +
+            frame.keypoints[1].size() +
+            frame.keylines[0].size() +
+            frame.keylines[1].size();
+
+        if (total_features == 0)
         {
             return 1.0;
         }
 
-        return counts.klt_success_rate;
+        const auto stable_features = frame.points3d.size() + frame.lines3d.size();
+        const auto ratio = static_cast<double>(stable_features) / static_cast<double>(total_features);
+        return std::clamp(ratio, 0.0, 1.0);
     }
 
-    auto keyframe_selector::compute_inliers(const frame::counts& counts) -> size_t
+    auto keyframe_selector::compute_inliers(const frame::estimated& frame) -> size_t
     {
-        return std::max
-        (
-            {
-                counts.correspondences_3d3d_inliers,
-                counts.correspondences_3d2d_inliers,
-                counts.correspondences_2d2d_inliers
-            }
-        );
+        return std::max(frame.points3d.size(), frame.lines3d.size());
     }
 }

@@ -54,7 +54,7 @@ slam:
   # Tracking configuration (nested)
   tracking:
     klt_window_size: [ 63, 63 ]
-    klt_max_level: 3
+    klt_max_level: 1
     klt_threshold: 2.0
     klt_min_tracked_ratio: 0.6
     landmark_match_distance: 64.0   # Max descriptor distance for 2D->3D landmark association

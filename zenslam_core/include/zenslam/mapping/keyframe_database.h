@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "zenslam/frame/estimated.h"
+
 namespace zenslam
 {
     class keyframe_database
@@ -21,16 +22,16 @@ namespace zenslam
         [[nodiscard]] auto last() const -> const frame::estimated*;
         [[nodiscard]] auto recent(size_t max_count) const -> std::vector<const frame::estimated*>;
 
-        auto add(const frame::estimated& frame) -> const frame::estimated&;
-        auto update_pose(size_t id, const cv::Affine3d& pose) -> bool;
+        auto               add(const frame::estimated& frame) -> const frame::estimated&;
+        auto               update_pose(size_t id, const cv::Affine3d& pose) -> bool;
         [[nodiscard]] auto covisible(size_t id) const -> std::vector<std::pair<size_t, size_t>>;
 
     private:
-        size_t _min_shared_features = 0;
-        std::unordered_map<size_t, frame::estimated> _keyframes = { };
-        std::vector<size_t> _order = { };
-        std::unordered_map<size_t, std::unordered_map<size_t, size_t>> _covisibility = { };
+        size_t                                                         _min_shared_features = 0;
+        std::unordered_map<size_t, frame::estimated>                   _keyframes           = { };
+        std::vector<size_t>                                            _order               = { };
+        std::unordered_map<size_t, std::unordered_map<size_t, size_t>> _covisibility        = { };
 
-        auto compute_shared(const frame::estimated& a, const frame::estimated& b) const -> size_t;
+        [[nodiscard]] auto compute_shared(const frame::estimated& a, const frame::estimated& b) const -> size_t;
     };
 }

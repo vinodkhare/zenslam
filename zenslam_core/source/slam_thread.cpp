@@ -17,6 +17,7 @@
 #include "zenslam/frame/system.h"
 #include "zenslam/frame/writer.h"
 #include "zenslam/io/groundtruth.h"
+#include "zenslam/mapping/keyframe_selector.h"
 #include "zenslam/motion/gravity_estimator.h"
 #include "zenslam/motion/inertial_predictor.h"
 #include "zenslam/motion/motion_predictor.h"
@@ -71,6 +72,7 @@ void zenslam::slam_thread::loop()
     inertial_predictor inertial { cv::Vec3d { 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };
     gravity_estimator  gravity_estimator { };
     bool               is_gravity_estimated { };
+    keyframe_selector  keyframe_selector { _options.slam.keyframe };
 
     auto ground_truth = groundtruth::read(_options.folder.groundtruth_file);
     auto writer       = frame::writer(_options.folder.output / "frame_data.csv");
@@ -138,7 +140,7 @@ void zenslam::slam_thread::loop()
             }
 
             // ESTIMATE
-            frame::estimated slam_frame = { };
+            frame::estimated estimated = { };
             {
                 time_this time_this { system.durations.estimation };
 
@@ -158,8 +160,43 @@ void zenslam::slam_thread::loop()
                 SPDLOG_INFO("#pose estimated: {}", estimate_result.chosen_pose.inv());
                 SPDLOG_INFO("#pose inertial:  {}", pose_inertial);
 
+                estimated = { tracked, system[0].pose * estimate_result.chosen_pose.inv() };
+            }
+
+            // KEYFRAME SELECTION
+            {
+                const auto& decision = keyframe_selector.decide(estimated);
+
+                if (decision.is_keyframe)
+                {
+                    SPDLOG_INFO
+                    (
+                        "keyframe selected because {}{}{}",
+                        decision.forced ? "forced " : "",
+                        decision.motion_triggered ? "motion " : "",
+                        decision.quality_triggered ? "quality " : ""
+                    );
+                }
+                else
+                {
+                    SPDLOG_INFO("not a keyframe");
+                }
+
+                SPDLOG_INFO
+                (
+                    "decision data: frames_since_last={}, translation={:.2f}m, rotation={:.2f}deg, tracked_ratio={:.2f}, inliers={}",
+                    decision.frames_since_last,
+                    decision.translation,
+                    decision.rotation_deg,
+                    decision.tracked_ratio,
+                    decision.inliers
+                );
+            }
+
+            // UPDATE MAP
+            {
                 // Apply pose update (estimate is relative camera pose between frames)
-                system[1] = frame::estimated { tracked, system[0].pose * estimate_result.chosen_pose.inv() };
+                system[1] = estimated;
 
                 system.points3d += system[1].pose * system[1].points3d;
                 system.lines3d  += system[1].pose * system[1].lines3d;

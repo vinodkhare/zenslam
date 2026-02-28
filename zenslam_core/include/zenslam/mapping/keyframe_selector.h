@@ -1,6 +1,5 @@
 #pragma once
 
-#include "zenslam/frame/counts.h"
 #include "zenslam/frame/estimated.h"
 #include "zenslam/all_options.h"
 
@@ -24,7 +23,7 @@ namespace zenslam
     public:
         explicit keyframe_selector(const keyframe_options& options);
 
-        [[nodiscard]] auto decide(const frame::estimated& frame, const frame::counts& counts) -> keyframe_decision;
+        [[nodiscard]] auto decide(const frame::estimated& frame) -> keyframe_decision;
 
         void reset();
 
@@ -35,7 +34,7 @@ namespace zenslam
         bool             _has_keyframe        = false;
 
         static auto compute_rotation_deg(const cv::Affine3d& relative_pose) -> double;
-        static auto compute_tracked_ratio(const frame::counts& counts) -> double;
-        static auto compute_inliers(const frame::counts& counts) -> size_t;
+        static auto compute_tracked_ratio(const frame::estimated& frame) -> double;
+        static auto compute_inliers(const frame::estimated& frame) -> size_t;
     };
 }
