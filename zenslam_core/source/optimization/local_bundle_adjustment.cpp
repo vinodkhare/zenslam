@@ -22,19 +22,14 @@ namespace
     struct reprojection_error
     {
         reprojection_error(const cv::Point2d& observed_pixel, const cv::Matx33d& camera_matrix)
-            : observed_x(observed_pixel.x)
-            , observed_y(observed_pixel.y)
-            , fx(camera_matrix(0, 0))
-            , fy(camera_matrix(1, 1))
-            , cx(camera_matrix(0, 2))
-            , cy(camera_matrix(1, 2))
+            : observed_x(observed_pixel.x), observed_y(observed_pixel.y), fx(camera_matrix(0, 0)), fy(camera_matrix(1, 1)), cx(camera_matrix(0, 2)), cy(camera_matrix(1, 2))
         {
         }
 
         template <typename T>
         auto operator()(const T* const pose_aa_t, const T* const point_xyz, T* residuals) const -> bool
         {
-            const T* rotation = pose_aa_t;
+            const T* rotation    = pose_aa_t;
             const T* translation = pose_aa_t + 3;
 
             T point_camera[3] = { };
@@ -43,7 +38,7 @@ namespace
             point_camera[1] += translation[1];
             point_camera[2] += translation[2];
 
-            const T depth = point_camera[2];
+            const T depth      = point_camera[2];
             const T safe_depth = depth > T(1e-9) ? depth : T(1e-9);
 
             const T x = point_camera[0] / safe_depth;
@@ -60,16 +55,16 @@ namespace
 
         double observed_x = 0.0;
         double observed_y = 0.0;
-        double fx = 0.0;
-        double fy = 0.0;
-        double cx = 0.0;
-        double cy = 0.0;
+        double fx         = 0.0;
+        double fy         = 0.0;
+        double cx         = 0.0;
+        double cy         = 0.0;
     };
 
     auto affine_to_pose_parameter(const cv::Affine3d& pose) -> std::array<double, 6>
     {
         const auto rotation_matrix = pose.rotation();
-        cv::Mat rotation_cv(3, 3, CV_64F);
+        cv::Mat    rotation_cv(3, 3, CV_64F);
 
         for (auto r = 0; r < 3; ++r)
         {
@@ -112,17 +107,19 @@ namespace
             }
         }
 
-        const cv::Vec3d translation{ pose_aa_t[3], pose_aa_t[4], pose_aa_t[5] };
+        const cv::Vec3d translation { pose_aa_t[3], pose_aa_t[4], pose_aa_t[5] };
         return { rotation_matrix, translation };
     }
 
-    auto reprojection_rmse(
+    auto reprojection_rmse
+    (
         const std::vector<std::array<double, 6>>& keyframe_params,
         const std::vector<std::array<double, 3>>& landmark_params,
-        const std::vector<local_observation>& observations,
+        const std::vector<local_observation>&     observations,
         const std::unordered_map<size_t, size_t>& keyframe_index_by_id,
         const std::unordered_map<size_t, size_t>& landmark_index_by_id,
-        const cv::Matx33d& camera_matrix) -> double
+        const cv::Matx33d&                        camera_matrix
+    ) -> double
     {
         if (observations.empty())
         {
@@ -134,8 +131,8 @@ namespace
         const auto cx = camera_matrix(0, 2);
         const auto cy = camera_matrix(1, 2);
 
-        auto squared_error_sum = 0.0;
-        size_t residual_count = 0;
+        auto   squared_error_sum = 0.0;
+        size_t residual_count    = 0;
 
         for (const auto& obs : observations)
         {
@@ -146,7 +143,7 @@ namespace
                 continue;
             }
 
-            const auto& pose = keyframe_params[keyframe_it->second];
+            const auto& pose  = keyframe_params[keyframe_it->second];
             const auto& point = landmark_params[landmark_it->second];
 
             double point_camera[3] = { };
@@ -167,7 +164,7 @@ namespace
             const auto dv = v - obs.pixel.y;
 
             squared_error_sum += du * du + dv * dv;
-            residual_count += 2;
+            residual_count    += 2;
         }
 
         if (residual_count == 0)
@@ -179,18 +176,19 @@ namespace
     }
 }
 
-zenslam::local_bundle_adjustment::local_bundle_adjustment(cv::Matx33d camera_matrix, lba_options options)
-    : _camera_matrix(camera_matrix)
-    , _options(std::move(options))
+zenslam::local_bundle_adjustment::local_bundle_adjustment(const cv::Matx33d& camera_matrix, const lba_options& options)
+    : _camera_matrix(camera_matrix), _options(options)
 {
 }
 
-auto zenslam::local_bundle_adjustment::optimize(
+auto zenslam::local_bundle_adjustment::optimize
+(
     std::unordered_map<size_t, frame::estimated>& keyframes,
-    point3d_cloud& landmarks,
-    const std::vector<size_t>& fixed_keyframe_ids) const -> result
+    point3d_cloud&                                landmarks,
+    const std::vector<size_t>&                    fixed_keyframe_ids
+) const -> result
 {
-    result optimize_result{ };
+    result optimize_result { };
 
     if (keyframes.empty() || landmarks.empty())
     {
@@ -205,7 +203,7 @@ auto zenslam::local_bundle_adjustment::optimize(
     std::vector<frame::estimated*> keyframe_ptrs;
     keyframe_ptrs.reserve(keyframes.size());
 
-    for (const auto& [keyframe_id, _] : keyframes)
+    for (const auto& keyframe_id : keyframes | std::views::keys)
     {
         keyframe_ids.push_back(keyframe_id);
     }
@@ -213,8 +211,8 @@ auto zenslam::local_bundle_adjustment::optimize(
 
     for (size_t keyframe_param_index = 0; keyframe_param_index < keyframe_ids.size(); ++keyframe_param_index)
     {
-        const auto keyframe_id = keyframe_ids[keyframe_param_index];
-        auto& keyframe = keyframes.at(keyframe_id);
+        const auto keyframe_id            = keyframe_ids[keyframe_param_index];
+        auto&      keyframe               = keyframes.at(keyframe_id);
         keyframe_index_by_id[keyframe_id] = keyframe_param_index;
         keyframe_ptrs.push_back(&keyframe);
     }
@@ -226,7 +224,7 @@ auto zenslam::local_bundle_adjustment::optimize(
     std::vector<point3d*> landmark_ptrs;
     landmark_ptrs.reserve(landmarks.size());
 
-    for (const auto& [landmark_id, _] : landmarks)
+    for (const auto& landmark_id : landmarks | std::views::keys)
     {
         landmark_ids.push_back(landmark_id);
     }
@@ -234,8 +232,8 @@ auto zenslam::local_bundle_adjustment::optimize(
 
     for (size_t landmark_param_index = 0; landmark_param_index < landmark_ids.size(); ++landmark_param_index)
     {
-        const auto landmark_id = landmark_ids[landmark_param_index];
-        auto& landmark = landmarks.at(landmark_id);
+        const auto landmark_id            = landmark_ids[landmark_param_index];
+        auto&      landmark               = landmarks.at(landmark_id);
         landmark_index_by_id[landmark_id] = landmark_param_index;
         landmark_ptrs.push_back(&landmark);
     }
@@ -262,15 +260,17 @@ auto zenslam::local_bundle_adjustment::optimize(
                 continue;
             }
 
-            const cv::Point3d point_w{ landmark_it->second.x, landmark_it->second.y, landmark_it->second.z };
-            const auto point_c = keyframe.pose * point_w;
+            const cv::Point3d point_w { landmark_it->second.x, landmark_it->second.y, landmark_it->second.z };
+            const auto        point_c = keyframe.pose * point_w;
             if (!std::isfinite(point_c.z) || point_c.z <= 1e-3)
             {
                 continue;
             }
 
-            observations.push_back(
-                local_observation{ keyframe_id, keypoint.index, cv::Point2d(keypoint.pt.x, keypoint.pt.y) });
+            observations.push_back
+            (
+                local_observation { keyframe_id, keypoint.index, cv::Point2d(keypoint.pt.x, keypoint.pt.y) }
+            );
         }
     }
 
@@ -294,13 +294,15 @@ auto zenslam::local_bundle_adjustment::optimize(
         landmark_params.push_back({ landmark->x, landmark->y, landmark->z });
     }
 
-    optimize_result.initial_rmse = reprojection_rmse(
+    optimize_result.initial_rmse = reprojection_rmse
+    (
         keyframe_params,
         landmark_params,
         observations,
         keyframe_index_by_id,
         landmark_index_by_id,
-        _camera_matrix);
+        _camera_matrix
+    );
 
     ceres::Problem problem;
 
@@ -314,19 +316,25 @@ auto zenslam::local_bundle_adjustment::optimize(
         }
 
         // Note: Ceres takes ownership of cost_function and loss_function
-        auto* cost_function = new ceres::AutoDiffCostFunction<reprojection_error, 2, 6, 3>(
-            new reprojection_error(observation.pixel, _camera_matrix));
+        // ReSharper disable once CppDFAMemoryLeak
+        auto* cost_function = new ceres::AutoDiffCostFunction<reprojection_error, 2, 6, 3>
+        (
+            new reprojection_error(observation.pixel, _camera_matrix)
+        );
         ceres::LossFunction* loss_function = nullptr;
         if (_options.refine_landmarks)
         {
+            // ReSharper disable once CppDFAMemoryLeak
             loss_function = new ceres::HuberLoss(_options.huber_delta);
         }
 
-        problem.AddResidualBlock(
+        problem.AddResidualBlock
+        (
             cost_function,
             loss_function,
             keyframe_params[keyframe_it->second].data(),
-            landmark_params[landmark_it->second].data());
+            landmark_params[landmark_it->second].data()
+        );
 
         ++optimize_result.residuals;
     }
@@ -359,20 +367,20 @@ auto zenslam::local_bundle_adjustment::optimize(
             problem.SetManifold(keyframe_params[i].data(), new ceres::SubsetManifold(6, { 0, 1, 2 }));
         }
 
-        for (size_t i = 0; i < landmark_params.size(); ++i)
+        for (auto& landmark_param : landmark_params)
         {
-            if (problem.HasParameterBlock(landmark_params[i].data()))
+            if (problem.HasParameterBlock(landmark_param.data()))
             {
-                problem.SetParameterBlockConstant(landmark_params[i].data());
+                problem.SetParameterBlockConstant(landmark_param.data());
             }
         }
     }
 
     ceres::Solver::Options solver_options;
-    solver_options.max_num_iterations = std::max(1, _options.max_iterations);
-    solver_options.num_threads = 1;
-    solver_options.linear_solver_type = _options.refine_landmarks ? ceres::SPARSE_SCHUR : ceres::DENSE_QR;
-    solver_options.trust_region_strategy_type = ceres::LEVENBERG_MARQUARDT;
+    solver_options.max_num_iterations           = std::max(1, _options.max_iterations);
+    solver_options.num_threads                  = 1;
+    solver_options.linear_solver_type           = _options.refine_landmarks ? ceres::SPARSE_SCHUR : ceres::DENSE_QR;
+    solver_options.trust_region_strategy_type   = ceres::LEVENBERG_MARQUARDT;
     solver_options.minimizer_progress_to_stdout = false;
 
     ceres::Solver::Summary summary;
@@ -393,13 +401,17 @@ auto zenslam::local_bundle_adjustment::optimize(
         landmark_ptrs[i]->z = landmark_params[i][2];
     }
 
-    optimize_result.final_rmse = reprojection_rmse(
+    optimize_result.final_rmse = reprojection_rmse
+    (
         keyframe_params,
         landmark_params,
         observations,
         keyframe_index_by_id,
         landmark_index_by_id,
-        _camera_matrix);
+        _camera_matrix
+    );
 
+    // NOTE: Ceres takes ownership of cost functions and loss functions, so we don't need to delete them manually.
+    // ReSharper disable once CppDFAMemoryLeak
     return optimize_result;
 }
