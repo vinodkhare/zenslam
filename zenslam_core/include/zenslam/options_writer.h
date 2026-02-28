@@ -13,7 +13,6 @@ namespace zenslam
 
     private:
         static auto write_detection(YAML::Emitter& emitter, const detection_options& detection_options) -> void;
-        static auto write_tracking(YAML::Emitter& emitter, const tracking_options& tracking_options) -> void;
         static auto write_triangulation(YAML::Emitter& emitter, const triangulation_options& triangulation_options) -> void;
         static auto write_keyframe(YAML::Emitter& emitter, const keyframe_options& keyframe_options) -> void;
         static auto write_lba(YAML::Emitter& emitter, const lba_options& lba_options) -> void;

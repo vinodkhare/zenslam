@@ -110,6 +110,9 @@ namespace zenslam
             ImGui::Text("IMU Data: No data available");
         }
 
+        // Map points count
+        ImGui::Text("# Map Points: %zu", system.points3d.size());
+
         ImGui::EndChild();
         ImGui::PopStyleVar(2);
 
@@ -136,11 +139,8 @@ namespace zenslam
         ImVec4      color_rgba
         (
             static_cast<float>(s[2]) / 255.0f,
-            // R
             static_cast<float>(s[1]) / 255.0f,
-            // G
             static_cast<float>(s[0]) / 255.0f,
-            // B
             1.0f
         );
 

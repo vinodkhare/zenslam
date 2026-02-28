@@ -9,6 +9,8 @@
 
 #include <opencv2/core/types.hpp>
 
+#include <spdlog/spdlog.h>
+
 namespace zenslam
 {
     // Basic concept for checking index field
@@ -224,14 +226,19 @@ namespace zenslam
     template <indexable T>
     auto map<T>::operator+=(const map& other) -> void
     {
+        size_t count = 0;
+
         for (const auto& [index, item] : other)
         {
             if (!this->contains(item.index))
             {
                 this->_indices.push_back(item.index);
                 this->operator[](item.index) = item;
+                ++count;
             }
         }
+
+        SPDLOG_INFO("added {} items from other map ({} total)", count, this->size());
     }
 
     template <indexable T>

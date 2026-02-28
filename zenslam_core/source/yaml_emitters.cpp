@@ -35,3 +35,23 @@ YAML::Emitter& zenslam::operator<<(YAML::Emitter& emitter, const gui_options& gu
 
     return emitter;
 }
+
+YAML::Emitter& zenslam::operator<<(YAML::Emitter& emitter, const tracking_options& tracking_options)
+{
+    emitter << YAML::BeginMap;
+    emitter << YAML::Key << "klt_window_size" << YAML::Value << YAML::Flow << YAML::BeginSeq << tracking_options.klt_window_size.width << tracking_options.klt_window_size.height << YAML::EndSeq;
+    emitter << YAML::Key << "klt_max_level" << YAML::Value << tracking_options.klt_max_level;
+    emitter << YAML::Key << "klt_threshold" << YAML::Value << tracking_options.klt_threshold;
+    emitter << YAML::Key << "klt_min_tracked_ratio" << YAML::Value << tracking_options.klt_min_tracked_ratio;
+    emitter << YAML::Key << "landmark_match_distance" << YAML::Value << tracking_options.landmark_match_distance;
+    emitter << YAML::Key << "landmark_match_radius" << YAML::Value << tracking_options.landmark_match_radius;
+    emitter << YAML::Key << "use_keylines" << YAML::Value << tracking_options.use_keylines;
+    emitter << YAML::Key << "filter_epipolar" << YAML::Value << tracking_options.filter_epipolar;
+    emitter << YAML::Key << "epipolar_threshold" << YAML::Value << tracking_options.epipolar_threshold;
+    emitter << YAML::EndMap;
+    emitter << YAML::Newline;
+
+    
+
+    return emitter;
+}

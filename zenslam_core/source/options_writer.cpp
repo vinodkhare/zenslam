@@ -24,17 +24,6 @@ auto zenslam::options_writer::write_detection(YAML::Emitter& emitter, const dete
     emitter << YAML::EndMap;
 }
 
-auto zenslam::options_writer::write_tracking(YAML::Emitter& emitter, const tracking_options& tracking_options) -> void
-{
-    emitter << YAML::BeginMap;
-    emitter << YAML::Key << "klt_window_size" << YAML::Value << YAML::Flow << YAML::BeginSeq << tracking_options.klt_window_size.width << tracking_options.klt_window_size.height <<
-        YAML::EndSeq;
-    emitter << YAML::Key << "klt_max_level" << YAML::Value << tracking_options.klt_max_level;
-    emitter << YAML::Key << "klt_threshold" << YAML::Value << tracking_options.klt_threshold;
-    emitter << YAML::Key << "use_keylines" << YAML::Value << tracking_options.use_keylines;
-    emitter << YAML::EndMap;
-}
-
 auto zenslam::options_writer::write_triangulation(YAML::Emitter& emitter, const triangulation_options& triangulation_options) -> void
 {
     emitter << YAML::BeginMap;
@@ -111,8 +100,7 @@ auto zenslam::options_writer::write_slam(YAML::Emitter& emitter, const slam_opti
     emitter << YAML::Key << "detection" << YAML::Value;
     write_detection(emitter, slam_options.detection);
 
-    emitter << YAML::Key << "tracking" << YAML::Value;
-    write_tracking(emitter, slam_options.tracking);
+    emitter << YAML::Key << "tracking" << YAML::Value << slam_options.tracking;
 
     emitter << YAML::Key << "triangulation" << YAML::Value;
     write_triangulation(emitter, slam_options.triangulation);

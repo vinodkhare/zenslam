@@ -19,7 +19,7 @@ gui:
     show_keypoints: true
     show_keylines: true
     keyline_thickness: 1
-    point_cloud_opacity: 0.83
+    point_cloud_opacity: 0.3
     point_size: 4
 
 slam:
@@ -34,7 +34,7 @@ slam:
     frustum_margin: 50
     detection:
         clahe_enabled: false
-        stereo_rectify: true
+        stereo_rectify: false
         cell_size: [64, 64]
         fast_threshold: 1
         keyline_max_length: 128
@@ -43,9 +43,14 @@ slam:
         algorithm: PARALLEL_GRID
     tracking:
         klt_window_size: [63, 63]
-        klt_max_level: 1
+        klt_max_level: 4
         klt_threshold: 2
+        klt_min_tracked_ratio: 0.59999999999999998
+        landmark_match_distance: 32
+        landmark_match_radius: 50
         use_keylines: false
+        filter_epipolar: true
+        epipolar_threshold: 2
     triangulation:
         min_disparity: 1
         keyline_mask_margin: 10
