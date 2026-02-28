@@ -27,7 +27,7 @@ YAML::Emitter& zenslam::operator<<(YAML::Emitter& emitter, const gui_options& gu
     emitter << YAML::Key << "show_keypoints" << YAML::Value << gui_options.show_keypoints;
     emitter << YAML::Key << "show_keylines" << YAML::Value << gui_options.show_keylines;
     emitter << YAML::Key << "keyline_thickness" << YAML::Value << gui_options.keyline_thickness;
-    emitter << YAML::Key << "point_cloud_opacity" << YAML::Value << gui_options.point_cloud_opacity;
+    emitter << YAML::Key << "point_cloud_opacity" << YAML::Value << YAML::Precision(3) << gui_options.point_cloud_opacity;
     emitter << YAML::Key << "point_size" << YAML::Value << gui_options.point_size;
     emitter << YAML::EndMap;
     emitter << YAML::Newline;

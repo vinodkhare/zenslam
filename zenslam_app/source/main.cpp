@@ -76,8 +76,7 @@ int main(const int argc, char** argv)
         }
 
         // Load options from YAML file
-        zenslam::options_parser parser;
-        const auto&             options = parser.load(options_file);
+        auto options = zenslam::options_parser().load(options_file);
 
         spdlog::set_level(options.log_level);
         spdlog::set_pattern(options.log_pattern);

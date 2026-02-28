@@ -12,15 +12,16 @@ folder:
     imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
     imu_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0/imu0/data.csv
     timescale: 1e-09
-    skip_frames: 100
+    skip_frames: 0
     take_frames: 0
 
 gui:
     show_keypoints: true
     show_keylines: true
     keyline_thickness: 1
-    point_cloud_opacity: 1
+    point_cloud_opacity: 0.83
     point_size: 4
+
 slam:
     matcher: KNN
     matcher_ratio: 0.8
@@ -32,8 +33,8 @@ slam:
     enable_frustum_culling: true
     frustum_margin: 50
     detection:
-        clahe_enabled: true
-        stereo_rectify: false
+        clahe_enabled: false
+        stereo_rectify: true
         cell_size: [64, 64]
         fast_threshold: 1
         keyline_max_length: 128
