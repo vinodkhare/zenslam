@@ -43,6 +43,7 @@ add_library(${PROJECT_NAME}
         source/slam_thread.cpp
         source/options_parser.cpp
         source/options_printer.cpp
+        source/options_writer.cpp
         source/processor.cpp
         source/time_this.cpp
         

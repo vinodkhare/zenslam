@@ -15,10 +15,6 @@ include(Catch)
 find_package(OpenCV CONFIG REQUIRED)
 message(STATUS "Found OpenCV: ${OpenCV_VERSION}")
 
-add_executable(imu_calibration_test source/imu_calibration_test.cpp)
-target_link_libraries(imu_calibration_test PRIVATE zenslam_core Catch2::Catch2WithMain)
-catch_discover_tests(imu_calibration_test)
-
-add_executable(stereo_rectification_test source/stereo_rectification_test.cpp)
-target_link_libraries(stereo_rectification_test PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_imgproc opencv_calib3d)
-catch_discover_tests(stereo_rectification_test)
+add_executable(${PROJECT_NAME} source/zenslam_tests.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE zenslam_core Catch2::Catch2WithMain opencv_core opencv_imgproc opencv_calib3d)
+catch_discover_tests(${PROJECT_NAME})

@@ -13,8 +13,11 @@ namespace zenslam
     {
         try
         {
-            const auto node = YAML::LoadFile(yaml_file.string());
-            return load_from_node(node);
+            const auto node    = YAML::LoadFile(yaml_file.string());
+            auto       options = load_from_node(node);
+            options.file       = yaml_file;
+
+            return options;
         }
         catch (const std::exception& e)
         {
@@ -26,7 +29,6 @@ namespace zenslam
     all_options options_parser::load_from_node(const YAML::Node& root)
     {
         all_options opts;
-        opts.file        = get_or_default(root, "file", opts.file);
         opts.log_pattern = get_or_default(root, "log_pattern", opts.log_pattern);
 
         // Parse log level
@@ -306,7 +308,7 @@ namespace zenslam
 
     folder_options options_parser::parse_folder(const YAML::Node& node)
     {
-        folder_options opts;
+        folder_options opts = { };
         if (!node || !node.IsMap()) return opts;
 
         opts.root                 = get_or_default(node, "root", opts.root);

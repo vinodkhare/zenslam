@@ -14,6 +14,8 @@
 
 #include "application.h"
 
+#include "zenslam/options_writer.h"
+
 std::atomic is_running { true };
 
 void signal_handler(const int signal)
@@ -75,7 +77,7 @@ int main(const int argc, char** argv)
 
         // Load options from YAML file
         zenslam::options_parser parser;
-        const auto              options = parser.load(options_file);
+        const auto&             options = parser.load(options_file);
 
         spdlog::set_level(options.log_level);
         spdlog::set_pattern(options.log_pattern);
@@ -93,6 +95,8 @@ int main(const int argc, char** argv)
         };
 
         HelloImGui::Run(params);
+
+        zenslam::options_writer::write(options);
 
         return 0;
     }
