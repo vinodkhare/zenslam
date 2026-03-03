@@ -6,8 +6,8 @@
 #include "imgui_controls_window.h"
 #include "vtk_scene_window.h"
 
-zenslam::application::application(all_options options) :
-    _options { std::move(options) }
+zenslam::application::application(all_options& options) :
+    _options { options }
 {
     // Create window instances
     _windows.push_back(std::make_shared<opencv_window>(opencv_window::type::spatial_matches, _options.gui));

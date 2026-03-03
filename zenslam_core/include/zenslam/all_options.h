@@ -3,8 +3,11 @@
 #include <filesystem>
 #include <string>
 
-#include <opencv2/core/types.hpp>
 #include <spdlog/common.h>
+
+#include "folder_options.h"
+#include "gui_options.h"
+#include "tracking_options.h"
 
 #include "detection/detection_options.h"
 
@@ -24,23 +27,6 @@ namespace zenslam
     // Detection and Feature Extraction
     // ========================================================================
 
-
-    // ========================================================================
-    // Tracking and Optical Flow
-    // ========================================================================
-
-    struct tracking_options
-    {
-        cv::Size klt_window_size         = cv::Size(31, 31);
-        int      klt_max_level           = 3;
-        double   klt_threshold           = 1.0;
-        double   klt_min_tracked_ratio   = 0.6;
-        double   landmark_match_distance = 32.0; // Descriptor distance threshold for matching keypoints to landmarks
-        double   landmark_match_radius   = 50.0; // Radius in meters for landmark matching around the camera
-        bool     use_keylines            = true; // Enable keyline tracking and triangulation
-        bool     filter_epipolar         = true;
-        double   epipolar_threshold      = 1.0; // Threshold in pixels for epipolar filtering of keypoint matches
-    };
 
     // ========================================================================
     // Triangulation and 3D Reconstruction
@@ -148,39 +134,6 @@ namespace zenslam
         pnp_options           pnp;
         essential_options     essential;
         rigid_options         rigid;
-    };
-
-    // ========================================================================
-    // GUI and Visualization
-    // ========================================================================
-
-    struct gui_options
-    {
-        bool       show_keypoints       = true;
-        bool       show_keylines        = true;
-        cv::Scalar keyline_single_color = cv::Scalar(0, 255, 255); // BGR
-        cv::Scalar keyline_match_color  = cv::Scalar(0, 255, 0);   // BGR
-        int        keyline_thickness    = 1;
-        double     point_cloud_opacity  = 1.0;
-        float      point_size           = 4.0f;
-    };
-
-    // ========================================================================
-    // Folder and File Paths
-    // ========================================================================
-
-    struct folder_options
-    {
-        std::filesystem::path root                 = ".";
-        std::filesystem::path left                 = "cam0";
-        std::filesystem::path right                = "cam1";
-        std::filesystem::path output               = "output";
-        std::filesystem::path calibration_file     = "camchain.yaml";
-        std::filesystem::path groundtruth_file     = "groundtruth.csv";
-        std::filesystem::path imu_calibration_file = "imu_config.yaml";
-        std::filesystem::path imu_file             = "";
-        double                timescale            = 1.0;
-        size_t                max_frames           = 0; // 0 for unlimited
     };
 
     // ========================================================================

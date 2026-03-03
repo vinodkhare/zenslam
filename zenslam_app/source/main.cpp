@@ -14,6 +14,8 @@
 
 #include "application.h"
 
+#include "zenslam/options_writer.h"
+
 namespace
 {
     std::atomic is_running{ true };
@@ -99,8 +101,7 @@ int main(const int argc, char** argv)
         }
 
         // Load options from YAML file
-        zenslam::options_parser parser;
-        const auto              options = parser.load(options_file);
+        auto options = zenslam::options_parser().load(options_file);
 
         spdlog::set_level(options.log_level);
         spdlog::set_pattern(options.log_pattern);
@@ -123,6 +124,8 @@ int main(const int argc, char** argv)
         };
 
         HelloImGui::Run(params);
+
+        zenslam::options_writer::write(options);
 
         return 0;
     }

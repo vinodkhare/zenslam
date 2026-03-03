@@ -35,6 +35,7 @@ namespace zenslam
 
         // Read next frame and return it
         frame::sensor read();
+        void          skip(); // skip frame
 
         // Check if more frames are available
         [[nodiscard]] bool has_more() const noexcept

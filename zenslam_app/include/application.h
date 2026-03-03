@@ -16,7 +16,7 @@ namespace zenslam
     class application
     {
     public:
-        explicit application(all_options options);
+        explicit application(all_options& options);
         ~application();
 
         void render();
@@ -28,7 +28,7 @@ namespace zenslam
         std::mutex    _mutex  = { };
         frame::system _system = { };
 
-        all_options      _options       = { };
+        all_options&     _options;
         slam_thread      _slam_thread   = slam_thread { _options };
         reader_thread    _reader_thread = reader_thread { _options.folder };
         std::set<size_t> _line_indices  = { };

@@ -19,7 +19,7 @@ namespace zenslam
 
     tracker::~tracker() = default;
 
-    auto tracker::track(const frame::estimated& frame_0, const frame::processed& frame_1) const -> frame::tracked
+    auto tracker::track(const frame::estimated& frame_0, const frame::processed& frame_1, const cv::Affine3d& predicted_pose) const -> frame::tracked
     {
         // Timing variables
         std::chrono::system_clock::duration time_keypoint_tracking { 0 };
@@ -37,7 +37,7 @@ namespace zenslam
 
             {
                 time_this time_this { time_keypoint_tracking };
-                keypoints = _keypoint_tracker.track(frame_0, frame_1);
+                keypoints = _keypoint_tracker.track(frame_0, frame_1, predicted_pose);
             }
 
             {

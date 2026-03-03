@@ -135,6 +135,7 @@ namespace zenslam
         SPDLOG_INFO("[folder] imu_calibration_file: {}", opts.imu_calibration_file.string());
         SPDLOG_INFO("[folder] imu_file: {}", opts.imu_file.string());
         SPDLOG_INFO("[folder] timescale: {}", opts.timescale);
-        SPDLOG_INFO("[folder] max_frames: {}", opts.max_frames);
+        SPDLOG_INFO("[folder] skip_frames: {}", opts.skip_frames);
+        SPDLOG_INFO("[folder] take_frames: {}", opts.take_frames);
     }
 } // namespace zenslam

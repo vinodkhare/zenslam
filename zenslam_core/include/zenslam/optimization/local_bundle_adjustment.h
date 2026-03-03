@@ -24,13 +24,17 @@ namespace zenslam
             double final_rmse   = std::nan("nan");
         };
 
-        explicit local_bundle_adjustment(cv::Matx33d camera_matrix, lba_options options = {});
+        explicit local_bundle_adjustment(const cv::Matx33d& camera_matrix, const lba_options& options = { });
 
-        auto optimize(std::unordered_map<size_t, frame::estimated>& keyframes, point3d_cloud& landmarks,
-                      const std::vector<size_t>& fixed_keyframe_ids = {}) const -> result;
+        auto optimize
+        (
+            std::unordered_map<size_t, frame::estimated>& keyframes,
+            point3d_cloud&                                landmarks,
+            const std::vector<size_t>&                    fixed_keyframe_ids = { }
+        ) const -> result;
 
     private:
-        cv::Matx33d _camera_matrix = {};
-        lba_options _options       = {};
+        cv::Matx33d _camera_matrix = { };
+        lba_options _options       = { };
     };
 } // namespace zenslam

@@ -200,4 +200,12 @@ namespace zenslam
 
         return frame;
     }
+
+    void folder_reader::skip()
+    {
+        if (_current_index < _count)
+        {
+            ++_current_index;
+        }
+    }
 } // namespace zenslam

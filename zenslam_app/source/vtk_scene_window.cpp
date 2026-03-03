@@ -233,15 +233,14 @@ namespace zenslam { namespace
 
     void vtk_scene_window::render(const frame::system& system)
     {
-        // ReSharper disable once CppDFAConstantConditions
-        if (!_visible)
-            // ReSharper disable once CppDFAUnreachableCode
-            return;
-
+        // Initialize if needed
         if (!_initialized)
             initialize();
 
         const auto& S = *_scene;
+
+        // Show window if viewer is enabled
+        S.window->SetShowWindow(true);
 
         // Update camera axes transforms
         {
@@ -267,7 +266,7 @@ namespace zenslam { namespace
                 S.frustumImage->SetDataSpacing(1, 1, 1);
                 S.frustumImage->SetDataOrigin(0, 0, 0);
                 S.frustumImage->SetWholeExtent(0, imgRGB.cols - 1, 0, imgRGB.rows - 1, 0, 0);
-                S.frustumImage->SetDataExtentToWholeExtent();
+                S.frustumImage->SetDataExtent(0, imgRGB.cols - 1, 0, imgRGB.rows - 1, 0, 0);
                 S.frustumImage->SetDataScalarTypeToUnsignedChar();
                 S.frustumImage->SetNumberOfScalarComponents(3);
                 S.frustumImage->SetImportVoidPointer(imgRGB.data, 1); // 1 = do not copy, use existing buffer

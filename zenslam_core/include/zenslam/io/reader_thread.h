@@ -38,13 +38,20 @@ namespace zenslam
 
         void loop()
         {
-            auto       reader = folder_reader(_options);
-            const auto total  = reader.size();
+            auto reader = folder_reader(_options);
 
-            const auto frame_count = _options.max_frames ? std::min(_options.max_frames, total) : total;
+            // first skip frames if needed
+            for (size_t i = 0; i < _options.skip_frames && reader.has_more(); ++i)
+            {
+                reader.skip();
+            }
+
+            const auto& total         = reader.size();
+            const auto& remaining     = total - _options.skip_frames;
+            const auto& count_to_read = _options.take_frames ? std::min(_options.take_frames, remaining) : remaining;
 
             // Read frames sequentially for this batch
-            for (size_t i = 0; i < frame_count; ++i)
+            for (size_t i = 0; i < count_to_read; ++i)
             {
                 if (_stop_token.stop_requested())
                 {

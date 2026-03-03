@@ -1,10 +1,8 @@
 #pragma once
 
+#include <condition_variable>
 #include <queue>
 #include <thread>
-#include <condition_variable>
-
-#include <concurrentqueue/moodycamel/concurrentqueue.h>
 
 #include "zenslam/all_options.h"
 #include "zenslam/frame/system.h"
@@ -25,8 +23,6 @@ namespace zenslam
         void request_stop();
 
     private:
-        using concurrent_queue = moodycamel::ConcurrentQueue<frame::sensor>;
-
         all_options               _options = { };
         std::mutex                _mutex   = { };
         std::condition_variable   _cv      = { };

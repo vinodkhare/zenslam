@@ -106,21 +106,6 @@ namespace
         return bal;
     }
 
-    auto camera_pose_from_bal(const std::array<double, 9>& camera) -> cv::Affine3d
-    {
-        cv::Mat axis_angle(3, 1, CV_64F);
-        axis_angle.at<double>(0, 0) = camera[0];
-        axis_angle.at<double>(1, 0) = camera[1];
-        axis_angle.at<double>(2, 0) = camera[2];
-
-        cv::Mat rotation_cv;
-        cv::Rodrigues(axis_angle, rotation_cv);
-
-        const cv::Matx33d rotation(rotation_cv);
-        const cv::Vec3d translation{ camera[3], camera[4], camera[5] };
-        return { rotation, translation };
-    }
-
     auto run_bal_subset_lba_case(const std::filesystem::path& bal_path) -> void
     {
         const auto bal = load_bal_problem(bal_path);
@@ -522,8 +507,8 @@ TEST_CASE("local bundle adjustment handles larger landmark sets", "[optimization
 
     constexpr size_t landmark_count = 250;
 
-    const cv::Affine3d pose0_gt = cv::Affine3d::Identity();
-    const cv::Affine3d pose1_gt = cv::Affine3d(cv::Matx33d::eye(), cv::Vec3d(0.24, -0.01, 0.02));
+    const auto pose0_gt = cv::Affine3d::Identity();
+    const auto pose1_gt = cv::Affine3d(cv::Matx33d::eye(), cv::Vec3d(0.24, -0.01, 0.02));
 
     std::vector<zenslam::point3d> landmarks_gt;
     landmarks_gt.reserve(landmark_count);
