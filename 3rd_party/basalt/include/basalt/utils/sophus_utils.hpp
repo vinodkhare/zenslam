@@ -47,8 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Sophus {
 
-    constexpr double M_PI   = 3.14159265358979323846;
-    constexpr double M_PI_2 = M_PI / 2.0;
+  constexpr double kPi     = 3.14159265358979323846;
+  constexpr double kHalfPi = kPi / 2.0;
 
 /// @brief Decoupled version of logmap for SE(3)
 ///
@@ -222,15 +222,15 @@ inline void rightJacobianInvSO3(const Eigen::MatrixBase<Derived1> &phi,
     // Technically, log(exp(phi)exp(epsilon)) is not continuous / differentiable
     // at phi=pi, but we still aim to return a reasonable value for all valid
     // inputs.
-    BASALT_ASSERT(phi_norm <= M_PI + Sophus::Constants<Scalar>::epsilon());
+    BASALT_ASSERT(phi_norm <= kPi + Sophus::Constants<Scalar>::epsilon());
 
-    if (phi_norm < M_PI - Sophus::Constants<Scalar>::epsilonSqrt()) {
+    if (phi_norm < kPi - Sophus::Constants<Scalar>::epsilonSqrt()) {
       // regular case for range (0,pi)
       J += phi_hat2 * (1 / phi_norm2 - (1 + std::cos(phi_norm)) /
                                            (2 * phi_norm * std::sin(phi_norm)));
     } else {
       // 0th-order Taylor expansion around pi
-      J += phi_hat2 / (M_PI * M_PI);
+      J += phi_hat2 / (kPi * kPi);
     }
   } else {
     // Taylor expansion around 0
@@ -276,17 +276,17 @@ inline void rightJacobianInvSO3(const Eigen::MatrixBase<Derived1> &phi,
     // Check phi_norm > pi case and compute phi_hat (we assume that we later
     // don't use phi directly, and thus don't update it)
     Eigen::Matrix<Scalar, 3, 3> phi_hat;
-    if (phi_norm > M_PI) {
+    if (phi_norm > kPi) {
       // In the definition of the inverse Jacobian we consider the effect of a
       // perturbation on exp(phi). So here we normalize the angle to [0, 2pi)
       // and then flip the axis if it is in (pi, 2pi).
 
       // we know phi_norm > 0
-      Scalar phi_norm_wrapped = fmod(phi_norm, 2 * M_PI);
+      Scalar phi_norm_wrapped = fmod(phi_norm, 2 * kPi);
 
-      if (phi_norm_wrapped > M_PI) {
+      if (phi_norm_wrapped > kPi) {
         // flip axis and invert angle
-        phi_norm_wrapped = 2 * M_PI - phi_norm_wrapped;
+        phi_norm_wrapped = 2 * kPi - phi_norm_wrapped;
         phi_hat =
             Sophus::SO3<Scalar>::hat(-phi * (phi_norm_wrapped / phi_norm));
       } else {
@@ -312,9 +312,9 @@ inline void rightJacobianInvSO3(const Eigen::MatrixBase<Derived1> &phi,
     if (phi_norm < Sophus::Constants<Scalar>::epsilon()) {
       // 1st-order Taylor expansion around 0
       J += phi_hat2 / 12;
-    } else if (M_PI - phi_norm < Sophus::Constants<Scalar>::epsilon()) {
+    } else if (kPi - phi_norm < Sophus::Constants<Scalar>::epsilon()) {
       // 0th-order Taylor expansion around pi
-      J += phi_hat2 / (M_PI * M_PI);
+      J += phi_hat2 / (kPi * kPi);
     } else {
       // regular case for range (0,pi)
       J += phi_hat2 * (1 / phi_norm2 - (1 + std::cos(phi_norm)) /
@@ -400,15 +400,15 @@ inline void leftJacobianInvSO3(const Eigen::MatrixBase<Derived1> &phi,
     // Technically, log(exp(phi)exp(epsilon)) is not continuous / differentiable
     // at phi=pi, but we still aim to return a reasonable value for all valid
     // inputs.
-    BASALT_ASSERT(phi_norm <= M_PI + Sophus::Constants<Scalar>::epsilon());
+    BASALT_ASSERT(phi_norm <= kPi + Sophus::Constants<Scalar>::epsilon());
 
-    if (phi_norm < M_PI - Sophus::Constants<Scalar>::epsilonSqrt()) {
+    if (phi_norm < kPi - Sophus::Constants<Scalar>::epsilonSqrt()) {
       // regular case for range (0,pi)
       J += phi_hat2 * (1 / phi_norm2 - (1 + std::cos(phi_norm)) /
                                            (2 * phi_norm * std::sin(phi_norm)));
     } else {
       // 0th-order Taylor expansion around pi
-      J += phi_hat2 / (M_PI * M_PI);
+      J += phi_hat2 / (kPi * kPi);
     }
   } else {
     // Taylor expansion around 0

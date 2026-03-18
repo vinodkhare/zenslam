@@ -11,15 +11,15 @@ namespace ugpm
     const double kExpNormTolerance = 1e-14;
     const double kLogTraceTolerance = 3.0 - kExpNormTolerance;
 
-    constexpr double M_PI   = 3.14159265358979323846;
-    constexpr double M_PI_2 = M_PI / 2.0;
+    constexpr double kPi     = 3.14159265358979323846;
+    constexpr double kHalfPi = kPi / 2.0;
 
     const double kNumDtJacobianDelta = 0.01;
     const double kNumAccBiasJacobianDelta = 0.0001;
     const double kNumGyrBiasJacobianDelta = 0.0001;
 
     const double kSqrt2 = std::sqrt(2.0);
-    const double kSqrtPi = std::sqrt(M_PI);
+    const double kSqrtPi = std::sqrt(kPi);
 
     inline Mat3 eulToRotMat(double eul_z, double eul_y, double eul_x)
     {

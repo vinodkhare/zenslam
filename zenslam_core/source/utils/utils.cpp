@@ -92,8 +92,8 @@ auto zenslam::utils::to_points(const std::vector<point3d>& points3d) -> std::vec
     return points;
 }
 
-constexpr double M_PI   = 3.14159265358979323846;
-constexpr double M_PI_2 = M_PI / 2.0;
+constexpr double kPi     = 3.14159265358979323846;
+constexpr double kHalfPi = kPi / 2.0;
 
 auto zenslam::utils::matrix_to_euler(const cv::Matx33d& R) -> cv::Vec3d
 {
@@ -102,7 +102,7 @@ auto zenslam::utils::matrix_to_euler(const cv::Matx33d& R) -> cv::Vec3d
     {
         // Gimbal lock case
         constexpr auto yaw   = 0.0;                                   // Set yaw to zero as it's arbitrary in gimbal lock
-        const auto     pitch = -M_PI_2 * std::copysign(1.0, R(2, 0)); // -pi/2 if R(2,0)=1, pi/2 if R(2,0)=-1
+        const auto     pitch = -kHalfPi * std::copysign(1.0, R(2, 0)); // -pi/2 if R(2,0)=1, pi/2 if R(2,0)=-1
         const auto     roll  = yaw + std::atan2(-std::copysign(1.0, R(2, 0)) * R(0, 1), R(1, 1));
 
         return { roll, pitch, yaw };
