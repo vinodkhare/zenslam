@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "zenslam/all_options.h"
 #include "zenslam/calibration/calibration.h"
 #include "zenslam/frame/processed.h"
@@ -16,7 +18,7 @@ namespace zenslam
     class tracker
     {
     public:
-        tracker(calibration calib, slam_options opts, frame::system& system);
+        tracker(calibration calib, slam_options opts, frame::system& system, std::shared_ptr<pyr_lk> pyr_lk_impl);
 
         ~tracker();
 

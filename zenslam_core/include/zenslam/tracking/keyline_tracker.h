@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <opencv2/core.hpp>
 
 #include "zenslam/all_options.h"
@@ -8,6 +10,7 @@
 #include "zenslam/frame/processed.h"
 #include "zenslam/frame/system.h"
 #include "zenslam/mapping/triangulator.h"
+#include "zenslam/tracking/pyr_lk.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/line3d_cloud.h"
 
@@ -19,7 +22,7 @@ namespace zenslam
     class keyline_tracker
     {
     public:
-        keyline_tracker(calibration calib, slam_options opts, frame::system& system);
+        keyline_tracker(calibration calib, slam_options opts, frame::system& system, std::shared_ptr<pyr_lk> pyr_lk_impl);
 
         /**
          * @brief Returns the tracked keylines in the current frame corresponding to the input keylines from the previous frame, with updated positions and tracking status, along with new detections and triangulated 3D lines added.
@@ -44,6 +47,7 @@ namespace zenslam
         triangulation_options _triangulation = { };
         keyline_detector      _detector      = { _options };
         triangulator          _triangulator;
+        std::shared_ptr<pyr_lk> _pyr_lk = { };
 
         const frame::system& _system;
 

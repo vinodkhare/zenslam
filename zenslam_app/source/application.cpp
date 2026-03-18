@@ -6,8 +6,13 @@
 #include "imgui_controls_window.h"
 #include "vtk_scene_window.h"
 
+#include "zenslam/tracking/pyr_lk.h"
+#include "zenslam_metal/pyr_lk_factory.h"
+
 zenslam::application::application(all_options& options) :
-    _options { options }
+    _options { options },
+    _pyr_lk(zenslam::metal::create_metal_pyr_lk()),
+    _slam_thread(_options, _pyr_lk ? _pyr_lk : create_opencv_pyr_lk())
 {
     // Create window instances
     _windows.push_back(std::make_shared<opencv_window>(opencv_window::type::spatial_matches, _options.gui));

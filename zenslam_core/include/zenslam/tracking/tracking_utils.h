@@ -5,6 +5,7 @@
 #include <opencv2/core/mat.hpp>
 
 #include "zenslam/all_options.h"
+#include "zenslam/tracking/pyr_lk.h"
 #include "zenslam/types/keyline.h"
 #include "zenslam/types/map.h"
 
@@ -27,5 +28,6 @@ namespace zenslam::utils
         const std::vector<cv::Mat>& pyramid_0,
         const std::vector<cv::Mat>& pyramid_1,
         const map<keyline>&         keylines_map_0,
-        const slam_options&         options) -> std::vector<keyline>;
+        const slam_options&         options,
+        const pyr_lk&               pyr_lk_impl) -> std::vector<keyline>;
 }

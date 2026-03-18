@@ -14,13 +14,14 @@
 
 namespace zenslam
 {
-    keypoint_tracker::keypoint_tracker(calibration calib, slam_options opts, frame::system& system) :
+    keypoint_tracker::keypoint_tracker(calibration calib, slam_options opts, frame::system& system, std::shared_ptr<pyr_lk> pyr_lk_impl) :
         _calibration(std::move(calib)),
         _tracking(opts.tracking),
         _detection(opts.detection),
         _triangulation(opts.triangulation),
         _matcher(opts, opts.detection.descriptor == descriptor_type::ORB || opts.detection.descriptor == descriptor_type::FREAK),
         _triangulator(_calibration, opts),
+        _pyr_lk(std::move(pyr_lk_impl)),
         _system(system)
     {
         switch (_detection.algorithm)
@@ -138,7 +139,7 @@ namespace zenslam
         std::vector<uchar> status { };
         std::vector<float> errors { };
 
-        cv::calcOpticalFlowPyrLK
+        _pyr_lk->calc_optical_flow_pyr_lk
         (
             pyramid_0,
             pyramid_1,
@@ -154,7 +155,7 @@ namespace zenslam
 
         std::vector<cv::Point2f> points_0_back { };
         std::vector<uchar>       status_back { };
-        cv::calcOpticalFlowPyrLK
+        _pyr_lk->calc_optical_flow_pyr_lk
         (
             pyramid_1,
             pyramid_0,
@@ -357,7 +358,7 @@ namespace zenslam
 
         const auto& points_0 = keypoints_0 | std::views::transform([](const auto& kp){return kp.pt;}) | std::ranges::to<std::vector>();
 
-        const auto& points_1 = keypoints_0 | std::views::transform
+        auto points_1 = keypoints_0 | std::views::transform
         (
             [&](const keypoint& kp)
             {
@@ -375,7 +376,7 @@ namespace zenslam
         std::vector<uchar> status { };
         std::vector<float> errors { };
 
-        cv::calcOpticalFlowPyrLK
+        _pyr_lk->calc_optical_flow_pyr_lk
         (
             pyramid_0,
             pyramid_1,
@@ -391,7 +392,7 @@ namespace zenslam
 
         std::vector<cv::Point2f> points_0_back { };
         std::vector<uchar>       status_back { };
-        cv::calcOpticalFlowPyrLK
+        _pyr_lk->calc_optical_flow_pyr_lk
         (
             pyramid_1,
             pyramid_0,

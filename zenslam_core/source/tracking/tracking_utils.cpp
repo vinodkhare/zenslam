@@ -11,7 +11,7 @@
 #include "zenslam/all_options.h"
 #include "zenslam/types/keyline.h"
 
-auto zenslam::utils::track_keylines(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const map<keyline>& keylines_map_0, const slam_options& options)
+auto zenslam::utils::track_keylines(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const map<keyline>& keylines_map_0, const slam_options& options, const pyr_lk& pyr_lk_impl)
     -> std::vector<keyline>
 {
     if (keylines_map_0.empty())
@@ -43,7 +43,7 @@ auto zenslam::utils::track_keylines(const std::vector<cv::Mat>& pyramid_0, const
     std::vector<float> err_start_fwd;
     std::vector<float> err_end_fwd;
 
-    cv::calcOpticalFlowPyrLK(
+    pyr_lk_impl.calc_optical_flow_pyr_lk(
         pyramid_0,
         pyramid_1,
         start_points_0,
@@ -55,7 +55,7 @@ auto zenslam::utils::track_keylines(const std::vector<cv::Mat>& pyramid_0, const
         cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
         cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 
-    cv::calcOpticalFlowPyrLK(
+    pyr_lk_impl.calc_optical_flow_pyr_lk(
         pyramid_0,
         pyramid_1,
         end_points_0,
@@ -75,7 +75,7 @@ auto zenslam::utils::track_keylines(const std::vector<cv::Mat>& pyramid_0, const
     std::vector<float>       err_start_bwd;
     std::vector<float>       err_end_bwd;
 
-    cv::calcOpticalFlowPyrLK(
+    pyr_lk_impl.calc_optical_flow_pyr_lk(
         pyramid_1,
         pyramid_0,
         start_points_1,
@@ -87,7 +87,7 @@ auto zenslam::utils::track_keylines(const std::vector<cv::Mat>& pyramid_0, const
         cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 99, 0.001),
         cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 
-    cv::calcOpticalFlowPyrLK(
+    pyr_lk_impl.calc_optical_flow_pyr_lk(
         pyramid_1,
         pyramid_0,
         end_points_1,

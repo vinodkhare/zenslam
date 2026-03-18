@@ -7,12 +7,13 @@
 
 namespace zenslam
 {
-    keyline_tracker::keyline_tracker(calibration calib, slam_options opts, frame::system& system) :
+    keyline_tracker::keyline_tracker(calibration calib, slam_options opts, frame::system& system, std::shared_ptr<pyr_lk> pyr_lk_impl) :
         _options(opts.detection),
         _calibration(std::move(calib)),
         _tracking(opts.tracking),
         _triangulation(opts.triangulation),
         _triangulator { _calibration, opts },
+        _pyr_lk(std::move(pyr_lk_impl)),
         _system(system)
     {
     }
@@ -26,7 +27,7 @@ namespace zenslam
     {
         slam_options options;
         options.tracking = _tracking;
-        return utils::track_keylines(pyramid_0, pyramid_1, keylines_map_0, options);
+        return utils::track_keylines(pyramid_0, pyramid_1, keylines_map_0, options, *_pyr_lk);
     }
 
     auto keyline_tracker::track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> std::array<map<keyline>, 2>

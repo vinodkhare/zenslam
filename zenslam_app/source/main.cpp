@@ -34,28 +34,6 @@ int main(const int argc, char** argv)
 {
     const auto& signal = std::signal(SIGINT, signal_handler);
 
-    if (signal == SIG_ERR)
-    {
-        std::cerr << "Error setting up signal handler\n";
-        return 1;
-    }
-    
-    if (signal == SIG_DFL)
-    {
-        std::cerr << "Default signal handler in place, exiting on CTRL+C\n";
-        return 1;
-    }
-
-    if (signal == SIG_IGN)
-    {
-        std::cerr << "Ignoring SIGINT, CTRL+C will not stop the application\n";
-    }
-
-    if (signal == signal_handler)
-    {
-        SPDLOG_INFO("Custom signal handler installed successfully");
-    }
-
     spdlog::set_level(spdlog::level::trace);
 
     try
