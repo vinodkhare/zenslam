@@ -1,6 +1,7 @@
 #include "zenslam/tracking/keypoint_tracker.h"
 
 #include <algorithm>
+#include <future>
 #include <ranges>
 
 #include <__thread/jthread.h>
@@ -45,12 +46,17 @@ namespace zenslam
         map<keypoint> keypoints_0 = { };
         map<keypoint> keypoints_1 = { };
 
-        // Track keypoints using pose prediction for better initial guesses
-        const auto& keypoints_0_tracked = track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0], 0, predicted_pose, _system.points3d);
-        keypoints_0.add(keypoints_0_tracked);
-
-        const auto& keypoints_1_tracked = track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1], 1, predicted_pose, _system.points3d);
-        keypoints_1.add(keypoints_1_tracked);
+        // Track both cameras' keypoints in parallel using pose prediction
+        auto future_0 = std::async(std::launch::async, [&]
+        {
+            return track_keypoints(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keypoints[0], 0, predicted_pose, _system.points3d);
+        });
+        auto future_1 = std::async(std::launch::async, [&]
+        {
+            return track_keypoints(frame_0.pyramids[1], frame_1.pyramids[1], frame_0.keypoints[1], 1, predicted_pose, _system.points3d);
+        });
+        keypoints_0.add(future_0.get());
+        keypoints_1.add(future_1.get());
 
         auto keypoints_0_detected = _detector->detect_keypoints(frame_1.undistorted[0], keypoints_0);
         //keypoints_0.add(keypoints_0_detected);

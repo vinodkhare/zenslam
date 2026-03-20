@@ -1,7 +1,9 @@
 #include "zenslam/tracking/tracker.h"
 
-#include <iostream>
+#include <future>
 #include <utility>
+
+#include <spdlog/spdlog.h>
 
 #include "zenslam/time_this.h"
 
@@ -21,11 +23,6 @@ namespace zenslam
 
     auto tracker::track(const frame::estimated& frame_0, const frame::processed& frame_1, const cv::Affine3d& predicted_pose) const -> frame::tracked
     {
-        // Timing variables
-        std::chrono::system_clock::duration time_keypoint_tracking { 0 };
-        std::chrono::system_clock::duration time_keypoint_triangulation { 0 };
-        std::chrono::system_clock::duration time_keyline_tracking { 0 };
-        std::chrono::system_clock::duration time_keyline_triangulation { 0 };
         std::chrono::system_clock::duration time_total { 0 };
 
         std::array<map<keypoint>, 2> keypoints { };
@@ -35,36 +32,31 @@ namespace zenslam
         {
             time_this time_this_total { time_total };
 
-            {
-                time_this time_this { time_keypoint_tracking };
-                keypoints = _keypoint_tracker.track(frame_0, frame_1, predicted_pose);
-            }
-
-            {
-                time_this time_this { time_keypoint_triangulation };
-                points3d = _keypoint_tracker.triangulate(keypoints, frame_1.undistorted[0]);
-            }
-
+            // Launch keyline pipeline concurrently with keypoint pipeline
+            std::future<std::pair<std::array<map<keyline>, 2>, line3d_cloud>> keyline_future;
             if (_options.use_keylines)
             {
-                time_this time_this { time_keyline_tracking };
-                keylines = _keyline_tracker.track(frame_0, frame_1);
+                keyline_future = std::async(std::launch::async, [&]
+                {
+                    auto kls = _keyline_tracker.track(frame_0, frame_1);
+                    auto lns = _keyline_tracker.triangulate(kls, frame_1.undistorted[0]);
+                    return std::make_pair(std::move(kls), std::move(lns));
+                });
             }
 
-            if (_options.use_keylines)
+            keypoints = _keypoint_tracker.track(frame_0, frame_1, predicted_pose);
+            points3d  = _keypoint_tracker.triangulate(keypoints, frame_1.undistorted[0]);
+
+            if (keyline_future.valid())
             {
-                time_this time_this { time_keyline_triangulation };
-                lines3d = _keyline_tracker.triangulate(keylines, frame_1.undistorted[0]);
+                auto [kls, lns] = keyline_future.get();
+                keylines = std::move(kls);
+                lines3d  = std::move(lns);
             }
         }
 
-        // Log timing information
         auto ms = [](const auto& duration) { return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(); };
-        std::cout << "[TIMING] track() - Total: " << ms(time_total) << "ms "
-            << "| Stereo: " << ms(time_keypoint_tracking) << "ms "
-            << "| Triangulation: " << ms(time_keypoint_triangulation) << "ms "
-            << "| KL Match: " << ms(time_keyline_tracking) << "ms "
-            << "| KL Tri: " << ms(time_keyline_triangulation) << "ms" << std::endl;
+        SPDLOG_INFO("[TIMING] track() - Total: {}ms", ms(time_total));
 
         return { frame_1, keypoints, keylines, points3d, lines3d };
     }

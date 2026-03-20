@@ -27,8 +27,6 @@ namespace zenslam
     public:
         keypoint_tracker(calibration calib, slam_options opts, frame::system& system);
 
-
-
         /**
          * @brief Returns the tracked keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.
          * @param frame_0 Frame containing keypoints to track from (previous frame).
