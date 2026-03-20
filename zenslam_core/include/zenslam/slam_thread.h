@@ -1,11 +1,13 @@
 #pragma once
 
 #include <condition_variable>
+#include <memory>
 #include <queue>
 #include <thread>
 
 #include "zenslam/all_options.h"
 #include "zenslam/frame/system.h"
+#include "zenslam/tracking/pyr_lk.h"
 #include "zenslam/types/event.h"
 
 namespace zenslam
@@ -15,7 +17,7 @@ namespace zenslam
     public:
         event<frame::system> on_frame;
 
-        explicit slam_thread(all_options options);
+        explicit slam_thread(all_options options, std::shared_ptr<pyr_lk> pyr_lk_impl);
         ~slam_thread();
 
         void enqueue(const frame::sensor& frame);
@@ -24,6 +26,7 @@ namespace zenslam
 
     private:
         all_options               _options = { };
+        std::shared_ptr<pyr_lk>   _pyr_lk  = { };
         std::mutex                _mutex   = { };
         std::condition_variable   _cv      = { };
         std::queue<frame::sensor> _queue   = { };

@@ -7,6 +7,7 @@
 #include "zenslam/frame/tracked.h"
 #include "zenslam/tracking/keyline_tracker.h"
 #include "zenslam/tracking/keypoint_tracker.h"
+#include "zenslam/tracking/pyr_lk.h"
 
 namespace zenslam
 {
@@ -16,7 +17,7 @@ namespace zenslam
     class tracker
     {
     public:
-        tracker(calibration calib, slam_options opts, frame::system& system);
+        tracker(calibration calib, slam_options opts, frame::system& system, std::shared_ptr<pyr_lk> pyr_lk_impl);
 
         ~tracker();
 

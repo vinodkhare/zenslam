@@ -44,7 +44,7 @@ slam:
     tracking:
         klt_window_size: [63, 63]
         klt_max_level: 4
-        klt_backend: OPENCV
+        klt_backend: METAL
         klt_threshold: 2
         klt_min_tracked_ratio: 0.6
         landmark_match_distance: 32

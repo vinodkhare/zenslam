@@ -25,8 +25,8 @@
 #include "zenslam/utils/estimator.h"
 #include "zenslam/utils/utils.h"
 
-zenslam::slam_thread::slam_thread(all_options options) :
-    _options { std::move(options) } { vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF); }
+zenslam::slam_thread::slam_thread(all_options options, std::shared_ptr<pyr_lk> pyr_lk_impl) :
+    _options { std::move(options) }, _pyr_lk(std::move(pyr_lk_impl)) { vtkLogger::SetStderrVerbosity(vtkLogger::VERBOSITY_OFF); }
 
 
 zenslam::slam_thread::~slam_thread()
@@ -66,7 +66,7 @@ void zenslam::slam_thread::loop()
 
     // Create tracker (owns descriptor matcher configured from options)
     processor          processor { _options.slam, calibration };
-    tracker            tracker { calibration, _options.slam, system };
+    tracker            tracker { calibration, _options.slam, system, _pyr_lk };
     const estimator    estimator { calibration, _options.slam };
     motion_predictor   motion { };
     inertial_predictor inertial { cv::Vec3d { 0.0, 9.81, 0.0 }, calibration.cameras[0].pose_in_imu0 };

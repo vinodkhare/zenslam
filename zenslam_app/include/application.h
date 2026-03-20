@@ -10,6 +10,7 @@
 #include "zenslam/all_options.h"
 #include "zenslam/slam_thread.h"
 #include "zenslam/io/reader_thread.h"
+#include "zenslam/tracking/pyr_lk.h"
 
 namespace zenslam
 {
@@ -29,7 +30,8 @@ namespace zenslam
         frame::system _system = { };
 
         all_options&     _options;
-        slam_thread      _slam_thread   = slam_thread { _options };
+        std::shared_ptr<pyr_lk> _pyr_lk = { };
+        slam_thread      _slam_thread;
         reader_thread    _reader_thread = reader_thread { _options.folder };
         std::set<size_t> _line_indices  = { };
 

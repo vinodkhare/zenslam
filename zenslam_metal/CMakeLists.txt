@@ -12,6 +12,7 @@ find_package(spdlog CONFIG REQUIRED)
 message(STATUS "zenslam_metal: Found spdlog ${spdlog_VERSION}")
 
 add_library(${PROJECT_NAME}
+    source/pyr_lk_factory.cpp
     source/pyr_lk.mm
 )
 
@@ -22,6 +23,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
+    zenslam_core
     opencv_core
     opencv_video
     PRIVATE

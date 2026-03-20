@@ -65,6 +65,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         basalt_imu
         yaml-cpp::yaml-cpp
         zenslam_core
+        zenslam_metal
         Boost::program_options
         Microsoft.GSL::GSL
         VTK::CommonCore

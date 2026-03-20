@@ -10,9 +10,9 @@
 
 namespace zenslam
 {
-    tracker::tracker(calibration calib, slam_options opts, frame::system& system) :
+    tracker::tracker(calibration calib, slam_options opts, frame::system& system, std::shared_ptr<pyr_lk> pyr_lk_impl) :
         _options { opts.tracking },
-        _keypoint_tracker(calib, opts, system, create_opencv_pyr_lk()),
+        _keypoint_tracker(calib, opts, system, pyr_lk_impl ? std::move(pyr_lk_impl) : create_opencv_pyr_lk()),
         _keyline_tracker(calib, opts, system),
         _calibration(std::move(calib)),
         _epipolar_threshold(opts.epipolar_threshold),

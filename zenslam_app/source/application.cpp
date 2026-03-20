@@ -1,13 +1,36 @@
 #include "application.h"
 
 #include <opencv2/highgui.hpp>
+#include <spdlog/spdlog.h>
 
 #include "opencv_window.h"
 #include "imgui_controls_window.h"
 #include "vtk_scene_window.h"
 
+#include "zenslam/tracking/pyr_lk.h"
+#include "zenslam_metal/pyr_lk_factory.h"
+
+namespace
+{
+    auto select_klt_backend(const zenslam::all_options& options) -> std::shared_ptr<zenslam::pyr_lk>
+    {
+        switch (options.slam.tracking.klt_backend)
+        {
+        case zenslam::klt_backend::METAL:
+            SPDLOG_INFO("Using METAL KLT backend");
+            return zenslam::metal::create_metal_pyr_lk();
+        case zenslam::klt_backend::OPENCV:
+        default:
+            SPDLOG_INFO("Using OPENCV KLT backend");
+            return zenslam::create_opencv_pyr_lk();
+        }
+    }
+}
+
 zenslam::application::application(all_options& options) :
-    _options { options }
+    _options { options },
+    _pyr_lk(select_klt_backend(_options)),
+    _slam_thread(_options, _pyr_lk)
 {
     // Create window instances
     _windows.push_back(std::make_shared<opencv_window>(opencv_window::type::spatial_matches, _options.gui));
