@@ -18,6 +18,7 @@ namespace zenslam::frame
         std::chrono::system_clock::duration matching        = { };
         std::chrono::system_clock::duration triangulation   = { };
         std::chrono::system_clock::duration klt             = { };
+        std::chrono::system_clock::duration indexing        = { };
 
         auto print() const -> void;
     };

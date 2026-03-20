@@ -38,6 +38,7 @@ namespace zenslam
         _processing_history.push_back(std::chrono::duration<double>(system.durations.processing).count());
         _tracking_history.push_back(std::chrono::duration<double>(system.durations.tracking).count());
         _estimation_history.push_back(std::chrono::duration<double>(system.durations.estimation).count());
+        _indexing_history.push_back(std::chrono::duration<double>(system.durations.indexing).count());
         _total_history.push_back(std::chrono::duration<double>(system.durations.total).count());
 
         // Update point counts history
@@ -237,6 +238,7 @@ namespace zenslam
             ImPlot::PlotLine("Processing", _time_history.data(), _processing_history.data(), static_cast<int>(_time_history.size()));
             ImPlot::PlotLine("Tracking", _time_history.data(), _tracking_history.data(), static_cast<int>(_time_history.size()));
             ImPlot::PlotLine("Estimation", _time_history.data(), _estimation_history.data(), static_cast<int>(_time_history.size()));
+            ImPlot::PlotLine("Indexing", _time_history.data(), _indexing_history.data(), static_cast<int>(_time_history.size()));
             ImPlot::PlotLine("Total", _time_history.data(), _total_history.data(), static_cast<int>(_time_history.size()));
 
             ImPlot::EndPlot();

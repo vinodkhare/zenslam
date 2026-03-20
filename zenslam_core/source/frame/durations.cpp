@@ -20,5 +20,6 @@ namespace zenslam::frame
         SPDLOG_INFO("  KLT Tracking:  {:+.4f} s", std::chrono::duration<double>(klt).count());
         SPDLOG_INFO("  Matching:      {:+.4f} s", std::chrono::duration<double>(matching).count());
         SPDLOG_INFO("  Triangulation: {:+.4f} s", std::chrono::duration<double>(triangulation).count());
+        SPDLOG_INFO("  Index Build:   {:+.4f} s", std::chrono::duration<double>(indexing).count());
     }
 }

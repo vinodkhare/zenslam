@@ -62,6 +62,7 @@ namespace zenslam
         std::vector<double> _processing_history = {};
         std::vector<double> _tracking_history   = {};
         std::vector<double> _estimation_history = {};
+        std::vector<double> _indexing_history   = {};
         std::vector<double> _total_history      = {};
 
         // Feature count history structure
