@@ -11,5 +11,6 @@ enable_testing()
 add_subdirectory(3rd_party/ugpm)  # Builds both ugpm and basalt_imu targets
 add_subdirectory(zenslam_app)
 add_subdirectory(zenslam_core)
+add_subdirectory(zenslam_metal)
 add_subdirectory(zenslam_options)
 add_subdirectory(zenslam_tests)
