@@ -3,14 +3,14 @@ log_level: info
 log_pattern: "[%H:%M:%S.%e] [%^%L%$] [%!:%s:%#] %v"
 verb: RUN
 folder:
-    root: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0
+    root: /Users/vinodkhare/data/tumvi/dataset-corridor1_1024_16/mav0
     left: cam0/data
     right: cam1/data
-    output: /Volumes/DATA01/results/tumvi/dataset-corridor1_1024_16
-    calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/camchain.yaml
-    groundtruth_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/gt_imu.csv
-    imu_calibration_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
-    imu_file: /Volumes/DATA01/data/tumvi/dataset-corridor1_1024_16/mav0/imu0/data.csv
+    output: /Users/vinodkhare/data/tumvi/dataset-corridor1_1024_16/results
+    calibration_file: /Users/vinodkhare/data/tumvi/dataset-corridor1_1024_16/dso/camchain.yaml
+    groundtruth_file: /Users/vinodkhare/data/tumvi/dataset-corridor1_1024_16/dso/gt_imu.csv
+    imu_calibration_file: /Users/vinodkhare/data/tumvi/dataset-corridor1_1024_16/dso/imu_config.yaml
+    imu_file: /Users/vinodkhare/data/tumvi/dataset-corridor1_1024_16/mav0/imu0/data.csv
     timescale: 1e-09
     skip_frames: 0
     take_frames: 0

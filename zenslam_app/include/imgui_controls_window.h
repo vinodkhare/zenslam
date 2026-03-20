@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <imgui.h>
 #include <zenslam/all_options.h>
 
 #include "window.h"
@@ -27,6 +28,11 @@ namespace zenslam
          */
         imgui_controls_window(gui_options& gui_options);
 
+        /** Load the monospaced font into ImGui's font atlas.
+         *  Must be called from the HelloImGui LoadAdditionalFonts callback.
+         */
+        static void load_fonts();
+
         void               initialize() override;
         void               render(const frame::system& system) override;
         [[nodiscard]] bool is_initialized() const override { return _initialized; }
@@ -44,6 +50,8 @@ namespace zenslam
         void update_history(const frame::system& system);
 
     private:
+        inline static ImFont* s_font_mono = nullptr;
+
         gui_options& _gui_options;
         bool         _initialized = false;
         bool         _visible     = true;

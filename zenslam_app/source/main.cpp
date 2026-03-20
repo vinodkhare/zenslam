@@ -13,6 +13,7 @@
 #include <zenslam/utils/utils.h>
 
 #include "application.h"
+#include "imgui_controls_window.h"
 
 #include "zenslam/options_writer.h"
 
@@ -87,8 +88,9 @@ int main(const int argc, char** argv)
         HelloImGui::RunnerParams params { };
 
         // Force Metal backend
-        params.rendererBackendType = HelloImGui::RendererBackendType::Metal;
-        params.callbacks.ShowGui   = [&application]
+        params.rendererBackendType          = HelloImGui::RendererBackendType::Metal;
+        params.callbacks.LoadAdditionalFonts = zenslam::imgui_controls_window::load_fonts;
+        params.callbacks.ShowGui            = [&application]
         {
             application.render();
         };
