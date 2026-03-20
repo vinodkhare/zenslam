@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include <magic_enum/magic_enum.hpp>
 #include <opencv2/core/types.hpp>
 #include <yaml-cpp/yaml.h>
 
@@ -92,9 +93,12 @@ namespace zenslam
             if (!node || !node[key]) return default_val;
             try
             {
-                auto str = node[key].as<std::string>();
-                // This requires magic_enum - we'll implement in .cpp
-                return default_val; // Placeholder
+                const auto str = node[key].as<std::string>();
+                if (const auto value = magic_enum::enum_cast<E>(str))
+                {
+                    return value.value();
+                }
+                return default_val;
             }
             catch (const std::exception&)
             {

@@ -22,7 +22,7 @@ namespace zenslam
         catch (const std::exception& e)
         {
             SPDLOG_ERROR("Failed to load options from {}: {}", yaml_file.string(), e.what());
-            return all_options { };
+            return all_options{};
         }
     }
 
@@ -66,7 +66,8 @@ namespace zenslam
     detection_options options_parser::parse_detection(const YAML::Node& node)
     {
         detection_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.clahe_enabled      = get_or_default(node, "clahe_enabled", opts.clahe_enabled);
         opts.stereo_rectify     = get_or_default(node, "stereo_rectify", opts.stereo_rectify);
@@ -76,30 +77,10 @@ namespace zenslam
         opts.rectify_alpha      = get_or_default(node, "rectify_alpha", opts.rectify_alpha);
         opts.rectify_balance    = get_or_default(node, "rectify_balance", opts.rectify_balance);
 
-        // Parse feature detector and descriptor
-        if (node["feature"])
-        {
-            if (const auto enable_if = magic_enum::enum_cast<feature_type>(node["feature"].as<std::string>()))
-            {
-                opts.feature_detector = enable_if.value();
-            }
-        }
-
-        if (node["descriptor"])
-        {
-            if (const auto enable_if = magic_enum::enum_cast<descriptor_type>(node["descriptor"].as<std::string>()))
-            {
-                opts.descriptor = enable_if.value();
-            }
-        }
-
-        if (node["algorithm"])
-        {
-            if (const auto enable_if = magic_enum::enum_cast<detection_algorithm>(node["algorithm"].as<std::string>()))
-            {
-                opts.algorithm = enable_if.value();
-            }
-        }
+        // Parse feature detector and descriptor enums
+        opts.feature_detector = get_enum(node, "feature", opts.feature_detector);
+        opts.descriptor       = get_enum(node, "descriptor", opts.descriptor);
+        opts.algorithm        = get_enum(node, "algorithm", opts.algorithm);
 
         return opts;
     }
@@ -111,10 +92,12 @@ namespace zenslam
     tracking_options options_parser::parse_tracking(const YAML::Node& node)
     {
         tracking_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.klt_window_size         = get_size(node, "klt_window_size", opts.klt_window_size);
         opts.klt_max_level           = get_or_default(node, "klt_max_level", opts.klt_max_level);
+        opts.klt_backend             = get_enum(node, "klt_backend", opts.klt_backend);
         opts.klt_threshold           = get_or_default(node, "klt_threshold", opts.klt_threshold);
         opts.klt_min_tracked_ratio   = get_or_default(node, "klt_min_tracked_ratio", opts.klt_min_tracked_ratio);
         opts.landmark_match_distance = get_or_default(node, "landmark_match_distance", opts.landmark_match_distance);
@@ -133,7 +116,8 @@ namespace zenslam
     triangulation_options options_parser::parse_triangulation(const YAML::Node& node)
     {
         triangulation_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.min_disparity          = get_or_default(node, "min_disparity", opts.min_disparity);
         opts.keyline_mask_margin    = get_or_default(node, "keyline_mask_margin", opts.keyline_mask_margin);
@@ -154,7 +138,8 @@ namespace zenslam
     keyframe_options options_parser::parse_keyframe(const YAML::Node& node)
     {
         keyframe_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.min_frames        = get_or_default(node, "min_frames", opts.min_frames);
         opts.max_frames        = get_or_default(node, "max_frames", opts.max_frames);
@@ -173,7 +158,8 @@ namespace zenslam
     lba_options options_parser::parse_lba(const YAML::Node& node)
     {
         lba_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.max_iterations   = get_or_default(node, "max_iterations", opts.max_iterations);
         opts.huber_delta      = get_or_default(node, "huber_delta", opts.huber_delta);
@@ -189,7 +175,8 @@ namespace zenslam
     pnp_options options_parser::parse_pnp(const YAML::Node& node)
     {
         pnp_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.iterations             = get_or_default(node, "iterations", opts.iterations);
         opts.threshold              = get_or_default(node, "threshold", opts.threshold);
@@ -207,7 +194,8 @@ namespace zenslam
     essential_options options_parser::parse_essential(const YAML::Node& node)
     {
         essential_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.confidence  = get_or_default(node, "confidence", opts.confidence);
         opts.threshold   = get_or_default(node, "threshold", opts.threshold);
@@ -223,7 +211,8 @@ namespace zenslam
     rigid_options options_parser::parse_rigid(const YAML::Node& node)
     {
         rigid_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.threshold           = get_or_default(node, "threshold", opts.threshold);
         opts.iterations          = get_or_default(node, "iterations", opts.iterations);
@@ -239,7 +228,8 @@ namespace zenslam
     slam_options options_parser::parse_slam(const YAML::Node& node)
     {
         slam_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         // Parse matcher and related options
         if (node["matcher"])
@@ -289,7 +279,8 @@ namespace zenslam
     gui_options options_parser::parse_gui(const YAML::Node& node)
     {
         gui_options opts;
-        if (!node || !node.IsMap()) return opts;
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.show_keypoints       = get_or_default(node, "show_keypoints", opts.show_keypoints);
         opts.show_keylines        = get_or_default(node, "show_keylines", opts.show_keylines);
@@ -308,8 +299,9 @@ namespace zenslam
 
     folder_options options_parser::parse_folder(const YAML::Node& node)
     {
-        folder_options opts = { };
-        if (!node || !node.IsMap()) return opts;
+        folder_options opts = {};
+        if (!node || !node.IsMap())
+            return opts;
 
         opts.root                 = get_or_default(node, "root", opts.root);
         opts.left                 = get_or_default(node, "left", opts.left);
@@ -332,7 +324,8 @@ namespace zenslam
 
     cv::Size options_parser::get_size(const YAML::Node& node, const std::string& key, const cv::Size& default_val)
     {
-        if (!node || !node[key]) return default_val;
+        if (!node || !node[key])
+            return default_val;
         try
         {
             if (node[key].IsSequence() && node[key].size() >= 2)
@@ -348,17 +341,13 @@ namespace zenslam
 
     cv::Scalar options_parser::get_scalar(const YAML::Node& node, const std::string& key, const cv::Scalar& default_val)
     {
-        if (!node || !node[key]) return default_val;
+        if (!node || !node[key])
+            return default_val;
         try
         {
             if (node[key].IsSequence() && node[key].size() >= 3)
             {
-                return cv::Scalar
-                (
-                    node[key][0].as<double>(),
-                    node[key][1].as<double>(),
-                    node[key][2].as<double>()
-                );
+                return cv::Scalar(node[key][0].as<double>(), node[key][1].as<double>(), node[key][2].as<double>());
             }
         }
         catch (const std::exception&)

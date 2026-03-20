@@ -1,5 +1,7 @@
 #include "zenslam/yaml_emitters.h"
 
+#include <magic_enum/magic_enum.hpp>
+
 YAML::Emitter& zenslam::operator<<(YAML::Emitter& emitter, const folder_options& folder_options)
 {
     emitter << YAML::BeginMap;
@@ -41,6 +43,7 @@ YAML::Emitter& zenslam::operator<<(YAML::Emitter& emitter, const tracking_option
     emitter << YAML::BeginMap;
     emitter << YAML::Key << "klt_window_size" << YAML::Value << YAML::Flow << YAML::BeginSeq << tracking_options.klt_window_size.width << tracking_options.klt_window_size.height << YAML::EndSeq;
     emitter << YAML::Key << "klt_max_level" << YAML::Value << tracking_options.klt_max_level;
+    emitter << YAML::Key << "klt_backend" << YAML::Value << std::string { magic_enum::enum_name(tracking_options.klt_backend) };
     emitter << YAML::Key << "klt_threshold" << YAML::Value << tracking_options.klt_threshold;
     emitter << YAML::Key << "klt_min_tracked_ratio" << YAML::Value << tracking_options.klt_min_tracked_ratio;
     emitter << YAML::Key << "landmark_match_distance" << YAML::Value << tracking_options.landmark_match_distance;

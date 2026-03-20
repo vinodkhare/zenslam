@@ -29,7 +29,7 @@ BraceWrapping:
   SplitEmptyFunction: true
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
-BreakBeforeBraces: MultiLine
+BreakBeforeBraces: Custom
 BreakBeforeParens: MultiLine
 BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false
