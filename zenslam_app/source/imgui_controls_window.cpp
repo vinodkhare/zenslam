@@ -93,35 +93,91 @@ namespace zenslam
         {
             const auto& pose        = system[1].pose;
             const auto& translation = pose.translation();
+            const auto  euler_rad   = zenslam::utils::matrix_to_euler(pose.rotation());
+            const auto  euler_deg   = euler_rad * (180.0 / CV_PI);
 
-            // Extract Euler angles from rotation matrix (returns [roll, pitch, yaw] in radians)
-            const auto euler_rad = zenslam::utils::matrix_to_euler(pose.rotation());
+            ImGui::TextUnformatted("Pose");
+            constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg;
+            if (ImGui::BeginTable("pose_table", 4, table_flags))
+            {
+                ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Z", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableHeadersRow();
 
-            // Convert to degrees
-            const auto euler_deg = euler_rad * (180.0 / CV_PI);
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Pos (m)");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%+9.3f", translation[0]);
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%+9.3f", translation[1]);
+                ImGui::TableSetColumnIndex(3);
+                ImGui::Text("%+9.3f", translation[2]);
 
-            ImGui::Text("Pose:");
-            ImGui::Text("  Position [x, y, z]: [%.3f, %.3f, %.3f] m", translation[0], translation[1], translation[2]);
-            ImGui::Text("  Euler [roll, pitch, yaw]: [%.2f, %.2f, %.2f] deg", euler_deg[0], euler_deg[1], euler_deg[2]);
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Rot (deg)");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%+8.2f", euler_deg[0]); // roll
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%+8.2f", euler_deg[1]); // pitch
+                ImGui::TableSetColumnIndex(3);
+                ImGui::Text("%+8.2f", euler_deg[2]); // yaw
+
+                ImGui::EndTable();
+            }
             ImGui::Spacing();
         }
 
         // IMU Data
         if (!system[1].imu_data.empty())
         {
-            const auto& imu = system[1].imu_data.back(); // Show latest IMU measurement
+            const auto& imu = system[1].imu_data.back();
 
-            ImGui::Text("IMU Data (%zu samples):", system[1].imu_data.size());
-            ImGui::Text("  Angular Vel [wx, wy, wz]: [%.3f, %.3f, %.3f] rad/s", imu.gyr[0], imu.gyr[1], imu.gyr[2]);
-            ImGui::Text("  Linear Acc  [ax, ay, az]: [%.3f, %.3f, %.3f] m/s\u00b2", imu.acc[0], imu.acc[1], imu.acc[2]);
+            ImGui::Text("IMU  (%zu samples)", system[1].imu_data.size());
+            constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg;
+            if (ImGui::BeginTable("imu_table", 4, table_flags))
+            {
+                ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+                ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Z", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableHeadersRow();
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Gyro (rad/s)");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%+9.4f", imu.gyr[0]);
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%+9.4f", imu.gyr[1]);
+                ImGui::TableSetColumnIndex(3);
+                ImGui::Text("%+9.4f", imu.gyr[2]);
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Accel (m/s\u00b2)");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%+9.4f", imu.acc[0]);
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%+9.4f", imu.acc[1]);
+                ImGui::TableSetColumnIndex(3);
+                ImGui::Text("%+9.4f", imu.acc[2]);
+
+                ImGui::EndTable();
+            }
+            ImGui::Spacing();
         }
         else
         {
-            ImGui::Text("IMU Data: No data available");
+            ImGui::TextDisabled("IMU: no data");
+            ImGui::Spacing();
         }
 
         // Map points count
-        ImGui::Text("# Map Points: %zu", system.points3d.size());
+        ImGui::Text("Map Points:  %zu", system.points3d.size());
 
         ImGui::EndChild();
         ImGui::PopStyleVar(2);
