@@ -76,6 +76,7 @@ add_library(${PROJECT_NAME}
         source/detection/keypoint_detector_simple.cpp
         
         # Tracking
+        source/tracking/pyr_lk.cpp
         source/tracking/tracker.cpp
         source/tracking/keypoint_tracker.cpp
         source/tracking/keyline_tracker.cpp

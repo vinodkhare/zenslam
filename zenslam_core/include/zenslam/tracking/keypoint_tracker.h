@@ -14,6 +14,7 @@
 #include "zenslam/frame/tracked.h"
 #include "zenslam/mapping/triangulator.h"
 #include "zenslam/matching/matcher.h"
+#include "zenslam/tracking/pyr_lk.h"
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/point3d_cloud.h"
 
@@ -25,7 +26,7 @@ namespace zenslam
     class keypoint_tracker
     {
     public:
-        keypoint_tracker(calibration calib, slam_options opts, frame::system& system);
+        keypoint_tracker(calibration calib, slam_options opts, frame::system& system, std::shared_ptr<pyr_lk> pyr_lk_impl);
 
         /**
          * @brief Returns the tracked keypoints in the current frame corresponding to the input keypoints from the previous frame, with updated positions and tracking status.
@@ -52,6 +53,7 @@ namespace zenslam
         matcher                            _matcher                    = { slam_options { }, false };
         triangulator                       _triangulator               = { _calibration, slam_options { } };
         std::shared_ptr<keypoint_detector> _detector                   = { };
+        std::shared_ptr<pyr_lk>            _pyr_lk                     = { };
 
         const frame::system& _system;
 

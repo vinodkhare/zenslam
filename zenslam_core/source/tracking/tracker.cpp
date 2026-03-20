@@ -6,12 +6,13 @@
 #include <spdlog/spdlog.h>
 
 #include "zenslam/time_this.h"
+#include "zenslam/tracking/pyr_lk.h"
 
 namespace zenslam
 {
     tracker::tracker(calibration calib, slam_options opts, frame::system& system) :
         _options { opts.tracking },
-        _keypoint_tracker(calib, opts, system),
+        _keypoint_tracker(calib, opts, system, create_opencv_pyr_lk()),
         _keyline_tracker(calib, opts, system),
         _calibration(std::move(calib)),
         _epipolar_threshold(opts.epipolar_threshold),
