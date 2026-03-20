@@ -11,6 +11,7 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <vector>
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/video/tracking.hpp>
@@ -32,6 +33,7 @@ kernel void lk_optical_flow(
     device float2*                    pts1      [[ buffer(1)  ]],
     device uchar*                     status    [[ buffer(2)  ]],
     constant int&                     win_half  [[ buffer(3)  ]],
+    constant int&                     max_iters [[ buffer(4)  ]],
     uint                              gid       [[ thread_position_in_grid ]])
 {
     constexpr sampler s(coord::pixel, address::clamp_to_edge, filter::nearest);
@@ -42,8 +44,8 @@ kernel void lk_optical_flow(
     const float2 p0 = pts0[gid];
     float2       p1 = pts1[gid];
 
-    // Iterative LK: up to 30 Newton steps
-    for (int iter = 0; iter < 30; ++iter)
+    // Iterative LK with bounded Newton steps
+    for (int iter = 0; iter < max_iters; ++iter)
     {
         float Ixx = 0.f, Ixy = 0.f, Iyy = 0.f;
         float bx  = 0.f, by  = 0.f;
@@ -178,6 +180,206 @@ namespace
 
 } // anonymous namespace
 
+namespace
+{
+    class metal_pyr_lk_backend
+    {
+    public:
+        void calc(
+            const std::vector<cv::Mat>&     pyramid_0,
+            const std::vector<cv::Mat>&     pyramid_1,
+            const std::vector<cv::Point2f>& points_0,
+            std::vector<cv::Point2f>&       points_1,
+            std::vector<uchar>&             status,
+            std::vector<float>&             errors,
+            const cv::Size                  window_size,
+            const int                       max_level,
+            const int                       flags)
+        {
+            std::lock_guard lock { _mutex };
+
+            const auto n = static_cast<NSUInteger>(points_0.size());
+            if (n == 0) return;
+
+            auto& ctx = get_context();
+
+            const bool use_initial = (flags & cv::OPTFLOW_USE_INITIAL_FLOW) != 0;
+            if (!use_initial || points_1.size() != n)
+            {
+                points_1 = points_0;
+            }
+            status.assign(n, 1u);
+            errors.assign(n, 0.f);
+
+            const int max_valid_level = std::min(
+                static_cast<int>(std::min(pyramid_0.size(), pyramid_1.size())) - 1,
+                max_level);
+            if (max_valid_level < 0) return;
+
+            ensure_buffers(ctx.device, n);
+            ensure_texture_cache(static_cast<size_t>(max_valid_level) + 1);
+
+            const int win_half = window_size.width / 2;
+            const int max_iters = std::clamp(window_size.width / 2, 10, 16);
+            *reinterpret_cast<int*>(_buf_win.contents) = win_half;
+            *reinterpret_cast<int*>(_buf_iters.contents) = max_iters;
+            memcpy(_buf_status.contents, status.data(), n * sizeof(uchar));
+
+            const float initial_scale = 1.f / static_cast<float>(1 << max_valid_level);
+            _pts1_scaled.resize(n);
+            _pts0_level.resize(n);
+            for (NSUInteger i = 0; i < n; ++i)
+            {
+                _pts1_scaled[i] = points_1[i] * initial_scale;
+            }
+
+            id<MTLCommandBuffer> cmd = [ctx.queue commandBuffer];
+            const NSUInteger threads_per_group = std::min(n, ctx.pipeline.maxTotalThreadsPerThreadgroup);
+
+            for (int lvl = max_valid_level; lvl >= 0; --lvl)
+            {
+                const cv::Mat& img0 = pyramid_0[static_cast<size_t>(lvl)];
+                const cv::Mat& img1 = pyramid_1[static_cast<size_t>(lvl)];
+
+                const float lvl_scale = static_cast<float>(1 << lvl);
+                for (NSUInteger i = 0; i < n; ++i)
+                {
+                    _pts0_level[i] = points_0[i] / lvl_scale;
+                }
+
+                memcpy(_buf_pts0.contents, _pts0_level.data(), n * sizeof(cv::Point2f));
+                memcpy(_buf_pts1.contents, _pts1_scaled.data(), n * sizeof(cv::Point2f));
+
+                auto& textures = _textures[static_cast<size_t>(lvl)];
+                ensure_texture(textures.tex0, img0.cols, img0.rows, ctx.device);
+                ensure_texture(textures.tex1, img1.cols, img1.rows, ctx.device);
+
+                upload_to_texture(textures.tex0, img0);
+                upload_to_texture(textures.tex1, img1);
+
+                id<MTLComputeCommandEncoder> enc = [cmd computeCommandEncoder];
+                [enc setComputePipelineState:ctx.pipeline];
+                [enc setTexture:textures.tex0 atIndex:0];
+                [enc setTexture:textures.tex1 atIndex:1];
+                [enc setBuffer:_buf_pts0   offset:0 atIndex:0];
+                [enc setBuffer:_buf_pts1   offset:0 atIndex:1];
+                [enc setBuffer:_buf_status offset:0 atIndex:2];
+                [enc setBuffer:_buf_win    offset:0 atIndex:3];
+                [enc setBuffer:_buf_iters  offset:0 atIndex:4];
+                [enc dispatchThreads:MTLSizeMake(n, 1, 1)
+                    threadsPerThreadgroup:MTLSizeMake(threads_per_group, 1, 1)];
+                [enc endEncoding];
+
+                [cmd commit];
+                [cmd waitUntilCompleted];
+
+                memcpy(_pts1_scaled.data(), _buf_pts1.contents, n * sizeof(cv::Point2f));
+                if (lvl > 0)
+                {
+                    for (auto& pt : _pts1_scaled)
+                    {
+                        pt *= 2.f;
+                    }
+                }
+
+                if (lvl > 0)
+                {
+                    cmd = [ctx.queue commandBuffer];
+                }
+            }
+
+            points_1.resize(n);
+            memcpy(points_1.data(), _buf_pts1.contents, n * sizeof(cv::Point2f));
+            memcpy(status.data(), _buf_status.contents, n * sizeof(uchar));
+        }
+
+    private:
+        struct texture_pair
+        {
+            id<MTLTexture> tex0 = nil;
+            id<MTLTexture> tex1 = nil;
+        };
+
+        static void ensure_texture(id<MTLTexture>& tex, const int width, const int height, id<MTLDevice> device)
+        {
+            if (tex && tex.width == static_cast<NSUInteger>(width) && tex.height == static_cast<NSUInteger>(height))
+            {
+                return;
+            }
+
+            MTLTextureDescriptor* desc =
+                [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
+                                                                   width:static_cast<NSUInteger>(width)
+                                                                  height:static_cast<NSUInteger>(height)
+                                                               mipmapped:NO];
+            desc.usage       = MTLTextureUsageShaderRead;
+            desc.storageMode = MTLStorageModeShared;
+            tex = [device newTextureWithDescriptor:desc];
+        }
+
+        static void upload_to_texture(id<MTLTexture> tex, const cv::Mat& img)
+        {
+            assert(img.type() == CV_8UC1);
+            const cv::Mat contiguous = img.isContinuous() ? img : img.clone();
+            [tex replaceRegion:MTLRegionMake2D(0, 0,
+                                               static_cast<NSUInteger>(contiguous.cols),
+                                               static_cast<NSUInteger>(contiguous.rows))
+                   mipmapLevel:0
+                     withBytes:contiguous.data
+                   bytesPerRow:static_cast<NSUInteger>(contiguous.cols)];
+        }
+
+        void ensure_buffers(id<MTLDevice> device, const NSUInteger n)
+        {
+            const auto points_bytes = n * sizeof(cv::Point2f);
+            if (_capacity >= n && _buf_pts0 && _buf_pts1 && _buf_status)
+            {
+                return;
+            }
+
+            _buf_pts0   = [device newBufferWithLength:points_bytes options:MTLResourceStorageModeShared];
+            _buf_pts1   = [device newBufferWithLength:points_bytes options:MTLResourceStorageModeShared];
+            _buf_status = [device newBufferWithLength:n * sizeof(uchar) options:MTLResourceStorageModeShared];
+            if (!_buf_win)
+            {
+                _buf_win = [device newBufferWithLength:sizeof(int) options:MTLResourceStorageModeShared];
+            }
+            if (!_buf_iters)
+            {
+                _buf_iters = [device newBufferWithLength:sizeof(int) options:MTLResourceStorageModeShared];
+            }
+            _capacity = n;
+        }
+
+        void ensure_texture_cache(const size_t levels)
+        {
+            if (_textures.size() < levels)
+            {
+                _textures.resize(levels);
+            }
+        }
+
+        std::mutex _mutex;
+        NSUInteger _capacity = 0;
+
+        id<MTLBuffer> _buf_pts0 = nil;
+        id<MTLBuffer> _buf_pts1 = nil;
+        id<MTLBuffer> _buf_status = nil;
+        id<MTLBuffer> _buf_win = nil;
+        id<MTLBuffer> _buf_iters = nil;
+
+        std::vector<cv::Point2f> _pts0_level;
+        std::vector<cv::Point2f> _pts1_scaled;
+        std::vector<texture_pair> _textures;
+    };
+
+    auto get_backend() -> metal_pyr_lk_backend&
+    {
+        static metal_pyr_lk_backend backend;
+        return backend;
+    }
+} // namespace
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -190,95 +392,21 @@ namespace zenslam::metal
         std::vector<cv::Point2f>&       points_1,
         std::vector<uchar>&             status,
         std::vector<float>&             errors,
-        cv::Size  window_size,
-        int       max_level,
-        int       flags)
+        cv::Size                        window_size,
+        int                             max_level,
+        int                             flags)
     {
-        const auto n = static_cast<NSUInteger>(points_0.size());
-        if (n == 0) return;
-
-        auto& ctx = get_context();
-
-        // Initialise output arrays
-        const bool use_initial = (flags & cv::OPTFLOW_USE_INITIAL_FLOW) != 0;
-        if (!use_initial)
-            points_1 = points_0;            // start from same position
-        status.assign(n, 1u);
-        errors.assign(n, 0.f);
-
-        const int win_half = window_size.width / 2;
-        const int levels   = std::min(max_level, static_cast<int>(pyramid_0.size()) - 1);
-
-        // Scale initial guesses to the coarsest level
-        const float scale = 1.f / static_cast<float>(1 << levels);
-        std::vector<cv::Point2f> pts1_scaled(n);
-        for (NSUInteger i = 0; i < n; ++i)
-            pts1_scaled[i] = points_1[i] * scale;
-
-        // Allocate persistent GPU buffers (reused across levels)
-        id<MTLBuffer> buf_pts0   = [ctx.device newBufferWithLength:n * sizeof(cv::Point2f)
-                                                           options:MTLResourceStorageModeShared];
-        id<MTLBuffer> buf_pts1   = [ctx.device newBufferWithLength:n * sizeof(cv::Point2f)
-                                                           options:MTLResourceStorageModeShared];
-        id<MTLBuffer> buf_status = [ctx.device newBufferWithLength:n * sizeof(uchar)
-                                                           options:MTLResourceStorageModeShared];
-        id<MTLBuffer> buf_win    = [ctx.device newBufferWithLength:sizeof(int)
-                                                           options:MTLResourceStorageModeShared];
-
-        memcpy(buf_status.contents, status.data(), n);
-        *reinterpret_cast<int*>(buf_win.contents) = win_half;
-
-        // Process pyramid coarse → fine
-        for (int lvl = levels; lvl >= 0; --lvl)
-        {
-            const cv::Mat& img0 = pyramid_0[static_cast<size_t>(lvl)];
-            const cv::Mat& img1 = pyramid_1[static_cast<size_t>(lvl)];
-
-            // Scale pts0 to current level
-            const float lvl_scale = static_cast<float>(1 << lvl);
-            std::vector<cv::Point2f> pts0_lvl(n);
-            for (NSUInteger i = 0; i < n; ++i)
-                pts0_lvl[i] = points_0[i] / lvl_scale;
-
-            // Upload pts0 and pts1 for this level
-            memcpy(buf_pts0.contents, pts0_lvl.data(), n * sizeof(cv::Point2f));
-            memcpy(buf_pts1.contents, pts1_scaled.data(), n * sizeof(cv::Point2f));
-
-            id<MTLTexture> tex0 = mat_to_texture(img0, ctx.device);
-            id<MTLTexture> tex1 = mat_to_texture(img1, ctx.device);
-
-            id<MTLCommandBuffer>      cmd    = [ctx.queue commandBuffer];
-            id<MTLComputeCommandEncoder> enc = [cmd computeCommandEncoder];
-
-            [enc setComputePipelineState:ctx.pipeline];
-            [enc setTexture:tex0 atIndex:0];
-            [enc setTexture:tex1 atIndex:1];
-            [enc setBuffer:buf_pts0   offset:0 atIndex:0];
-            [enc setBuffer:buf_pts1   offset:0 atIndex:1];
-            [enc setBuffer:buf_status offset:0 atIndex:2];
-            [enc setBuffer:buf_win    offset:0 atIndex:3];
-
-            const NSUInteger threads_per_group = std::min(
-                n, ctx.pipeline.maxTotalThreadsPerThreadgroup);
-            [enc dispatchThreads:MTLSizeMake(n, 1, 1)
-                threadsPerThreadgroup:MTLSizeMake(threads_per_group, 1, 1)];
-
-            [enc endEncoding];
-            [cmd commit];
-            [cmd waitUntilCompleted];
-
-            // Read back pts1 and scale up for next finer level
-            memcpy(pts1_scaled.data(), buf_pts1.contents, n * sizeof(cv::Point2f));
-            if (lvl > 0)
-            {
-                for (auto& pt : pts1_scaled)
-                    pt *= 2.f;
-            }
-        }
-
-        // Read back final results
-        memcpy(points_1.data(), buf_pts1.contents, n * sizeof(cv::Point2f));
-        memcpy(status.data(),   buf_status.contents, n);
+        get_backend().calc(
+            pyramid_0,
+            pyramid_1,
+            points_0,
+            points_1,
+            status,
+            errors,
+            window_size,
+            max_level,
+            flags
+        );
     }
 
 } // namespace zenslam::metal

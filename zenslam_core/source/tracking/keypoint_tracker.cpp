@@ -125,6 +125,11 @@ namespace zenslam
 
     std::vector<keypoint> keypoint_tracker::track_keypoints(const std::vector<cv::Mat>& pyramid_0, const std::vector<cv::Mat>& pyramid_1, const std::vector<keypoint>& keypoints_0) const
     {
+        if (keypoints_0.empty())
+        {
+            return {};
+        }
+
         // Stereo tracking without pose prediction (for simultaneous stereo pairs)
         const auto&        points_0 = keypoints_0 | std::views::transform([](const keypoint& kp) { return kp.pt; }) | std::ranges::to<std::vector>();
         auto               points_1 = points_0; // No predicted motion for stereo pairs
@@ -159,16 +164,13 @@ namespace zenslam
 
         assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == errors.size());
 
-        std::vector<cv::Point2f> candidate_points_0;
-        std::vector<cv::Point2f> candidate_points_1;
         std::vector<size_t>      candidate_indices;
+        candidate_indices.reserve(points_1.size());
 
         for (size_t i = 0; i < points_1.size(); ++i)
         {
             if (status[i] && status_back[i] && cv::norm(points_0_back[i] - points_0[i]) < _tracking.klt_threshold)
             {
-                candidate_points_0.push_back(points_0[i]);
-                candidate_points_1.push_back(points_1[i]);
                 candidate_indices.push_back(i);
             }
         }
@@ -354,6 +356,11 @@ namespace zenslam
         const point3d_cloud&         points3d
     ) const -> std::vector<keypoint>
     {
+        if (keypoints_0.empty())
+        {
+            return {};
+        }
+
         // Compute the pose for this specific camera
         const auto camera_pose = (camera_index == 0) ? predicted_pose : predicted_pose * _calibration.cameras[camera_index].pose_in_cam0;
 
@@ -406,16 +413,13 @@ namespace zenslam
 
         assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == errors.size());
 
-        std::vector<cv::Point2f> candidate_points_0;
-        std::vector<cv::Point2f> candidate_points_1;
         std::vector<size_t>      candidate_indices;
+        candidate_indices.reserve(points_1.size());
 
         for (size_t i = 0; i < points_1.size(); ++i)
         {
             if (status[i] && status_back[i] && cv::norm(points_0_back[i] - points_0[i]) < _tracking.klt_threshold)
             {
-                candidate_points_0.push_back(points_0[i]);
-                candidate_points_1.push_back(points_1[i]);
                 candidate_indices.push_back(i);
             }
         }
