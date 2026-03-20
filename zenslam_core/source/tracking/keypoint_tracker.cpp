@@ -20,8 +20,8 @@ namespace zenslam
 {
     keypoint_tracker::keypoint_tracker(calibration calib, slam_options opts, frame::system& system, std::shared_ptr<pyr_lk> pyr_lk_impl) :
         _calibration(std::move(calib)), _tracking(opts.tracking), _detection(opts.detection), _triangulation(opts.triangulation),
-        _matcher(opts, opts.detection.descriptor == descriptor_type::ORB || opts.detection.descriptor == descriptor_type::FREAK),
-        _triangulator(_calibration, opts), _pyr_lk(std::move(pyr_lk_impl)), _system(system)
+        _matcher(opts, opts.detection.descriptor == descriptor_type::ORB || opts.detection.descriptor == descriptor_type::FREAK), _triangulator(_calibration, opts),
+        _pyr_lk(std::move(pyr_lk_impl)), _system(system)
     {
         if (!_pyr_lk)
         {
@@ -54,7 +54,7 @@ namespace zenslam
         keypoints_1.add(future_1.get());
 
         auto keypoints_0_detected = _detector->detect_keypoints(frame_1.undistorted[0], keypoints_0);
-        // keypoints_0.add(keypoints_0_detected);
+        keypoints_0.add(keypoints_0_detected);
 
         assign_landmark_indices(keypoints_0_detected, _system.points3d, frame_0.pose.translation(), _tracking.landmark_match_radius, _tracking.landmark_match_distance);
 
@@ -67,7 +67,7 @@ namespace zenslam
         keypoints_1.add(keypoints_1_tracked_stereo);
 
         auto keypoints_1_detected = _detector->detect_keypoints(frame_1.undistorted[1], keypoints_1);
-        // keypoints_1.add(keypoints_1_detected);
+        keypoints_1.add(keypoints_1_detected);
 
         assign_landmark_indices(keypoints_1_detected, _system.points3d, frame_0.pose.translation(), _tracking.landmark_match_radius, _tracking.landmark_match_distance);
 
@@ -136,35 +136,17 @@ namespace zenslam
         std::vector<uchar> status{};
         std::vector<float> errors{};
 
-        _pyr_lk->calc_optical_flow_pyr_lk(
-            pyramid_0,
-            pyramid_1,
-            points_0,
-            points_1,
-            status,
-            errors,
-            _tracking.klt_window_size,
-            _tracking.klt_max_level,
-            cv::OPTFLOW_LK_GET_MIN_EIGENVALS
-        );
+        _pyr_lk->calc_optical_flow_pyr_lk(pyramid_0, pyramid_1, points_0, points_1, status, errors, _tracking.klt_window_size, _tracking.klt_max_level, cv::OPTFLOW_LK_GET_MIN_EIGENVALS);
 
         std::vector<cv::Point2f> points_0_back{};
         std::vector<uchar>       status_back{};
         _pyr_lk->calc_optical_flow_pyr_lk(
-            pyramid_1,
-            pyramid_0,
-            points_1,
-            points_0_back,
-            status_back,
-            errors,
-            _tracking.klt_window_size,
-            _tracking.klt_max_level,
-            cv::OPTFLOW_LK_GET_MIN_EIGENVALS
+            pyramid_1, pyramid_0, points_1, points_0_back, status_back, errors, _tracking.klt_window_size, _tracking.klt_max_level, cv::OPTFLOW_LK_GET_MIN_EIGENVALS
         );
 
         assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == errors.size());
 
-        std::vector<size_t>      candidate_indices;
+        std::vector<size_t> candidate_indices;
         candidate_indices.reserve(points_1.size());
 
         for (size_t i = 0; i < points_1.size(); ++i)
@@ -301,19 +283,47 @@ namespace zenslam
 
     auto keypoint_tracker::filter_epipolar(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1) const -> std::vector<std::pair<keypoint, keypoint>>
     {
-        const auto& keypoints_0_matched = keypoints_0.values_matched(keypoints_1) | std::ranges::to<std::vector>();
-        const auto& keypoints_1_matched = keypoints_1.values_matched(keypoints_0) | std::ranges::to<std::vector>();
+        const auto keypoints_0_matched = keypoints_0.values_matched(keypoints_1) | std::ranges::to<std::vector>();
+        const auto keypoints_1_matched = keypoints_1.values_matched(keypoints_0) | std::ranges::to<std::vector>();
 
-        const auto& point2f_0 = keypoints_0_matched | std::views::transform([](const keypoint& kp) { return kp.pt; }) | std::ranges::to<std::vector>();
-        const auto& point2f_1 = keypoints_1_matched | std::views::transform([](const keypoint& kp) { return kp.pt; }) | std::ranges::to<std::vector>();
+        std::vector<std::pair<keypoint, keypoint>> matched_pairs;
+        matched_pairs.reserve(std::min(keypoints_0_matched.size(), keypoints_1_matched.size()));
+        for (size_t i = 0; i < keypoints_0_matched.size() && i < keypoints_1_matched.size(); ++i)
+        {
+            matched_pairs.emplace_back(keypoints_0_matched[i], keypoints_1_matched[i]);
+        }
 
-        const cv::Matx33d& fundamental_matrix = cv::findFundamentalMat(
-            point2f_0,
-            point2f_1,
-            cv::FM_RANSAC,
-            _triangulation.reprojection_threshold,
-            0.99 // RANSAC confidence
-        );
+        if (matched_pairs.size() < 8)
+        {
+            return matched_pairs;
+        }
+
+        const auto point2f_0 = keypoints_0_matched | std::views::transform([](const keypoint& kp) { return kp.pt; }) | std::ranges::to<std::vector>();
+        const auto point2f_1 = keypoints_1_matched | std::views::transform([](const keypoint& kp) { return kp.pt; }) | std::ranges::to<std::vector>();
+
+        cv::Mat fundamental_matrix;
+        try
+        {
+            fundamental_matrix = cv::findFundamentalMat(
+                point2f_0,
+                point2f_1,
+                cv::FM_RANSAC,
+                _triangulation.reprojection_threshold,
+                0.99 // RANSAC confidence
+            );
+        }
+        catch (const cv::Exception&)
+        {
+            return matched_pairs;
+        }
+
+        if (fundamental_matrix.empty() || fundamental_matrix.rows != 3 || fundamental_matrix.cols != 3)
+        {
+            return matched_pairs;
+        }
+
+        cv::Matx33d F;
+        fundamental_matrix.copyTo(F);
 
         const auto& error = std::views::zip(keypoints_0_matched, keypoints_1_matched) |
             std::views::transform(
@@ -324,7 +334,7 @@ namespace zenslam
                                     const auto pt0 = cv::Vec3d(kp0.pt.x, kp0.pt.y, 1);
                                     const auto pt1 = cv::Vec3d(kp1.pt.x, kp1.pt.y, 1);
 
-                                    return (pt0.t() * fundamental_matrix * pt1)[0];
+                                    return (pt0.t() * F * pt1)[0];
                                 }
             ) |
             std::ranges::to<std::vector>();
@@ -368,16 +378,16 @@ namespace zenslam
 
         auto points_1 = keypoints_0 |
             std::views::transform(
-                                   [&](const keypoint& kp)
-                                   {
-                                       if (points3d.contains_index(kp.index))
-                                       {
-                                           const auto& point2d = utils::project_point(_calibration.camera_matrix[camera_index], camera_pose, points3d.at(kp.index));
-                                           return cv::Point2f(static_cast<float>(point2d.x), static_cast<float>(point2d.y));
-                                       }
+                            [&](const keypoint& kp)
+                            {
+                                if (points3d.contains_index(kp.index))
+                                {
+                                    const auto& point2d = utils::project_point(_calibration.camera_matrix[camera_index], camera_pose, points3d.at(kp.index));
+                                    return cv::Point2f(static_cast<float>(point2d.x), static_cast<float>(point2d.y));
+                                }
 
-                                       return kp.pt;
-                                   }
+                                return kp.pt;
+                            }
             ) |
             std::ranges::to<std::vector>();
 
@@ -386,34 +396,18 @@ namespace zenslam
         std::vector<float> errors{};
 
         _pyr_lk->calc_optical_flow_pyr_lk(
-            pyramid_0,
-            pyramid_1,
-            points_0,
-            points_1,
-            status,
-            errors,
-            _tracking.klt_window_size,
-            _tracking.klt_max_level,
-            cv::OPTFLOW_LK_GET_MIN_EIGENVALS | cv::OPTFLOW_USE_INITIAL_FLOW
+            pyramid_0, pyramid_1, points_0, points_1, status, errors, _tracking.klt_window_size, _tracking.klt_max_level, cv::OPTFLOW_LK_GET_MIN_EIGENVALS | cv::OPTFLOW_USE_INITIAL_FLOW
         );
 
         std::vector<cv::Point2f> points_0_back{};
         std::vector<uchar>       status_back{};
         _pyr_lk->calc_optical_flow_pyr_lk(
-            pyramid_1,
-            pyramid_0,
-            points_1,
-            points_0_back,
-            status_back,
-            errors,
-            _tracking.klt_window_size,
-            _tracking.klt_max_level,
-            cv::OPTFLOW_LK_GET_MIN_EIGENVALS
+            pyramid_1, pyramid_0, points_1, points_0_back, status_back, errors, _tracking.klt_window_size, _tracking.klt_max_level, cv::OPTFLOW_LK_GET_MIN_EIGENVALS
         );
 
         assert(points_0.size() == points_1.size() && points_1.size() == status.size() && status.size() == errors.size());
 
-        std::vector<size_t>      candidate_indices;
+        std::vector<size_t> candidate_indices;
         candidate_indices.reserve(points_1.size());
 
         for (size_t i = 0; i < points_1.size(); ++i)

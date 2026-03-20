@@ -36,7 +36,8 @@ kernel void lk_optical_flow(
     constant int&                     max_iters [[ buffer(4)  ]],
     uint                              gid       [[ thread_position_in_grid ]])
 {
-    constexpr sampler s(coord::pixel, address::clamp_to_edge, filter::nearest);
+    // Linear sampling is important for stable subpixel LK convergence.
+    constexpr sampler s(coord::pixel, address::clamp_to_edge, filter::linear);
 
     if (status[gid] == 0u)
         return;
@@ -76,7 +77,7 @@ kernel void lk_optical_flow(
 
         // Solve 2×2 system: [Ixx Ixy; Ixy Iyy] * [vx; vy] = [bx; by]
         const float det = Ixx * Iyy - Ixy * Ixy;
-        if (fabs(det) < 1e-6f)
+        if (fabs(det) < 1e-9f)
         {
             status[gid] = 0u;
             return;
@@ -220,7 +221,7 @@ namespace
             ensure_texture_cache(static_cast<size_t>(max_valid_level) + 1);
 
             const int win_half = window_size.width / 2;
-            const int max_iters = std::clamp(window_size.width / 2, 10, 16);
+            const int max_iters = std::clamp(window_size.width / 2, 20, 30);
             *reinterpret_cast<int*>(_buf_win.contents) = win_half;
             *reinterpret_cast<int*>(_buf_iters.contents) = max_iters;
             memcpy(_buf_status.contents, status.data(), n * sizeof(uchar));

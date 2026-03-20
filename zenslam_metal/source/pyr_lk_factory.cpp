@@ -2,10 +2,6 @@
 
 #include "zenslam_metal/pyr_lk.h"
 
-#include <spdlog/spdlog.h>
-
-#include "zenslam/tracking/pyr_lk.h"
-
 namespace zenslam::metal
 {
     namespace
@@ -13,10 +9,6 @@ namespace zenslam::metal
         class metal_pyr_lk final : public zenslam::pyr_lk
         {
         public:
-            metal_pyr_lk() : _opencv_backend(zenslam::create_opencv_pyr_lk())
-            {
-            }
-
             void calc_optical_flow_pyr_lk(
                 const std::vector<cv::Mat>&     pyramid_0,
                 const std::vector<cv::Mat>&     pyramid_1,
@@ -29,23 +21,6 @@ namespace zenslam::metal
                 const int                       flags
             ) const override
             {
-                constexpr size_t min_points_for_metal = 32;
-                if (points_0.size() < min_points_for_metal)
-                {
-                    _opencv_backend->calc_optical_flow_pyr_lk(
-                        pyramid_0,
-                        pyramid_1,
-                        points_0,
-                        points_1,
-                        status,
-                        errors,
-                        window_size,
-                        max_level,
-                        flags
-                    );
-                    return;
-                }
-
                 zenslam::metal::calc_optical_flow_pyr_lk(
                     pyramid_0,
                     pyramid_1,
@@ -58,9 +33,6 @@ namespace zenslam::metal
                     flags
                 );
             }
-
-        private:
-            std::shared_ptr<zenslam::pyr_lk> _opencv_backend;
         };
     } // namespace
 
