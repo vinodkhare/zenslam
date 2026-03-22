@@ -9,6 +9,7 @@
 
 #include "zenslam/all_options.h"
 #include "zenslam/frame/estimated.h"
+#include "zenslam/frame/system.h"
 #include "zenslam/types/point3d.h"
 
 namespace zenslam::utils
@@ -68,6 +69,9 @@ namespace zenslam::utils
     );
 
     auto draw_matches_spatial(const frame::estimated& frame, const map<point3d>& points) -> cv::Mat;
+
+    auto draw_matches_spatial(const frame::estimated& frame, const point3d_cloud& points) -> cv::Mat;
+
     auto draw_matches_temporal
     (
         const frame::estimated& frame_0,

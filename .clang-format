@@ -2,7 +2,6 @@
 Language: Cpp
 BasedOnStyle: LLVM
 AccessModifierOffset: -4
-AlignAfterOpenBracket: BlockIndent
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignOperands: false
@@ -10,8 +9,6 @@ AlignTrailingComments: true
 AllowShortBlocksOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: false
 AlwaysBreakTemplateDeclarations: Yes
-BinPackArguments: false
-BinPackParameters: false
 BraceWrapping: 
   AfterCaseLabel: true
   AfterClass: true

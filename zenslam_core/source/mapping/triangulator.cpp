@@ -124,7 +124,7 @@ namespace zenslam
                 errors_1[i] < _options.triangulation.reprojection_threshold &&
                 angles[i] > 0.25 && angles[i] < 180 - 0.25)
             {
-                points3d.add(points3d_all[i]);
+                points3d.add(static_cast<map_point3d>(points3d_all[i]));
             }
         }
 

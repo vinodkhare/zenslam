@@ -32,6 +32,8 @@ namespace zenslam::pose_estimation
             const std::map<size_t, point3d>& map_points_1) const -> std::optional<pose_data>;
 
         /// Estimate pose using 2D-2D correspondences with scale recovery
+        /// @param map_keypoints_0 2D keypoints from previous frame
+        /// @param map_keypoints_1 2D keypoints from current frame
         /// @param map_points3d_0 3D points from previous frame for scale estimation
         [[nodiscard]] auto estimate_2d2d(
             const std::map<size_t, keypoint>& map_keypoints_0,

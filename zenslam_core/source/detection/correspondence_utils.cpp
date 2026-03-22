@@ -7,13 +7,16 @@
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/line3d.h"
 #include "zenslam/types/point3d.h"
+#include "zenslam/types/point3d_cloud.h"
 
-auto zenslam::utils::correspondence_2d2d(
+auto zenslam::utils::correspondence_2d2d
+(
     const std::map<size_t, keypoint>& keypoints_0,
     const std::map<size_t, keypoint>& keypoints_1,
     std::vector<cv::Point2f>&         points2f_0,
     std::vector<cv::Point2f>&         points2f_1,
-    std::vector<size_t>&              indices) -> void
+    std::vector<size_t>&              indices
+) -> void
 {
     for (const auto& index_1 : keypoints_1 | std::views::keys)
     {
@@ -26,16 +29,18 @@ auto zenslam::utils::correspondence_2d2d(
     }
 }
 
-void zenslam::utils::correspondences_3d2d(
-    const std::map<size_t, point3d>&  points,
+void zenslam::utils::correspondences_3d2d
+(
+    const point3d_cloud&              points,
     const std::map<size_t, keypoint>& keypoints,
     std::vector<cv::Point3d>&         points3d,
     std::vector<cv::Point2d>&         points2d,
-    std::vector<size_t>&              indices)
+    std::vector<size_t>&              indices
+)
 {
     for (const auto& index : keypoints | std::views::keys)
     {
-        if (points.contains(index))
+        if (points.contains_index(index))
         {
             points3d.emplace_back(points.at(index));
             points2d.emplace_back(keypoints.at(index).pt);
@@ -44,12 +49,14 @@ void zenslam::utils::correspondences_3d2d(
     }
 }
 
-void zenslam::utils::correspondences_3d3d(
+void zenslam::utils::correspondences_3d3d
+(
     const std::map<size_t, point3d>& points_map_0,
     const std::map<size_t, point3d>& points_map_1,
     std::vector<cv::Point3d>&        points3d_0,
     std::vector<cv::Point3d>&        points3d_1,
-    std::vector<size_t>&             indexes)
+    std::vector<size_t>&             indexes
+)
 {
     for (const auto& index : points_map_1 | std::views::keys)
     {
@@ -62,14 +69,16 @@ void zenslam::utils::correspondences_3d3d(
     }
 }
 
-void zenslam::utils::correspondences_3d2d_lines(
+void zenslam::utils::correspondences_3d2d_lines
+(
     const std::map<size_t, line3d>&  lines_map,
     const std::map<size_t, keyline>& keylines_map,
     std::vector<cv::Point3d>&        lines3d_p1,
     std::vector<cv::Point3d>&        lines3d_p2,
     std::vector<cv::Point2d>&        keylines2d_p1,
     std::vector<cv::Point2d>&        keylines2d_p2,
-    std::vector<size_t>&             indices)
+    std::vector<size_t>&             indices
+)
 {
     for (const auto& index : keylines_map | std::views::keys)
     {
@@ -87,14 +96,16 @@ void zenslam::utils::correspondences_3d2d_lines(
     }
 }
 
-void zenslam::utils::correspondences_3d3d_lines(
+void zenslam::utils::correspondences_3d3d_lines
+(
     const std::map<size_t, line3d>& lines_map_0,
     const std::map<size_t, line3d>& lines_map_1,
     std::vector<cv::Point3d>&       lines3d_0_p1,
     std::vector<cv::Point3d>&       lines3d_0_p2,
     std::vector<cv::Point3d>&       lines3d_1_p1,
     std::vector<cv::Point3d>&       lines3d_1_p2,
-    std::vector<size_t>&            indices)
+    std::vector<size_t>&            indices
+)
 {
     for (const auto& index : lines_map_1 | std::views::keys)
     {

@@ -37,27 +37,15 @@ namespace zenslam
         estimator(estimator&&) noexcept;
         estimator& operator=(estimator&&) noexcept;
 
-        /// Estimate pose using 3D points and tracked features
-        /// @param points3d_0 Map of 3D points in frame 0
-        /// @param tracked_1 Tracked frame 1 containing keypoints and/or 3D points
-        /// @return Struct containing all pose estimates and the chosen pose
-        [[nodiscard]] auto estimate_pose
-        (
-            const std::map<size_t, point3d>& points3d_0,
-            const frame::tracked&            tracked_1
-        ) const
-            -> estimate_pose_result;
-
         /// Estimate pose using full frame information (points and lines)
         /// @param frame_0 Previous estimated frame
         /// @param tracked_1 Current tracked frame
         /// @return Struct containing all pose estimates and the chosen pose
-        [[nodiscard]] auto estimate_pose
+        auto estimate_pose
         (
             const frame::estimated& frame_0,
             const frame::tracked&   tracked_1
-        ) const
-            -> estimate_pose_result;
+        ) const -> estimate_pose_result;
 
         [[nodiscard]] pose_data estimate_pose_3d2d(const frame::estimated& frame_0, const frame::tracked& tracked_1, const size_t& camera_index) const;
 

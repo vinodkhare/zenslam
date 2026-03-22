@@ -1,23 +1,20 @@
 #include "zenslam/pose_estimation/combined_estimator.h"
 
 #include <set>
-
 #include <gsl/narrow>
-
 #include <spdlog/spdlog.h>
 
 #include "zenslam/detection/correspondence_utils.h"
 #include "zenslam/mapping/triangulation_utils.h"
 #include "zenslam/pose_estimation/common.h"
 #include "zenslam/utils/rigid_transform.h"
-#include "zenslam/utils/utils_slam.h"
 #include "zenslam/utils/utils_std.h"
 
 namespace zenslam::pose_estimation
 {
     auto combined_estimator::estimate_3d2d
     (
-        const std::map<size_t, point3d>&  map_points_0,
+        const point3d_cloud&              map_points_0,
         const std::map<size_t, keypoint>& map_keypoints_1,
         const std::map<size_t, line3d>&   map_lines_0,
         const std::map<size_t, keyline>&  map_keylines_1
@@ -71,9 +68,9 @@ namespace zenslam::pose_estimation
 
         // Run PnP RANSAC using slam_options directly
         const cv::Mat K(_calibration.camera_matrix[0]);
-        auto          pnp = solve_pnp_ransac(all_points3d, all_points2d, K, _options);
+        auto          [rvec, tvec, inliers, success] = solve_pnp_ransac(all_points3d, all_points2d, K, _options);
 
-        if (!pnp.success)
+        if (!success)
         {
             SPDLOG_DEBUG("Combined 3D-2D PnP RANSAC failed");
             return std::nullopt;
@@ -81,10 +78,10 @@ namespace zenslam::pose_estimation
 
         // Split inliers back to feature IDs
         const auto [inlier_point_ids, inlier_line_ids] =
-            split_feature_inliers(pnp.inliers, num_points, point_indices, line_indices);
+            split_feature_inliers(inliers, num_points, point_indices, line_indices);
 
         pose_data out;
-        out.pose = cv::Affine3d(pnp.rvec, pnp.tvec);
+        out.pose = cv::Affine3d(rvec, tvec);
 
         // Combine all feature IDs
         out.indices.reserve(point_indices.size() + line_indices.size());
@@ -104,9 +101,9 @@ namespace zenslam::pose_estimation
         (
             all_points3d,
             all_points2d,
-            pnp.inliers,
-            pnp.rvec,
-            pnp.tvec,
+            inliers,
+            rvec,
+            tvec,
             K
         );
 
@@ -116,7 +113,7 @@ namespace zenslam::pose_estimation
             all_points3d.size(),
             num_points,
             lines3d_p1.size(),
-            pnp.inliers.size(),
+            inliers.size(),
             inlier_point_ids.size(),
             inlier_line_ids.size()
         );
@@ -206,7 +203,7 @@ namespace zenslam::pose_estimation
             split_feature_inliers(outliers_int, num_points, point_indices, line_indices);
 
         pose_data out;
-        out.pose = cv::Affine3d{R, t};
+        out.pose = cv::Affine3d { R, t };
 
         // Combine all feature IDs
         out.indices.reserve(point_indices.size() + line_indices.size());
@@ -237,11 +234,40 @@ namespace zenslam::pose_estimation
         return out;
     }
 
+    auto combined_estimator::estimate_3d3d
+    (
+        const point3d_cloud&            map_points_0,
+        const point3d_cloud&            map_points_1,
+        const std::map<size_t, line3d>& map_lines_0,
+        const std::map<size_t, line3d>& map_lines_1
+    ) const -> std::optional<pose_data>
+    {
+        auto map_0 = std::map<size_t, point3d> { };
+        for (const auto& [id, point] : map_points_0)
+        {
+            map_0[id] = static_cast<point3d>(point);
+        }
+
+        auto map_1 = std::map<size_t, point3d> { };
+        for (const auto& [id, point] : map_points_1)
+        {
+            map_1[id] = static_cast<point3d>(point);
+        }
+
+        return estimate_3d3d
+        (
+            map_0,
+            map_1,
+            map_lines_0,
+            map_lines_1
+        );
+    }
+
     auto combined_estimator::estimate_2d2d
     (
         const std::map<size_t, keypoint>& map_keypoints_0,
         const std::map<size_t, keypoint>& map_keypoints_1,
-        const std::map<size_t, point3d>&  map_points3d_0,
+        const point3d_cloud&              map_points3d_0,
         const std::map<size_t, line3d>&   map_lines_0,
         const std::map<size_t, keyline>&  map_keylines_0,
         const std::map<size_t, keyline>&  map_keylines_1
@@ -296,7 +322,7 @@ namespace zenslam::pose_estimation
 
         // Estimate essential matrix
         std::vector<uchar> inlier_mask;
-        auto E = cv::findEssentialMat
+        auto               E = cv::findEssentialMat
         (
             all_points0,
             all_points1,
@@ -315,7 +341,7 @@ namespace zenslam::pose_estimation
 
         // Recover pose
         cv::Mat R, t;
-        auto inliers = cv::recoverPose
+        auto    inliers = cv::recoverPose
         (
             E,
             all_points0,
@@ -341,17 +367,18 @@ namespace zenslam::pose_estimation
             if (!inlier_mask[i]) continue;
 
             cv::Point3d X0;
-            auto has_3d = false;
+            auto        has_3d = false;
 
             if (i < num_points)
             {
                 // Point inlier
                 if (auto itX = map_points3d_0.find(point_indices[i]); itX != map_points3d_0.end())
                 {
-                    X0     = static_cast<cv::Point3d>(itX->second);
+                    X0     = static_cast<cv::Point3d>(itX->second); // NOLINT(*-slicing)
                     has_3d = true;
                 }
-            } else
+            }
+            else
             {
                 // Line endpoint inlier
                 const auto line_endpoint_idx = i - num_points;
@@ -384,8 +411,8 @@ namespace zenslam::pose_estimation
 
         // Triangulate and compute scale
         const auto K(_calibration.camera_matrix[0]);
-        const auto        Rm = cv::Matx33d(R);
-        const auto        tv = cv::Vec3d(t);
+        const auto Rm = cv::Matx33d(R);
+        const auto tv = cv::Vec3d(t);
 
         cv::Matx34d P0
         (
@@ -403,9 +430,9 @@ namespace zenslam::pose_estimation
             0.0
         );
 
-        const auto KR = K * Rm;
-        const auto Kt = K * tv;
-        cv::Matx34d       P1
+        const auto  KR = K * Rm;
+        const auto  Kt = K * tv;
+        cv::Matx34d P1
         (
             KR(0, 0),
             KR(0, 1),
@@ -517,7 +544,8 @@ namespace zenslam::pose_estimation
             {
                 // Point inlier
                 result.point_ids.insert(point_indices[idx]);
-            } else
+            }
+            else
             {
                 // Line endpoint inlier - map back to line ID
                 const auto line_endpoint_idx = idx - num_points;

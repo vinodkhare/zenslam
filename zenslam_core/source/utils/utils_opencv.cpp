@@ -331,6 +331,16 @@ auto zenslam::utils::draw_matches_spatial(const frame::estimated& frame, const m
     return matches_image;
 }
 
+auto zenslam::utils::draw_matches_spatial(const frame::estimated& frame, const point3d_cloud& points) -> cv::Mat
+{
+    auto map = zenslam::map<point3d> { };
+    for (const auto& [id, point] : points)
+    {
+        map[id] = static_cast<point3d>(point);
+    }
+    return draw_matches_spatial(frame, map);
+}
+
 auto zenslam::utils::draw_matches_temporal(const frame::estimated& frame_0, const frame::estimated& frame_1, const gui_options& gui_options) -> cv::Mat
 {
     // Prepare images with keylines
@@ -499,7 +509,7 @@ auto zenslam::utils::projection_decompose(const cv::Matx34d& projection) -> std:
         if (camera_matrix.at<double>(i, i) < 0)
         {
             camera_matrix.col(i) *= -1;
-            rotation.row(i) *= -1;
+            rotation.row(i)      *= -1;
         }
     }
 

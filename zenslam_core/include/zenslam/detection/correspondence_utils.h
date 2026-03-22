@@ -9,6 +9,7 @@
 #include "zenslam/types/keypoint.h"
 #include "zenslam/types/line3d.h"
 #include "zenslam/types/point3d.h"
+#include "zenslam/types/point3d_cloud.h"
 
 namespace zenslam::utils
 {
@@ -28,11 +29,12 @@ namespace zenslam::utils
         std::vector<size_t>&              indices) -> void;
 
     auto correspondences_3d2d(
-        const std::map<size_t, point3d>&  points,
+        const point3d_cloud&              points,
         const std::map<size_t, keypoint>& keypoints,
         std::vector<cv::Point3d>&         points3d,
         std::vector<cv::Point2d>&         points2d,
-        std::vector<size_t>&              indices) -> void;
+        std::vector<size_t>&              indices
+    ) -> void;
 
     /**
      * Returns 3D-3D correspondences between two sets of 3D points based on matching indices.

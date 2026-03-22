@@ -4,11 +4,12 @@
 
 #include "keypoint.h"
 #include "map.h"
+#include "map_point3d.h"
 #include "point3d.h"
 
 namespace zenslam
 {
-    class point3d_cloud : public map<point3d>, public nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, point3d_cloud>, point3d_cloud, 3>
+    class point3d_cloud : public map<map_point3d>, public nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, point3d_cloud>, point3d_cloud, 3>
     {
     public:
         point3d_cloud();

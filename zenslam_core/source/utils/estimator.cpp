@@ -30,71 +30,11 @@ namespace zenslam
 
     auto estimator::estimate_pose
     (
-        const std::map<size_t, point3d>& points3d_0,
-        const frame::tracked&            tracked_1
-    ) const
-        -> estimate_pose_result
-    {
-        estimate_pose_result result{};
-
-        // Combined 3D-3D estimation using both points and lines
-        if (const auto pose = _combined_estimator->estimate_3d3d
-        (
-            points3d_0,
-            tracked_1.points3d,
-            std::map<size_t, line3d>{},
-            // No previous lines in this overload
-            tracked_1.lines3d
-        ))
-        {
-            result.pose_3d3d       = *pose;
-            result.pose_3d3d_lines = *pose; // Backward compatibility
-        }
-
-        // Combined 3D-2D estimation using both points and lines
-        if (const auto pose = _combined_estimator->estimate_3d2d
-        (
-            points3d_0,
-            tracked_1.keypoints[0],
-            tracked_1.lines3d,
-            tracked_1.keylines[0]
-        ))
-        {
-            result.pose_3d2d       = *pose;
-            result.pose_3d2d_lines = *pose; // Backward compatibility
-        }
-
-        // Choose the pose with more inliers
-        const auto inliers_3d3d = result.pose_3d3d.inliers.size();
-        const auto inliers_3d2d = result.pose_3d2d.inliers.size();
-
-        if (inliers_3d3d >= inliers_3d2d && inliers_3d3d > 0)
-        {
-            result.chosen_pose  = result.pose_3d3d.pose;
-            result.chosen_count = inliers_3d3d;
-        }
-        else if (inliers_3d2d > 0)
-        {
-            result.chosen_pose  = result.pose_3d2d.pose;
-            result.chosen_count = inliers_3d2d;
-        }
-        else
-        {
-            result.chosen_pose  = cv::Affine3d::Identity();
-            result.chosen_count = 0;
-        }
-
-        return result;
-    }
-
-    auto estimator::estimate_pose
-    (
         const frame::estimated& frame_0,
         const frame::tracked&   tracked_1
-    ) const
-        -> estimate_pose_result
+    ) const -> estimate_pose_result
     {
-        estimate_pose_result result{};
+        estimate_pose_result result { };
 
         // Combined 3D-3D estimation
         if
@@ -179,7 +119,7 @@ namespace zenslam
             = frame_0.points3d
             | std::views::values
             | std::views::filter([&tracked_1, &camera_index](const auto& point3d) { return tracked_1.keypoints[camera_index].contains(point3d.index); })
-            | std::views::transform([&tracked_1, &camera_index](const auto& point3d) { return std::make_pair(point3d, tracked_1.keypoints[camera_index].at(point3d.index)); })
+            | std::views::transform([&tracked_1, &camera_index](const point3d& point3d) { return std::make_pair(point3d, tracked_1.keypoints[camera_index].at(point3d.index)); })
             | std::ranges::to<std::vector>();
 
         const auto& keylines = tracked_1.keylines[camera_index];
@@ -187,43 +127,50 @@ namespace zenslam
             = frame_0.lines3d
             | std::views::values
             | std::views::filter([&keylines](const auto& line) { return keylines.contains(line.index); })
-            | std::views::transform([&keylines](const auto& line)
-            {
-                const auto& keyline = keylines.at(line.index);
-
-                point3d endpoint_0 {};
-                point3d endpoint_1 {};
-                static_cast<cv::Point3d&>(endpoint_0) = line[0];
-                static_cast<cv::Point3d&>(endpoint_1) = line[1];
-                endpoint_0.index = line.index;
-                endpoint_1.index = line.index;
-
-                keypoint keypoint_0 {};
-                keypoint keypoint_1 {};
-                keypoint_0.pt    = cv::Point2f(gsl::narrow_cast<float>(keyline.startPointX), gsl::narrow_cast<float>(keyline.startPointY));
-                keypoint_1.pt    = cv::Point2f(gsl::narrow_cast<float>(keyline.endPointX), gsl::narrow_cast<float>(keyline.endPointY));
-                keypoint_0.index = line.index;
-                keypoint_1.index = line.index;
-
-                return std::array<std::pair<point3d, keypoint>, 2>
+            | std::views::transform
+            (
+                [&keylines](const auto& line)
                 {
-                    std::pair { endpoint_0, keypoint_0 },
-                    std::pair { endpoint_1, keypoint_1 }
-                };
-            })
+                    const auto& keyline = keylines.at(line.index);
+
+                    point3d endpoint_0 { };
+                    point3d endpoint_1 { };
+                    static_cast<cv::Point3d&>(endpoint_0) = line[0];
+                    static_cast<cv::Point3d&>(endpoint_1) = line[1];
+                    endpoint_0.index                      = line.index;
+                    endpoint_1.index                      = line.index;
+
+                    keypoint keypoint_0 { };
+                    keypoint keypoint_1 { };
+                    keypoint_0.pt    = cv::Point2f(gsl::narrow_cast<float>(keyline.startPointX), gsl::narrow_cast<float>(keyline.startPointY));
+                    keypoint_1.pt    = cv::Point2f(gsl::narrow_cast<float>(keyline.endPointX), gsl::narrow_cast<float>(keyline.endPointY));
+                    keypoint_0.index = line.index;
+                    keypoint_1.index = line.index;
+
+                    return std::array<std::pair<point3d, keypoint>, 2>
+                    {
+                        std::pair { endpoint_0, keypoint_0 },
+                        std::pair { endpoint_1, keypoint_1 }
+                    };
+                }
+            )
             | std::ranges::to<std::vector>();
 
-        std::ranges::for_each(line_correspondences, [&correspondences_3d2d](const auto& pair_set)
-        {
-            correspondences_3d2d.insert(correspondences_3d2d.end(), pair_set.begin(), pair_set.end());
-        });
+        std::ranges::for_each
+        (
+            line_correspondences,
+            [&correspondences_3d2d](const auto& pair_set)
+            {
+                correspondences_3d2d.insert(correspondences_3d2d.end(), pair_set.begin(), pair_set.end());
+            }
+        );
 
         if (correspondences_3d2d.size() < 4)
         {
             throw std::logic_error("Not enough 3D-2D correspondences for PnP RANSAC: " + std::to_string(correspondences_3d2d.size()) + " (need >= 4)");
         }
 
-        pose_data pose{};
+        pose_data pose { };
         try
         {
             pose = solvepnp_ransac(correspondences_3d2d);
@@ -255,10 +202,10 @@ namespace zenslam
     {
         if (tracked_1.index == 0)
         {
-            return {};
+            return { };
         }
 
-        pose_data pose{};
+        pose_data pose { };
         try
         {
             pose = estimate_pose_3d2d(frame_0, tracked_1, 0);
@@ -293,8 +240,8 @@ namespace zenslam
                     throw std::logic_error("Not enough 3D-3D correspondences for rigid transform RANSAC: " + std::to_string(correspondences.size()) + " (need >= 3)");
                 }
 
-                const auto& points_0 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d{pair.first}; }) | std::ranges::to<std::vector>();
-                const auto& points_1 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d{pair.second}; }) | std::ranges::to<std::vector>();
+                const auto& points_0 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d { pair.first }; }) | std::ranges::to<std::vector>(); // NOLINT(*-slicing)
+                const auto& points_1 = correspondences | std::views::transform([](const auto& pair) { return cv::Point3d { pair.second }; }) | std::ranges::to<std::vector>(); // NOLINT(*-slicing)
 
                 cv::Matx33d         R;
                 cv::Point3d         t;
@@ -308,13 +255,13 @@ namespace zenslam
                     throw std::runtime_error("Rigid transform estimation (3D-3D) failed");
                 }
 
-                pose.pose     = cv::Affine3d{R, t};
+                pose.pose     = cv::Affine3d { R, t };
                 pose.inliers  = inliers | std::views::transform([&correspondences](const auto& idx) { return correspondences[idx].first.index; }) | std::ranges::to<std::vector>();
                 pose.outliers = outliers | std::views::transform([&correspondences](const auto& idx) { return correspondences[idx].first.index; }) | std::ranges::to<std::vector>();
             }
         }
 
-        return {.pose_3d2d = pose, .chosen_pose = pose.pose, .chosen_count = pose.inliers.size()};
+        return { .pose_3d2d = pose, .chosen_pose = pose.pose, .chosen_count = pose.inliers.size() };
     }
 
     auto estimator::estimate_pose_weighted
@@ -355,7 +302,7 @@ namespace zenslam
 
         std::vector<int> inliers;
 
-        const auto& success = cv::solvePnPRansac(object_points, image_points, _calibration.camera_matrix[0], {}, rvec, tvec, true, 100, _options.pnp.threshold, 0.99, inliers);
+        const auto& success = cv::solvePnPRansac(object_points, image_points, _calibration.camera_matrix[0], { }, rvec, tvec, true, 100, _options.pnp.threshold, 0.99, inliers);
 
         if (!success)
         {
@@ -369,9 +316,9 @@ namespace zenslam
 
         cv::Rodrigues(rvec, R);
 
-        pose_data pose{};
+        pose_data pose { };
         pose.pose    = cv::Affine3d(R, tvec);
-        pose.inliers = inliers | std::views::transform([](const auto& i) { return size_t{gsl::narrow<size_t>(i)}; }) | std::ranges::to<std::vector>();
+        pose.inliers = inliers | std::views::transform([](const auto& i) { return size_t { gsl::narrow<size_t>(i) }; }) | std::ranges::to<std::vector>();
 
         return pose;
     }
@@ -398,8 +345,8 @@ namespace zenslam
             | std::views::transform([](const auto& pair) { return pair.second.pt; })
             | std::ranges::to<std::vector>();
 
-        auto rvec = cv::Vec3d::zeros();
-        cv::Vec3d tvec = {};
+        auto      rvec = cv::Vec3d::zeros();
+        cv::Vec3d tvec = { };
         cv::Rodrigues(pose.pose.rotation(), rvec);
         tvec = pose.pose.translation();
 
@@ -408,11 +355,11 @@ namespace zenslam
         //     throw std::runtime_error("Invalid initial pose for cv::solvePnPRefineLM: empty rotation or translation vector");
         // }
 
-        cv::solvePnPRefineLM(object_points, image_points, _calibration.camera_matrix[0], {}, rvec, tvec, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 1e-6));
+        cv::solvePnPRefineLM(object_points, image_points, _calibration.camera_matrix[0], { }, rvec, tvec, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 1e-6));
 
         cv::Matx33d R;
         cv::Rodrigues(rvec, R);
 
-        return {cv::Affine3d(R, tvec), pose.indices, pose.inliers, pose.outliers};
+        return { cv::Affine3d(R, tvec), pose.indices, pose.inliers, pose.outliers };
     }
 } // namespace zenslam

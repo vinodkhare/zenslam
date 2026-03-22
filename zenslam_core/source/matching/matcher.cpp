@@ -12,11 +12,11 @@ namespace zenslam
 
     auto matcher::match_keypoints(const map<keypoint>& keypoints_0, const map<keypoint>& keypoints_1) const -> std::vector<cv::DMatch>
     {
-        cv::Mat                 descriptors_l {};
-        cv::Mat                 descriptors_r {};
-        std::vector<keypoint>   unmatched_l {};
-        std::vector<keypoint>   unmatched_r {};
-        std::vector<cv::DMatch> matches_new {};
+        cv::Mat                 descriptors_l{};
+        cv::Mat                 descriptors_r{};
+        std::vector<keypoint>   unmatched_l{};
+        std::vector<keypoint>   unmatched_r{};
+        std::vector<cv::DMatch> matches_new{};
 
         for (const auto& keypoint_l : keypoints_0 | std::views::values)
         {
@@ -55,8 +55,8 @@ namespace zenslam
         if (descriptors_l.empty() || descriptors_r.empty())
             return matches_new;
 
-        std::vector<cv::DMatch> matches {};
-        const auto use_ratio_test { _options.matcher == matcher_type::KNN || _options.matcher == matcher_type::FLANN };
+        std::vector<cv::DMatch> matches{};
+        const auto              use_ratio_test{ _options.matcher == matcher_type::KNN || _options.matcher == matcher_type::FLANN };
 
         if (use_ratio_test)
         {
@@ -82,12 +82,11 @@ namespace zenslam
         // Estimate fundamental matrix using RANSAC and filter matches
         if (matches.size() >= 8)
         {
-            auto                    points_l = matches | std::views::transform([&unmatched_l](const auto& match) { return unmatched_l[match.queryIdx].pt; }) | std::ranges::to<std::vector>();
+            auto points_l = matches | std::views::transform([&unmatched_l](const auto& match) { return unmatched_l[match.queryIdx].pt; }) | std::ranges::to<std::vector>();
+            auto points_r = matches | std::views::transform([&unmatched_r](const auto& match) { return unmatched_r[match.trainIdx].pt; }) | std::ranges::to<std::vector>();
 
-            auto                    points_r = matches | std::views::transform([&unmatched_r](const auto& match) { return unmatched_r[match.trainIdx].pt; }) | std::ranges::to<std::vector>();
-
-            std::vector<uchar>      inlier_mask;
-            auto fundamental = cv::findFundamentalMat(points_l, points_r, cv::FM_RANSAC, _options.epipolar_threshold, 0.99, inlier_mask);
+            std::vector<uchar> inlier_mask;
+            auto               fundamental = cv::findFundamentalMat(points_l, points_r, cv::FM_RANSAC, _options.epipolar_threshold, 0.99, inlier_mask);
 
             // Keep only inliers
             std::vector<cv::DMatch> filtered_matches;
@@ -115,7 +114,7 @@ namespace zenslam
 
     auto matcher::match_keypoints(const std::vector<keypoint>& keypoints_0, const std::vector<keypoint>& keypoints_1) const -> std::vector<cv::DMatch>
     {
-        std::vector<cv::DMatch> matches_new {};
+        std::vector<cv::DMatch> matches_new{};
 
         if (keypoints_0.empty() || keypoints_1.empty())
         {
@@ -158,13 +157,13 @@ namespace zenslam
             return matches_new;
         }
 
-        cv::Mat descriptors_l {};
-        cv::Mat descriptors_r {};
+        cv::Mat descriptors_l{};
+        cv::Mat descriptors_r{};
         cv::vconcat(descriptors_0_list, descriptors_l);
         cv::vconcat(descriptors_1_list, descriptors_r);
 
-        std::vector<cv::DMatch> matches {};
-        const auto use_ratio_test { _options.matcher == matcher_type::KNN || _options.matcher == matcher_type::FLANN };
+        std::vector<cv::DMatch> matches{};
+        const auto              use_ratio_test{ _options.matcher == matcher_type::KNN || _options.matcher == matcher_type::FLANN };
 
         if (use_ratio_test)
         {
@@ -187,7 +186,6 @@ namespace zenslam
         if (matches.size() >= 8)
         {
             auto points_l = matches | std::views::transform([&keypoints_0, &rows_0](const auto& match) { return keypoints_0[rows_0[match.queryIdx]].pt; }) | std::ranges::to<std::vector>();
-
             auto points_r = matches | std::views::transform([&keypoints_1, &rows_1](const auto& match) { return keypoints_1[rows_1[match.trainIdx]].pt; }) | std::ranges::to<std::vector>();
 
             std::vector<uchar> inlier_mask;

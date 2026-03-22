@@ -21,7 +21,7 @@ namespace zenslam::pose_estimation
         std::vector<cv::Point2d> points2d;
         std::vector<size_t>      indices;
 
-        utils::correspondences_3d2d(map_points_0, map_keypoints_1, points3d, points2d, indices);
+        // utils::correspondences_3d2d(map_points_0, map_keypoints_1, points3d, points2d, indices);
 
         if (points3d.size() < 6)
         {

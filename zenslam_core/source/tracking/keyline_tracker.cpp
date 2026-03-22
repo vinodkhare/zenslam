@@ -8,11 +8,11 @@
 namespace zenslam
 {
     keyline_tracker::keyline_tracker(calibration calib, slam_options opts, frame::system& system) :
-        _options(opts.detection),
-        _calibration(std::move(calib)),
-        _tracking(opts.tracking),
-        _triangulation(opts.triangulation),
-        _triangulator { _calibration, opts },
+        _options{opts.detection},
+        _calibration{std::move(calib)},
+        _tracking{opts.tracking},
+        _triangulation{opts.triangulation},
+        _triangulator{_calibration, opts},
         _system(system)
     {
     }
@@ -31,8 +31,8 @@ namespace zenslam
 
     auto keyline_tracker::track(const frame::tracked& frame_0, const frame::processed& frame_1) const -> std::array<map<keyline>, 2>
     {
-        map<keyline> keylines_0 = { };
-        map<keyline> keylines_1 = { };
+        map<keyline> keylines_0 = {};
+        map<keyline> keylines_1 = {};
 
         // Track keylines
         const auto& keylines_0_tracked = track_keylines(frame_0.pyramids[0], frame_1.pyramids[0], frame_0.keylines[0]);
@@ -53,20 +53,20 @@ namespace zenslam
 
         // Cross-camera (stereo) keyline tracking
         {
-            map<keyline> keylines_0_untracked { };
+            map<keyline> keylines_0_untracked{};
             for (const auto& [index, keyline_0] : keylines_0) { if (!keylines_1.contains(index)) { keylines_0_untracked.emplace(index, keyline_0); } }
 
             auto keylines_1_tracked_new = track_keylines(frame_1.pyramids[0], frame_1.pyramids[1], keylines_0_untracked);
             keylines_1.add(keylines_1_tracked_new);
 
-            map<keyline> keylines_1_untracked { };
+            map<keyline> keylines_1_untracked{};
             for (const auto& [index, keyline_1] : keylines_1) { if (!keylines_0.contains(index)) { keylines_1_untracked.emplace(index, keyline_1); } }
 
             auto keylines_0_tracked_new = track_keylines(frame_1.pyramids[1], frame_1.pyramids[0], keylines_1_untracked);
             keylines_0.add(keylines_0_tracked_new);
         }
 
-        return { keylines_0, keylines_1 };
+        return {keylines_0, keylines_1};
     }
 
     auto keyline_tracker::triangulate(const std::array<map<keyline>, 2>& keylines, const cv::Mat& image) const -> line3d_cloud
